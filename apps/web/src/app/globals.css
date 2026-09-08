@@ -248,8 +248,12 @@ a.nav-item:hover {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  background-image: var(--workspace-wash);
+  background-repeat: no-repeat;
+  background-size: 100% 420px;
 }
 .topbar {
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
   height: 64px;
   padding: 0 32px;
   display: flex;
@@ -323,7 +327,7 @@ a.nav-item:hover {
   background: var(--accent);
 }
 .button--primary:hover {
-  background: color-mix(in srgb, var(--accent) 85%, white);
+  background: var(--accent-hover);
 }
 .button--secondary {
   color: var(--text-primary);
@@ -429,6 +433,7 @@ a.nav-item:hover {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-panel);
   min-width: 0;
+  box-shadow: var(--shadow-panel);
 }
 .panel-heading {
   padding: 24px;
@@ -716,7 +721,7 @@ a.nav-item:hover {
   min-height: 42px;
   width: 100%;
   color: var(--text-primary);
-  background: var(--canvas);
+  background: var(--surface);
   border: 1px solid var(--border-control);
   border-radius: var(--radius-control);
   padding: 10px 12px;
@@ -812,7 +817,7 @@ td .mono {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: color-mix(in srgb, var(--canvas) 80%, transparent);
+  background: var(--overlay);
 }
 .dialog-popup {
   position: fixed;
@@ -826,7 +831,7 @@ td .mono {
   border-radius: var(--radius-dialog);
   padding: 32px;
   background: var(--surface);
-  box-shadow: 0 24px 80px #0008;
+  box-shadow: var(--shadow-dialog);
 }
 .dialog-title {
   font-family: var(--font-heading);
