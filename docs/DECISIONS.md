@@ -125,8 +125,8 @@ Invitations to existing users require their current password. A tenant owner can
 issue or consume password recovery for another user with memberships outside that
 tenant. A regression test demonstrated the otherwise possible cross-tenant account
 takeover. Own-account recovery remains available to an authenticated owner;
-multi-organisation local recovery tooling is pending. See `docs/M2-IDENTITY.md` for
-the implemented scope and remaining local recovery tooling.
+multi-organisation recovery is available through the guarded local CLI (ADR 014).
+See `docs/M2-IDENTITY.md` for the implemented scope.
 
 ## ADR 013 — Staff HTTP authority and browser session ownership
 
@@ -147,3 +147,28 @@ Use atomic Redis quotas with HMAC-digested subjects, a process-local cap on expe
 password operations, and failure-closed admission. Trust one proxy hop only on the
 unpublished Compose API behind Caddy; native development trusts none. HTTP tests
 import compiled Nest code so DTO metadata matches the actual production runtime.
+
+## ADR 014 — Local credentials and explicit recovery
+
+Generate distinct random passwords for fictional demo accounts into one ignored,
+private setup file before the seed transaction. Repeated seeds preserve identities,
+passwords and changed membership access. Conflicting identities, altered credential
+inventories or a missing file after seeding fail without inventing replacement keys.
+The Compose seed shares the host file using the local UID/GID; running application
+services do not mount it. Recovery is a guarded local CLI with a separately written
+one-time password file, session/grant revocation and access-state preservation.
+Audit rows explicitly distinguish LOCAL from STAFF actors with a database constraint.
+
+## ADR 015 — Scoped drafts before immutable releases
+
+The bot domain reuses transactional staff authority and requires explicit revisions
+for save, archive and restore. A bot/draft composite foreign key enforces tenant
+identity. Domain schemas also supply OpenAPI shapes, avoiding separate authoring
+DTO definitions that can drift. Full bilingual payloads have a route-specific 64 KiB
+limit. Use an explicit reversible archive endpoint while only drafts exist; actual
+deletion and release/media reference policy will be implemented with those resources.
+
+The editor saves explicitly, retains both language buffers and preserves local text
+on conflict. It does not automatically adopt a new revision to force a stale save.
+Readiness, knowledge approval and published versions will derive from persisted
+resources when those subsequent authoring increments are implemented.

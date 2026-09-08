@@ -6,8 +6,8 @@ Updated 2026-09-08. Evidence is local unless explicitly marked otherwise.
 | ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
 | M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.       |
 | M1 — Bilingual voice feasibility         | Partial     | Local fixture lab and audio/protocol checks pass. Live adapters and bilingual provider smoke tests remain pending. |
-| M2 — Identity and tenant boundaries      | In progress | Staff domain, HTTP, Redis limits and browser flows verified; safe local staff seed/recovery tooling remains.       |
-| M3 — Authoring and immutable publication | Not started | Drafts, media, knowledge and releases pending.                                                                     |
+| M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                          |
+| M3 — Authoring and immutable publication | In progress | Scoped bot drafts/API/editor implemented; knowledge, media, presentations and immutable releases remain.           |
 | M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                   |
 | M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                                |
 | M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                            |
@@ -33,8 +33,9 @@ unchanged. Missing provider accounts do not block independent product developmen
 
 The first increment completed the M0 foundation. The second implements M1's local
 audio and fixture paths, while retaining an explicitly pending live gate. Later
-milestones retain their status above. M2 now includes real HTTP/browser staff
-authentication. Live voice remains pending account setup and provider adapters.
+milestones retain their status above. M2 includes real HTTP/browser staff
+authentication and safe local provisioning. M3 starts with bot drafts. Live voice
+remains pending account setup and provider adapters.
 
 ## M0 delivered
 
@@ -189,6 +190,54 @@ An extra repeated browser run reached the real 30/IP credential quota and displa
 Retry-After. The quota stayed enabled; the denied journey was rerun after expiry.
 No rate-limit keys or application data were reset to make tests pass.
 
-Remaining M2 work: locally generated fictional staff seeds and explicit offline
-recovery with local-database guards. Owner registration already creates a usable
-workspace. M3–M8 and live M1 provider validation remain on the active project goal.
+The remaining local staff tooling from this increment was delivered below.
+M3–M8 and live M1 provider validation remain on the active project goal.
+
+## M2 completion and M3 draft increment — 2026-09-08
+
+M2 is complete for the resources implemented so far. Five fictional staff accounts
+span all four roles and two organisations. Their distinct random passwords live in
+an ignored private local file. Native and Compose seeds reuse it without overwriting
+changed accounts or inventing missing replacement passwords. The guarded recovery
+CLI revokes sessions and grants while preserving disabled/enabled access. LOCAL
+audit actors are distinguished from STAFF actors by database constraints.
+
+M3 now has scoped, persisted bot drafts and a strict generated HTTP contract. Reads
+and writes resolve current staff authority within the domain transaction. Required
+revisions prevent concurrent overwrites. Archive/restore preserves the draft. The
+light-theme editor supports bilingual buffers, explicit saving, read-only roles and
+conflict recovery that retains local text until the author chooses to discard it.
+See `docs/M3-AUTHORING.md` for the remaining authoring/publication scope.
+
+- M2 local tooling: 95 unit tests and 34 integration tests passed; the integration
+  suite ran natively and in Linux. A browser journey signed in all five seeded roles.
+- M3 draft code: `pnpm check` passed, including 97 unit tests, contract drift checks,
+  type/lint/format checks and all production builds. All 42 integration tests passed
+  on native infrastructure and in Linux. One additional safe diagnostic test then
+  passed with the five-test HTTP foundation group on both runtimes (43 distinct
+  integration tests verified across these runs).
+
+Browser verification: the full production run passed all 22 existing journeys. The
+three new bot journeys passed after correcting a selector that matched both a
+region and a text field, scoping selectors to their language panels during tab
+transitions, naming the editor's complementary landmark, and waiting for confirmed
+archive success before navigation. All 25 distinct journeys have passed across
+these runs. New checks include role-read-only controls, direct HTTP write denial,
+two-tab revision conflicts, explicit discard confirmation and mobile archive/search.
+
+The initial archive request returned one HTTP 500. Its cause was not captured by
+the previous minimal logs and has not reproduced in subsequent archive runs. This
+remains an open diagnostic observation, not a claimed root-cause fix. Server logs
+now retain bounded Prisma error codes with request IDs, with a regression test
+ensuring exception details never reach logs or client responses. No further failed
+requests appeared in the rebuilt API's logs during the final bot journeys.
+
+The rebuilt Compose stack has six healthy long-running services. Migration and seed
+jobs succeed and preserve existing generated credentials. The network-disabled
+production guard test passes. Desktop/mobile screenshots were reviewed at
+`artifacts/screenshots/m3-bot-editor-desktop.png` and
+`artifacts/screenshots/m3-bot-editor-mobile.png`. The final UI/diagnostic changes
+passed type/lint/format checks and the Linux production build.
+
+No live provider call or account creation was made. The supplied specification
+files remain unchanged. No remote has been configured or pushed.
