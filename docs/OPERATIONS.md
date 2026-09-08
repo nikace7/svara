@@ -1,4 +1,4 @@
-# Local operations — M0
+# Local operations — foundation and voice lab
 
 ## Configuration
 
@@ -63,3 +63,21 @@ Reset, backup/restore, retention, account recovery, provider evaluation and publ
 hosting are not implemented in M0. The initial image retains build/test tools for
 reproducibility; smaller service-specific images can follow. Do not expose this
 unauthenticated local foundation as a hosted product.
+
+## Worklet assets and audio troubleshooting
+
+The audio package compiles browser-safe ES modules. Web build/development startup
+copies only `worklet.js`, `pcm.js` and `playback.js` to ignored `public/audio/`.
+Docker copies these assets into Next's standalone public directory. No provider or
+server module is included. Restart `pnpm dev` after changing worklet source; an
+already loaded worklet cannot be hot-replaced within an existing AudioContext.
+
+Use the local loopback URL in a browser supporting AudioWorklet and microphone
+capture. Denied/unsupported access leaves text scenarios usable. Microphone frames
+are acknowledged and discarded locally; a backlog above 500 ms stops capture.
+The playback core accepts at most two seconds of 24 kHz PCM. The lab tone is only
+600 ms and ends through an actual worklet segment-completion event.
+
+Do not infer real speech quality or hands-free interruption from the tone/meter.
+No provider keys are configured, no live adapters have been connected, and no
+billable evaluation ran. The remaining live gate is tracked in `docs/M1-VOICE.md`.

@@ -68,3 +68,31 @@ Pin compatible core packages and images; introduce later provider/job dependenci
 when their implementation starts. The documented Prisma transitive overrides close
 the initial audit findings while retaining the blueprint's Prisma 7 requirement.
 See `docs/DEPENDENCIES.md` for versions, advisories and removal criteria.
+
+## ADR 009 — Verify audio locally before identity and live admission
+
+M1 adds independent audio processing and provider lifecycle interfaces, original
+synthetic text scenarios, and a local feasibility lab. Microphone input remains
+local in fixture mode. Speech clips and live provider credentials are unavailable;
+scripted answers are text-only and the standalone speaker check uses a labelled
+generated tone. The live SDK adapters, region/voice availability, recognition,
+generation and synthesis quality are explicitly unverified and not presented as done.
+
+Use an abortable, size/concurrency/deadline-bounded HTTP NDJSON endpoint for this
+temporary experiment. Its host/origin/configuration gates prevent public exposure.
+It does not add session records, release retrieval, tools or unauthenticated live
+speech routes. M2 replaces the temporary studio gate with staff identity; the later
+conversation runtime adds the specified authenticated Socket.IO protocol.
+
+## ADR 010 — One owner for capture, playback and answer cancellation
+
+Capture uses the actual AudioContext sample rate, a causal 63-tap low-pass filter
+and continuous-phase conversion to 16 kHz before PCM16 framing. Playback uses a
+bounded ordered 24 kHz queue at the context's output rate. The worklet and unit
+tests share the same processing implementation; copied assets are build outputs.
+
+A generation counter is invalidated before its AbortController fires. End,
+language change, hidden/disposed pages and terminal audio errors release owned
+tracks, nodes, ports and contexts. Permission granted after cancellation is
+immediately released. Stream sequence failures produce retry guidance. No late
+response is accepted as part of a newer generation.

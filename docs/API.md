@@ -47,3 +47,26 @@ namespace, ticket exchange, room or device command exists yet.
 
 Authentication, DTO mutation validation, CSRF, tenant policies and business routes
 arrive in M2 onward. The health API cannot query the seeded organisation/user tables.
+
+## Temporary M1 experiment
+
+`POST /api/v1/feasibility/turn` is registered only when the API is explicitly local
+and in fixture mode. Requests must have a loopback Host and the exact configured
+Origin. The studio page has its own local/fixture/Host guard. This endpoint is not
+a public assistant or an authenticated conversation session.
+
+`packages/contracts/src/feasibility.ts` is the canonical Zod request/event contract.
+The temporary NDJSON transport is separate from the stable generated health OpenAPI
+document. Each request selects `locale`, positive `generation`, and exactly one
+`scenario` or `text` (1–1,000 trimmed UTF-16 code units). Unknown fields are rejected.
+
+Events carry protocol version, server-generated turn ID, generation, monotonic
+sequence, elapsed server milliseconds, stage, text and explicit fixture/text-only
+provenance. The client validates events, UTF-8, line size, turn/generation/sequence
+and terminal completion. A truncated or corrupt stream cannot become a completed
+answer. It does not emit audio or execute tools.
+
+JSON bodies are limited to 16 KiB. The process admits four streams, then returns
+429 with Retry-After. A stream lasts at most ten seconds, honors HTTP backpressure,
+and aborts when its client disconnects. Errors use the safe error envelope. No
+audio, transcripts or request bodies are persisted or written to logs.
