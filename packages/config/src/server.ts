@@ -44,6 +44,10 @@ const serverSchema = z
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(1).default(0),
     API_PORT: positiveInteger(4100, 65535),
     WORKER_PORT: positiveInteger(4101, 65535),
+    WORKER_NAMESPACE: z
+      .string()
+      .regex(/^[a-zA-Z0-9_-]{1,80}$/)
+      .default('svara'),
   })
   .superRefine((config, context) => {
     if (config.APP_ENV === 'production' && config.MEDIA_INSPECTION_MODE !== 'sandboxed') {

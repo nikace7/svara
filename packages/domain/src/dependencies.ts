@@ -50,7 +50,7 @@ export async function createDependencies(config: ServerConfig) {
         ...(includeWorker
           ? {
               worker: async () => {
-                if (!(await redis.get('svara:worker:heartbeat')))
+                if (!(await redis.get(`${config.WORKER_NAMESPACE}:worker:heartbeat`)))
                   throw new Error('Worker unavailable');
               },
             }
