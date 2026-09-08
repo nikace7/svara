@@ -1,9 +1,8 @@
 # Media storage and inspection
 
-The media foundation is implemented and tested independently of the studio.
-Queue reconciliation, expiry/deletion jobs, HTTP upload/serving handlers and the
-media library UI are still pending. The running worker currently performs health
-checks and a heartbeat; it does not yet claim or complete media jobs.
+Private media storage, inspection and durable worker processing are implemented.
+The worker reconciles uploads, commits inspection results and cleans expired or
+deleted files. HTTP upload/serving handlers and the studio media library remain pending.
 
 ## Admission and storage
 
@@ -23,7 +22,8 @@ that a successful database commit already accepted. No quarantined URL is expose
 Only generated UUID keys are accepted under the canonical private media root;
 display filenames never become paths. Reads reject non-regular files and extra
 hard links, and use no-follow flags where available. File responses require READY
-metadata. Revision checks protect deletion requests; worker cleanup remains pending.
+metadata. Revision checks protect deletion requests; the worker removes files before
+deleting the row and preserves the audit record.
 
 Migrations 007 and 008 add scoped media rows, READY/lease/rejection constraints,
 SYSTEM audit actors and a forward correction to a foreign-key constraint name.
@@ -34,7 +34,7 @@ Applied migrations remain immutable.
 The inspector verifies source size and checksum, checks the file signature, then
 uses unique output keys containing the asset and inspection lease IDs. Existing
 outputs are never overwritten. On failure it removes only outputs it created.
-The future job coordinator must commit READY conditionally against the same lease;
+The job coordinator commits READY conditionally against the same unexpired lease;
 returning an inspection result alone does not alter the database.
 
 JPEG/PNG inputs have a 10 MiB and 25-megapixel limit. A separate Node/Sharp process
@@ -53,6 +53,40 @@ Subprocesses have no shell, inherit only selected operating-system settings, and
 have bounded stdout/stderr and a 15-second wall-clock inspection deadline. The
 supervisor waits for termination on timeout. Parser diagnostics never become
 user-facing error strings or application logs. Rejections use shared stable codes.
+
+## Durable jobs and cleanup
+
+PostgreSQL owns the work state. Every five seconds the worker discovers up to 50
+quarantined or expired-lease assets and adds deduplicated BullMQ notifications.
+Notifications contain only asset IDs, disappear on completion/failure, and can be
+recreated after Redis loss. A compare-and-set claim grants a 45-second lease with
+at most three inspection attempts. State changes and SYSTEM audits commit together.
+Duplicate, stale or expired workers cannot replace a winner's files or metadata.
+A lost commit acknowledgement preserves output files until the database can be read.
+
+Invalid media is rejected immediately. Parser unavailability returns the upload to
+quarantine and pauses the consumer until its processing probe succeeds. Shutdown
+cancels inspection and leaves interrupted work retryable, subject to the same attempt
+limit. The supervisor gives graceful shutdown 25 seconds before terminating.
+
+Worker readiness requires connected queue clients, a running consumer, recent
+successful reconciliation and actual processing of bundled 32 × 24 PNG/MP4 probes.
+The processing probe runs at startup, every minute, and after a retryable inspection
+failure. Probes use the configured image child and ffprobe sandbox; generated probe
+files are removed. Only a ready worker refreshes its 15-second heartbeat. A failing
+worker lets the heartbeat expire without deleting another instance's heartbeat.
+
+Cleanup expires abandoned reservations/receipts and retains completed quarantine
+uploads for 24 hours from receipt, including uploads received near the reservation
+deadline. Each sweep examines bounded batches of rows and 100 directory entries.
+The directory cursor advances between sweeps, preserving referenced READY files,
+active uploads, fresh files, unknown names and directories. Only aged generated
+orphan files are unlinked. No application cleanup recursively removes directories.
+
+`WORKER_NAMESPACE` defaults to `svara` and must match on API and worker. It scopes
+queue keys and heartbeat keys; tests use unique namespaces and only delete their own
+queues. Namespace isolation does not replace separate databases/media roots when
+running independent installations.
 
 ## Linux ffprobe isolation
 
