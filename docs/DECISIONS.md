@@ -132,7 +132,7 @@ the implemented scope and remaining local recovery tooling.
 
 Replace the M0 studio preview gate with a server-resolved opaque staff cookie.
 Experimental voice/gallery pages keep their additional local-only restriction.
-This supersedes the unauthenticated studio behavior recorded in ADRs 003 and 008.
+This supersedes the unauthenticated studio behavior recorded in ADRs 003 and 007.
 The web app receives no database credentials or auth pepper. Server session reads
 use the configured internal API and gateway Host with bounded native HTTP, because
 the pinned Node fetch implementation rewrites a caller-supplied Host header.
