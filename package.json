@@ -27,6 +27,8 @@
     "test:coverage": "vitest run --config vitest.config.ts --coverage",
     "test:integration": "tsx scripts/database.ts test && vitest run --config vitest.integration.config.ts",
     "test:e2e": "playwright test",
+    "test:integration:container": "docker compose --env-file .env.compose -f infra/compose.yaml -f infra/compose.demo.yaml exec -T api node --import tsx scripts/database.ts test && docker compose --env-file .env.compose -f infra/compose.yaml -f infra/compose.demo.yaml exec -T api node node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts",
+    "test:container": "docker run --rm --network none svara-app:local node tests/runtime/preview-guard.mjs",
     "screenshots": "playwright test tests/e2e/layout.spec.ts --grep \"workspace fits\"",
     "contracts:generate": "pnpm --filter @svara/api build && tsx scripts/contracts.ts generate",
     "contracts:check": "pnpm --filter @svara/api build && tsx scripts/contracts.ts check",
