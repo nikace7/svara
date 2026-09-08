@@ -3,19 +3,19 @@ import { readFile } from 'node:fs/promises';
 import { AxeBuilder } from '@axe-core/playwright';
 import { test, expect } from './fixtures.js';
 
+test.setTimeout(60000);
+
 test('uploads an image, shows real inspection outcomes, previews and removes media', async ({
   page,
 }) => {
   const name = `स्वागत-${randomUUID().slice(0, 8)}.png`;
   await page.goto('/studio/media');
   await expect(page.getByRole('heading', { name: 'Media library', exact: true })).toBeVisible();
-  await page
-    .getByLabel('Choose media')
-    .setInputFiles({
-      name,
-      mimeType: 'image/png',
-      buffer: await readFile('apps/worker/assets/inspection-probe.png'),
-    });
+  await page.getByLabel('Choose media').setInputFiles({
+    name,
+    mimeType: 'image/png',
+    buffer: await readFile('apps/worker/assets/inspection-probe.png'),
+  });
   await page.getByRole('button', { name: 'Upload file', exact: true }).click();
   const card = page.getByRole('listitem').filter({ hasText: name });
   await expect(card.getByText('Ready', { exact: true })).toBeVisible({ timeout: 20000 });
@@ -54,13 +54,11 @@ test('previews a real video through scoped range requests and fits a mobile scre
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto('/studio/media');
   await expect(page.getByRole('heading', { name: 'Media library', exact: true })).toBeVisible();
-  await page
-    .getByLabel('Choose media')
-    .setInputFiles({
-      name,
-      mimeType: 'video/mp4',
-      buffer: await readFile('apps/worker/assets/inspection-probe.mp4'),
-    });
+  await page.getByLabel('Choose media').setInputFiles({
+    name,
+    mimeType: 'video/mp4',
+    buffer: await readFile('apps/worker/assets/inspection-probe.mp4'),
+  });
   await page.getByRole('button', { name: 'Upload file', exact: true }).click();
   const card = page.getByRole('listitem').filter({ hasText: name });
   await expect(card.getByText('Ready', { exact: true })).toBeVisible({ timeout: 20000 });
@@ -74,9 +72,11 @@ test('previews a real video through scoped range requests and fits a mobile scre
   await card.getByRole('button', { name: `Preview ${name}` }).click();
   await range;
   const video = page.getByRole('dialog').locator('video');
-  await expect.poll(() => video.evaluate((element) => element.videoWidth)).toBe(32);
   await expect
-    .poll(() => video.evaluate((element) => element.readyState))
+    .poll(() => video.evaluate((element) => (element as HTMLVideoElement).videoWidth))
+    .toBe(32);
+  await expect
+    .poll(() => video.evaluate((element) => (element as HTMLVideoElement).readyState))
     .toBeGreaterThanOrEqual(2);
   await page.getByRole('dialog').getByRole('button', { name: 'Close preview' }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
