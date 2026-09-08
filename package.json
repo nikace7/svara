@@ -18,7 +18,7 @@
     "staff:recover": "pnpm --filter @svara/contracts build && tsx scripts/recover-staff.ts",
     "db:test:prepare": "tsx scripts/database.ts test",
     "build:packages": "pnpm --filter=./packages/** -r --if-present build",
-    "dev": "pnpm db:generate && pnpm build:packages && pnpm --filter @svara/api build && concurrently --kill-others --names packages,web,api,worker \"pnpm --filter=./packages/** -r --parallel --if-present dev\" \"pnpm --filter @svara/web dev\" \"pnpm --filter @svara/api dev\" \"pnpm --filter @svara/worker dev\"",
+    "dev": "pnpm db:generate && pnpm build:packages && pnpm --filter @svara/api build && pnpm --filter @svara/worker build && concurrently --kill-others --names packages,web,api,worker \"pnpm --filter=./packages/** -r --parallel --if-present dev\" \"pnpm --filter @svara/web dev\" \"pnpm --filter @svara/api dev\" \"pnpm --filter @svara/worker dev\"",
     "build": "pnpm db:generate && pnpm -r --if-present build",
     "lint": "eslint . --max-warnings 0",
     "format:check": "prettier . --check",
