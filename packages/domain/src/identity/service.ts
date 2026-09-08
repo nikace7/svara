@@ -95,7 +95,7 @@ export class IdentityService {
     }
   }
 
-  private async actor(tx: Transaction, token: string): Promise<Actor> {
+  private async actor(tx: Transaction, token: string, touch = true): Promise<Actor> {
     const session = await tx.staffSession.findUnique({
       where: { tokenHash: hashToken(token, this.pepper) },
       include: { membership: { include: memberInclude } },
@@ -108,7 +108,8 @@ export class IdentityService {
       session.membership.user.disabled
     )
       throw new IdentityError('UNAUTHENTICATED');
-    await tx.staffSession.update({ where: { id: session.id }, data: { lastSeenAt: now } });
+    if (touch)
+      await tx.staffSession.update({ where: { id: session.id }, data: { lastSeenAt: now } });
     return { member: session.membership, sessionId: session.id };
   }
 
@@ -234,9 +235,9 @@ export class IdentityService {
     });
   }
 
-  async resolve(token: string) {
+  async resolve(token: string, touch = true) {
     return this.transaction(async (tx) =>
-      this.safeIdentity(tx, (await this.actor(tx, token)).member),
+      this.safeIdentity(tx, (await this.actor(tx, token, touch)).member),
     );
   }
 

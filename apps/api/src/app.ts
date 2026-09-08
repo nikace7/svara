@@ -234,7 +234,7 @@ export async function createApplication(
     options.identity
   ) {
     const handler = createFeasibilityHandler(options.feasibilityOrigin, (request) =>
-      boundary.settings.service.resolve(boundary.token(request)),
+      boundary.settings.service.resolve(boundary.token(request), false),
     );
     app
       .getHttpAdapter()
