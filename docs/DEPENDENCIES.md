@@ -11,6 +11,8 @@ The media worker pins Sharp 0.35.4 and BullMQ 6.3.4. FFmpeg and libseccomp come
 from the Debian image's signed repositories; the current image resolved FFmpeg
 5.1.9. Native Windows verification uses FFmpeg 9.0.1. The sandbox compiler exists
 only in its build stage. See `MEDIA-INSPECTION.md` for supported inspection modes.
+The API explicitly pins Busboy 1.6.0 for streaming multipart parsing, with
+`@types/busboy` 1.5.4 for development. No native build script is required by this addition.
 
 ESLint 9.39.5 is retained for `eslint-plugin-react` compatibility: the installed
 React lint plugin does not declare ESLint 10 support. Revisit together with Next's

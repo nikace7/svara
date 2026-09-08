@@ -104,6 +104,33 @@ return 404. Approval of incomplete translations returns 422
 Successful entry mutations also advance the bot revision. Generated OpenAPI derives
 body and response shapes from the shared strict contracts.
 
+## Staff media
+
+| Route                             | Behavior                                                                          |
+| --------------------------------- | --------------------------------------------------------------------------------- |
+| `POST /api/v1/media`              | Owner/administrator streams one multipart upload; returns 202 processing metadata |
+| `GET /api/v1/media`               | Staff lists scoped files with search, kind, state and pagination                  |
+| `GET /api/v1/media/:id`           | Staff reads current processing metadata                                           |
+| `DELETE /api/v1/media/:id`        | Owner/administrator requests revision-checked asynchronous removal                |
+| `GET /api/v1/media/:id/content`   | Staff reads a READY object, including single byte ranges and HEAD                 |
+| `GET /api/v1/media/:id/thumbnail` | Staff reads a READY image thumbnail                                               |
+
+Upload requires the configured Host/Origin, staff cookie and rendered-session
+`X-CSRF-Token`. The form contains `metadata` first (JSON with `filename`, `mimeType`
+and `byteLength`), followed by one `file`. JPEG/PNG are limited to 10 MiB and MP4 to
+50 MiB, with exact byte counting, bounded multipart overhead and a 120-second deadline.
+Other staff mutations retain JSON-only admission. The body is streamed without
+buffering the file in the API process.
+
+No content is served until inspection records READY. Responses use no-store,
+nosniff, same-origin resource policy, an encoded Content-Disposition filename and a
+checksum ETag. Valid ranges return 206; invalid/multiple ranges return 416 with
+`Content-Range: bytes */<size>`. If-Range mismatch returns the full object. Foreign
+IDs return 404 before opening a file. Missing/stale deletion revisions return
+428/409; uploads or inspections in progress return `MEDIA_BUSY` when deletion is
+not permitted. A byte mismatch returns 422 `UPLOAD_LENGTH_MISMATCH`. Media quota
+errors preserve actionable `MEDIA_QUOTA` feedback.
+
 ## Temporary M1 experiment
 
 `POST /api/v1/feasibility/turn` is registered only when the API is explicitly local

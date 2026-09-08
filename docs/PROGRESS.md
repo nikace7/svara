@@ -1,13 +1,13 @@
 # Implementation progress
 
-Updated 2026-09-08. Evidence is local unless explicitly marked otherwise.
+Updated 2026-09-09. Evidence is local unless explicitly marked otherwise.
 
 | Milestone                                | State       | Evidence / remaining work                                                                                          |
 | ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
 | M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.       |
 | M1 — Bilingual voice feasibility         | Partial     | Local fixture lab and audio/protocol checks pass. Live adapters and bilingual provider smoke tests remain pending. |
 | M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                          |
-| M3 — Authoring and immutable publication | In progress | Bot drafts and bilingual knowledge implemented; media, presentations and immutable releases remain.                |
+| M3 — Authoring and immutable publication | In progress | Bot drafts, bilingual knowledge and the media library implemented; presentations and immutable releases remain.    |
 | M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                   |
 | M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                                |
 | M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                            |
@@ -34,9 +34,9 @@ unchanged. Missing provider accounts do not block independent product developmen
 The first increment completed the M0 foundation. The second implements M1's local
 audio and fixture paths, while retaining an explicitly pending live gate. Later
 milestones retain their status above. M2 includes real HTTP/browser staff
-authentication and safe local provisioning. M3 includes bot drafts, knowledge and durable
-media inspection/cleanup. Live voice
-remains pending account setup and provider adapters.
+authentication and safe local provisioning. M3 includes bot drafts, knowledge and
+the media library with durable inspection/cleanup and authenticated streaming.
+Live voice remains pending account setup and provider adapters.
 
 ## M0 delivered
 
@@ -384,3 +384,60 @@ Media HTTP admission/upload/range serving and the studio library are next. Relea
 reference protection must be added with presentations/releases before those references
 can exist. M1 live adapters and M3–M8 remain on the active goal. The account instructions
 are available in `FREE-DEMO-SETUP.md`; the local demo stays in fixture mode.
+
+## M3 media API and studio library — 2026-09-09
+
+The staff API now accepts one bounded multipart upload with metadata before file
+bytes, verifies exact receipt, and returns processing metadata. It retains current
+session/tenant/role checks, Host/Origin/CSRF admission and private storage. Extra
+form parts, content mismatches and malformed input cannot publish quarantined bytes.
+READY content and thumbnails support authenticated HEAD, byte ranges and If-Range;
+foreign IDs return not found. Deletion is revision checked and completed by the worker.
+OpenAPI and generated HTTP types describe these routes.
+
+`/studio/media` adds real uploads, processing/rejection feedback, filename/type/status
+filters, pagination, private image/video previews and confirmed removal. Owners and
+administrators author; operators and viewers inspect. Upload cancellation and leaving
+the page stop the client request. The responsive layout uses the light studio palette
+and a subtle purple upload panel. Screenshot review reproduced thumbnail overflow
+that obscured filenames and an incorrect breadcrumb; separate regression/fix commits
+corrected both. Preview dialogs restore focus to the initiating button.
+
+The first full browser gate found a P2034 failure during bot creation. A PostgreSQL
+regression reproduced exhausted immediate retries with twelve independent creates
+using the same staff session. Three bounded delays with jitter now let competing
+commits finish while retaining transactional authority, revision checks and expiry.
+The regression verifies twelve bots and twelve audits, plus revocation denial.
+ADR 019 records the retry policy. The failing and passing stages remain separate
+Conventional Commits; test retries and admission limits were not relaxed.
+
+Verified at this checkpoint:
+
+- `pnpm check` passed formatting, lint, types, **123 unit tests**, contract drift and
+  all production builds. Configured-subset coverage is **96.50% lines / 90.49% branches**;
+  this does not represent whole-application coverage.
+- All **87 integration tests** passed natively and inside the rebuilt Linux image.
+  New coverage includes real multipart/private range serving and concurrent staff
+  authoring, alongside the existing database, worker and recovery checks.
+- All **29 browser journeys** passed against the rebuilt demo, including both new
+  media flows, actual image decoding, HTTP 206 video playback, rejection/removal,
+  focus restoration, axe checks and mobile layout. The API logged no failed requests
+  during this final complete run.
+- The restricted media sandbox gate and network-disabled production preview guard
+  passed. All six long-running Compose services are healthy; migration/seed succeeded,
+  and only the local gateway port is exposed.
+- Dependency audit found no known vulnerabilities. Gitleaks scanned the eight
+  implementation commits since `d3f4eb8` through `1bc1ff7` with no detected secrets.
+  Subsequent changes at this checkpoint are documentation only.
+
+Desktop/mobile media screenshots were reviewed in
+`artifacts/screenshots/m3-media-library.png` and
+`artifacts/screenshots/m3-media-mobile.png` (ignored local evidence). The original
+supplied blueprints and existing local credentials are preserved. No account was
+created, provider called, remote configured or push performed.
+
+The next M3 increment is presentation authoring: scoped presentations and ordered
+bilingual slides, primary/secondary targets, media references and a real canvas.
+Add reference protection before slide/release references can exist. Immutable
+preview/published snapshots and release-local query inspection follow. Live M1 and
+M3–M8 remain on the active goal; missing provider accounts do not block this work.

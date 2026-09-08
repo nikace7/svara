@@ -1,8 +1,9 @@
 # M3 — Bot authoring and publication
 
 M3 is in progress. Persisted bot drafts and bilingual knowledge now have a protected
-API and studio editors. Media storage and isolated inspection are implemented;
-queue/HTTP/UI integration, presentations and immutable releases remain pending.
+API and studio editors. The media library includes authenticated streaming uploads,
+durable inspection, private previews and removal. Presentations and immutable
+releases remain pending.
 Draft tool choices are configuration; they do not execute tools.
 
 ## Draft architecture
@@ -66,12 +67,13 @@ provider or establishes the factual accuracy of the submitted text.
 
 ## Remaining M3 work
 
-1. Add scoped upload/serving handlers and the studio library to the implemented
-   durable media worker and cleanup. See `MEDIA-INSPECTION.md`.
-2. Presentations, ordered slides, screen targets and media references.
-3. Release readiness checks, immutable preview/published snapshots, idempotent
+The staff media library and its authenticated streaming API are implemented; see
+`MEDIA-INSPECTION.md` for the current processing boundary.
+
+1. Presentations, ordered slides, screen targets and media references.
+2. Release readiness checks, immutable preview/published snapshots, idempotent
    publication and release-local search projections.
-4. Knowledge query inspection against a pinned release, synthetic bot/content/media
+3. Knowledge query inspection against a pinned release, synthetic bot/content/media
    examples and the complete authoring browser gate.
 
 The existing Voice lab continues to use explicitly labelled synthetic scenarios.
