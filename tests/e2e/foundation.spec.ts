@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import { AxeBuilder } from '@axe-core/playwright';
 
 test('overview shows actual dependency readiness and honest milestone state', async ({ page }) => {
   await page.goto('/studio');

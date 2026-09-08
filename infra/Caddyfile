@@ -9,7 +9,9 @@
     Referrer-Policy same-origin
     Permissions-Policy "camera=(), microphone=(self)"
   }
-  respond /gateway-health "ok" 200
+  handle /gateway-health {
+    respond "ok" 200
+  }
   @api path /api/* /socket.io/*
   handle @api {
     reverse_proxy {$API_UPSTREAM}
