@@ -64,7 +64,9 @@ test('authors review bilingual FAQs, preserve selection approval and invalidate 
     'भर्ना कक्ष भुइँतलामा छ।',
   );
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-  await page.getByRole('heading', { name: 'Admissions desk', exact: true }).click();
+  await page.setViewportSize({ width: 1440, height: 1100 });
+  await page.getByRole('link', { name: 'All entries', exact: true }).focus();
+  await expect(page.getByRole('link', { name: 'Skip to content' })).not.toBeInViewport();
   await page.screenshot({ path: 'artifacts/screenshots/m3-knowledge-editor.png', fullPage: true });
   await page.getByRole('link', { name: 'All entries', exact: true }).click();
   await page.getByLabel('Review status').selectOption('APPROVED');
@@ -135,6 +137,9 @@ test('reference notes work on mobile and conflicting edits preserve local text',
     true,
   );
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.getByRole('link', { name: 'All entries', exact: true }).focus();
+  await expect(page.getByRole('link', { name: 'Skip to content' })).not.toBeInViewport();
+  await page.screenshot({ path: 'artifacts/screenshots/m3-knowledge-mobile.png', fullPage: true });
   await page.getByRole('button', { name: 'Delete entry', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Delete entry', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Knowledge', exact: true })).toBeVisible();
