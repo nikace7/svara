@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { StudioLink as Link } from './draft-navigation';
 import { usePathname } from 'next/navigation';
 import { Dialog } from '@base-ui/react/dialog';
 import {
@@ -27,14 +27,14 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const path = usePathname();
   const { identity } = useStaffSession();
   const items = [
-    { label: 'Overview', icon: LayoutDashboard },
-    { label: 'Bots', icon: Bot },
+    { label: 'Overview', icon: LayoutDashboard, href: '/studio' },
+    { label: 'Bots', icon: Bot, href: '/studio/bots' },
     { label: 'Media', icon: Images },
     { label: 'Devices', icon: Monitor },
     { label: 'Events & Deployments', icon: CalendarDays },
     { label: 'Sessions', icon: FileText },
     { label: 'Analytics', icon: ChartNoAxesCombined },
-    { label: 'Settings', icon: Settings2 },
+    { label: 'Settings', icon: Settings2, href: '/studio/settings' },
   ];
   return (
     <>
@@ -52,16 +52,18 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
       <p className="nav-label">WORKSPACE</p>
       <nav aria-label="Main navigation">
         <ul className="nav-list">
-          {items.map(({ label, icon: Icon }, index) => (
+          {items.map(({ label, icon: Icon, href }) => (
             <li key={label}>
-              {index === 0 || label === 'Settings' ? (
+              {href ? (
                 <Link
-                  href={index === 0 ? '/studio' : '/studio/settings'}
+                  href={href}
                   onClick={() => onNavigate?.()}
                   className="nav-item"
                   aria-label={label}
                   aria-current={
-                    path === (index === 0 ? '/studio' : '/studio/settings') ? 'page' : undefined
+                    path === href || (href !== '/studio' && path.startsWith(`${href}/`))
+                      ? 'page'
+                      : undefined
                   }
                 >
                   <Icon size={18} aria-hidden="true" />
@@ -154,9 +156,11 @@ export function StudioShell({ children }: { children: ReactNode }) {
                   ? 'Component gallery'
                   : voiceLab
                     ? 'Voice lab'
-                    : pathname.endsWith('settings')
-                      ? 'Settings'
-                      : 'Overview'}
+                    : pathname.startsWith('/studio/bots')
+                      ? 'Bots'
+                      : pathname.endsWith('settings')
+                        ? 'Settings'
+                        : 'Overview'}
               </strong>
             </span>
           </div>

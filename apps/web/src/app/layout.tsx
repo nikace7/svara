@@ -9,6 +9,7 @@ import '@fontsource/noto-sans-devanagari/devanagari-400.css';
 import '@fontsource/noto-sans-devanagari/devanagari-600.css';
 import './globals.css';
 import './staff.css';
+import './bots.css';
 
 export const metadata: Metadata = {
   title: { default: 'Svara — Voice & Device Studio', template: '%s · Svara' },
