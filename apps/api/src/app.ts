@@ -32,6 +32,12 @@ import { AuthController, MembersController, OrganisationController } from './aut
 import { StaffGuard } from './auth/guard.js';
 import { BOT_SERVICE, BotsController } from './authoring/controller.js';
 import type { BotHttpService } from './authoring/controller.js';
+import {
+  BotKnowledgeController,
+  KnowledgeController,
+  KNOWLEDGE_SERVICE,
+} from './authoring/knowledge-controller.js';
+import type { KnowledgeHttpService } from './authoring/knowledge-controller.js';
 
 const OPTIONS = Symbol('application-options');
 export interface ApplicationOptions {
@@ -41,6 +47,7 @@ export interface ApplicationOptions {
   feasibilityOrigin?: string;
   identity?: IdentityHttpOptions;
   authoring?: BotHttpService;
+  knowledge?: KnowledgeHttpService;
   trustedProxyHops?: 0 | 1;
 }
 
@@ -239,11 +246,14 @@ export async function createApplication(
       MembersController,
       OrganisationController,
       BotsController,
+      BotKnowledgeController,
+      KnowledgeController,
     ],
     providers: [
       { provide: OPTIONS, useValue: options },
       { provide: AUTH_BOUNDARY, useValue: boundary },
       { provide: BOT_SERVICE, useValue: options.authoring ?? null },
+      { provide: KNOWLEDGE_SERVICE, useValue: options.knowledge ?? null },
       StaffGuard,
     ],
   })
@@ -260,7 +270,7 @@ export async function createApplication(
   app.useBodyParser('json', {
     limit: '64kb',
     type: (request) =>
-      /^\/api\/v1\/bots(?:\/|\?|$)/.test(request.url ?? '') &&
+      /^\/api\/v1\/(?:bots|knowledge)(?:\/|\?|$)/.test(request.url ?? '') &&
       /^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] ?? ''),
   });
   app.useBodyParser('json', { limit: '16kb' });
