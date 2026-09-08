@@ -247,7 +247,10 @@ export class MediaJobs {
       output = await this.verify(claimed, await this.inspect(claimed, inspectionSignal));
       if (inspectionSignal.aborted) throw new MediaError('INSPECTION_TIMEOUT');
     } catch (error) {
-      return this.failed(claimed, error);
+      return this.failed(
+        claimed,
+        signal?.aborted ? new MediaError('INSPECTION_UNAVAILABLE') : error,
+      );
     }
     // Keep commit outside the inspection catch. An uncertain acknowledgement may
     // already have persisted READY; preserve its outputs and let reconciliation read it.
