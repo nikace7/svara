@@ -1,6 +1,37 @@
 import { expect, it } from 'vitest';
 import { staffFixture } from './staff-fixture.js';
 import { IdentityService } from '../../packages/domain/src/identity/service.js';
+import { BotService } from '../../packages/domain/src/authoring/bots.js';
+
+it('completes a burst of independent authoring requests using the same staff session', async () => {
+  const staff = await staffFixture();
+  const identity = new IdentityService(staff.db, staff.pepper);
+  const bots = new BotService(identity);
+  const organisationId = staff.owner.identity.organisation.id;
+  try {
+    const results = await Promise.allSettled(
+      Array.from({ length: 12 }, (_, index) =>
+        bots.create(staff.owner.token, { name: `Concurrent author ${index}` }),
+      ),
+    );
+    for (const result of results) {
+      if (result.status === 'rejected') expect(result.reason).toMatchObject({ code: 'P2034' });
+    }
+    expect(results.map((result) => result.status)).toEqual(Array(12).fill('fulfilled'));
+    expect(await staff.db.bot.count({ where: { organisationId } })).toBe(12);
+    expect(
+      await staff.db.auditEntry.count({ where: { organisationId, action: 'bot.created' } }),
+    ).toBe(12);
+    await identity.logout(staff.owner.token);
+    await expect(bots.create(staff.owner.token, { name: 'Revoked' })).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
+  } finally {
+    await staff.db.botDraft.deleteMany({ where: { organisationId } });
+    await staff.db.bot.deleteMany({ where: { organisationId } });
+    await staff.close();
+  }
+});
 
 it('retries serializable conflicts raised by the driver at commit, rerunning staff authority', async () => {
   const staff = await staffFixture();
