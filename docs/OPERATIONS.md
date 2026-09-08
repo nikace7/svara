@@ -41,8 +41,12 @@ Do not run raw migration commands against arbitrary existing credentials.
 ## Health and recovery
 
 The studio polls real API readiness every 15 seconds. Dependency probes are bounded
-and expose safe categories. Unknown/failed results cannot appear healthy. The worker
-currently performs dependency checks and heartbeat only; domain jobs are later work.
+and expose safe categories. Unknown/failed results cannot appear healthy. Worker
+readiness includes the media queue, reconciliation and real image/video processing
+probes. An unavailable parser leaves liveness healthy but readiness unavailable and
+stops refreshing the heartbeat. See `MEDIA-INSPECTION.md` for recovery and cleanup.
+Keep `WORKER_NAMESPACE` identical on API and worker (default `svara`). Separate
+installations sharing Redis require distinct namespaces and database/media storage.
 
 ```sh
 docker compose --env-file .env.compose -f infra/compose.yaml -f infra/compose.demo.yaml ps
@@ -61,7 +65,7 @@ PostgreSQL volume; preserve its original generated credentials.
 
 ## Later operations
 
-Backup/restore, retention, provider evaluation and public
+Backup/restore, conversation retention, provider evaluation and public
 hosting remain later work. Owner-issued recovery links are available in settings.
 The image retains build/test tools for reproducibility; smaller service-specific
 images can follow. The supported deployment remains the local demo.

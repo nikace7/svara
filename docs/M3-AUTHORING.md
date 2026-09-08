@@ -66,8 +66,8 @@ provider or establishes the factual accuracy of the submitted text.
 
 ## Remaining M3 work
 
-1. Connect the tested media storage/inspector to durable worker jobs, cleanup,
-   scoped upload/serving handlers and the studio library. See `MEDIA-INSPECTION.md`.
+1. Add scoped upload/serving handlers and the studio library to the implemented
+   durable media worker and cleanup. See `MEDIA-INSPECTION.md`.
 2. Presentations, ordered slides, screen targets and media references.
 3. Release readiness checks, immutable preview/published snapshots, idempotent
    publication and release-local search projections.
