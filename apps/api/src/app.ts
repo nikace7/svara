@@ -24,12 +24,14 @@ import {
 import type { NextFunction, Request, Response } from 'express';
 import type { ProviderMode } from '@svara/contracts';
 import type { Readiness } from '@svara/domain';
-import { IdentityError } from '@svara/domain';
+import { AuthoringError, IdentityError } from '@svara/domain';
 import { createFeasibilityHandler } from './feasibility.js';
 import { AUTH_BOUNDARY, StaffBoundary } from './auth/boundary.js';
 import type { IdentityHttpOptions } from './auth/boundary.js';
 import { AuthController, MembersController, OrganisationController } from './auth/controller.js';
 import { StaffGuard } from './auth/guard.js';
+import { BOT_SERVICE, BotsController } from './authoring/controller.js';
+import type { BotHttpService } from './authoring/controller.js';
 
 const OPTIONS = Symbol('application-options');
 export interface ApplicationOptions {
@@ -38,6 +40,7 @@ export interface ApplicationOptions {
   probe: () => Promise<Readiness>;
   feasibilityOrigin?: string;
   identity?: IdentityHttpOptions;
+  authoring?: BotHttpService;
   trustedProxyHops?: 0 | 1;
 }
 
@@ -94,6 +97,31 @@ class SafeExceptionFilter implements ExceptionFilter {
     const response = host.switchToHttp().getResponse<Response>();
     const parserType =
       exception instanceof Error && 'type' in exception ? exception.type : undefined;
+    if (exception instanceof AuthoringError) {
+      const details = {
+        PRECONDITION_REQUIRED: {
+          status: 428,
+          message: 'Include the draft revision before saving.',
+        },
+        REVISION_CONFLICT: {
+          status: 409,
+          message:
+            'This draft changed elsewhere. Your edits have not been saved. Load the latest version before trying again.',
+        },
+        ARCHIVED: { status: 409, message: 'Restore this bot before editing its draft.' },
+      }[exception.code];
+      response.status(details.status).json({
+        error: {
+          code: exception.code,
+          message: details.message,
+          currentRevision: exception.currentRevision,
+          fieldErrors: {},
+          retryable: false,
+        },
+        requestId: response.getHeader('x-request-id'),
+      });
+      return;
+    }
     const status =
       exception instanceof IdentityError
         ? (
@@ -170,7 +198,7 @@ export function createOpenApiDocument(app: NestExpressApplication) {
     new DocumentBuilder()
       .setTitle('Svara API')
       .setDescription(
-        'Staff identity, organisation access and process/dependency health. Mutations require the configured Origin and authenticated mutations also require X-CSRF-Token.',
+        'Staff identity, organisation access, bot drafts and process/dependency health. Mutations require the configured Origin and authenticated mutations also require X-CSRF-Token. Draft updates require expectedRevision.',
       )
       .setVersion('0.1.0')
       .addCookieAuth(
@@ -195,10 +223,17 @@ export async function createApplication(
 ): Promise<NestExpressApplication> {
   const boundary = new StaffBoundary(options.identity);
   @Module({
-    controllers: [HealthController, AuthController, MembersController, OrganisationController],
+    controllers: [
+      HealthController,
+      AuthController,
+      MembersController,
+      OrganisationController,
+      BotsController,
+    ],
     providers: [
       { provide: OPTIONS, useValue: options },
       { provide: AUTH_BOUNDARY, useValue: boundary },
+      { provide: BOT_SERVICE, useValue: options.authoring ?? null },
       StaffGuard,
     ],
   })
@@ -210,6 +245,13 @@ export async function createApplication(
     response.setHeader('x-request-id', randomUUID());
     response.setHeader('Cache-Control', 'no-store');
     next();
+  });
+  // Full bilingual drafts can exceed 16 KiB; other JSON routes keep their smaller limit.
+  app.useBodyParser('json', {
+    limit: '64kb',
+    type: (request) =>
+      /^\/api\/v1\/bots(?:\/|\?|$)/.test(request.url ?? '') &&
+      /^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] ?? ''),
   });
   app.useBodyParser('json', { limit: '16kb' });
   app.useGlobalPipes(

@@ -40,6 +40,46 @@ export const botListSchema = z.strictObject({
   includeArchived: z.boolean().default(false),
 });
 
+export const botListQuerySchema = z
+  .strictObject({
+    search: z.string().max(120).optional(),
+    page: z
+      .string()
+      .regex(/^[0-9]+$/)
+      .transform(Number)
+      .optional(),
+    pageSize: z
+      .string()
+      .regex(/^[0-9]+$/)
+      .transform(Number)
+      .optional(),
+    includeArchived: z
+      .enum(['true', 'false'])
+      .transform((value) => value === 'true')
+      .optional(),
+  })
+  .pipe(botListSchema);
+
+export const botSummarySchema = z.strictObject({
+  id: z.uuid(),
+  name,
+  description,
+  revision: z.number().int().positive(),
+  archivedAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+export const botDetailSchema = botSummarySchema.extend({ draft: botDraftSchema });
+export const botPageSchema = z.strictObject({
+  items: z.array(botSummarySchema),
+  total: z.number().int().nonnegative(),
+  page: z.number().int().positive(),
+  pageSize: z.number().int().min(1).max(50),
+});
+export type BotSummary = z.infer<typeof botSummarySchema>;
+export type BotDetail = z.infer<typeof botDetailSchema>;
+export type BotPage = z.infer<typeof botPageSchema>;
+
 export function emptyBotDraft(): BotDraft {
   return {
     persona: '',

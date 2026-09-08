@@ -7,3 +7,5 @@ export type { SafeIdentity, SafeMember, IssuedSession } from './identity/service
 export { IdentityError } from './identity/errors.js';
 export { csrfToken, verifyCsrf } from './identity/security.js';
 export { createStaffLimiter } from './identity/limits.js';
+export { BotService } from './authoring/bots.js';
+export { AuthoringError } from './authoring/errors.js';

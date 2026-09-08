@@ -239,6 +239,54 @@ export interface paths {
         patch: operations["organisation_update"];
         trace?: never;
     };
+    "/api/v1/bots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["bots_list"];
+        put?: never;
+        post: operations["bots_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bots/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["bots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["bots_save"];
+        trace?: never;
+    };
+    "/api/v1/bots/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["bots_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -720,6 +768,318 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["OrganisationResponse"];
                 };
+            };
+        };
+    };
+    bots_list: {
+        parameters: {
+            query?: {
+                includeArchived?: "true" | "false";
+                pageSize?: number;
+                page?: number;
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            items: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                description: string;
+                                revision: number;
+                                /** Format: date-time */
+                                archivedAt: string | null;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            }[];
+                            total: number;
+                            page: number;
+                            pageSize: number;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    bots_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @default  */
+                    description?: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            description: string;
+                            revision: number;
+                            /** Format: date-time */
+                            archivedAt: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            draft: {
+                                persona: string;
+                                greeting: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                fallback: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                /** @enum {string} */
+                                voiceEn: "en-US-JennyNeural";
+                                /** @enum {string} */
+                                voiceNe: "ne-NP-HemkalaNeural" | "ne-NP-SagarNeural";
+                                tools: ("lookup_knowledge" | "get_event_schedule" | "select_reference" | "show_slide")[];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+    bots_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            description: string;
+                            revision: number;
+                            /** Format: date-time */
+                            archivedAt: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            draft: {
+                                persona: string;
+                                greeting: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                fallback: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                /** @enum {string} */
+                                voiceEn: "en-US-JennyNeural";
+                                /** @enum {string} */
+                                voiceNe: "ne-NP-HemkalaNeural" | "ne-NP-SagarNeural";
+                                tools: ("lookup_knowledge" | "get_event_schedule" | "select_reference" | "show_slide")[];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+    bots_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    description: string;
+                    draft: {
+                        persona: string;
+                        greeting: {
+                            en: string;
+                            ne: string;
+                        };
+                        fallback: {
+                            en: string;
+                            ne: string;
+                        };
+                        /** @enum {string} */
+                        voiceEn: "en-US-JennyNeural";
+                        /** @enum {string} */
+                        voiceNe: "ne-NP-HemkalaNeural" | "ne-NP-SagarNeural";
+                        tools: ("lookup_knowledge" | "get_event_schedule" | "select_reference" | "show_slide")[];
+                    };
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            description: string;
+                            revision: number;
+                            /** Format: date-time */
+                            archivedAt: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            draft: {
+                                persona: string;
+                                greeting: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                fallback: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                /** @enum {string} */
+                                voiceEn: "en-US-JennyNeural";
+                                /** @enum {string} */
+                                voiceNe: "ne-NP-HemkalaNeural" | "ne-NP-SagarNeural";
+                                tools: ("lookup_knowledge" | "get_event_schedule" | "select_reference" | "show_slide")[];
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict or archived bot. The error includes currentRevision. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description expectedRevision is required. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    bots_archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    archived: boolean;
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            description: string;
+                            revision: number;
+                            /** Format: date-time */
+                            archivedAt: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            draft: {
+                                persona: string;
+                                greeting: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                fallback: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                /** @enum {string} */
+                                voiceEn: "en-US-JennyNeural";
+                                /** @enum {string} */
+                                voiceNe: "ne-NP-HemkalaNeural" | "ne-NP-SagarNeural";
+                                tools: ("lookup_knowledge" | "get_event_schedule" | "select_reference" | "show_slide")[];
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict; reload the draft before archiving or restoring. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description expectedRevision is required. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
