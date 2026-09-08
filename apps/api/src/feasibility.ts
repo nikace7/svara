@@ -4,33 +4,29 @@ import { FeasibilityRequestSchema } from '@svara/contracts';
 import { runFixtureTurn } from '@svara/domain';
 import { allowsLocalFeasibility } from './local-access.js';
 
+function fail(response: Response, status: number, code: string, message: string): void {
+  response.status(status).json({
+    error: { code, message, fieldErrors: {}, retryable: status === 429 || status >= 500 },
+    requestId: response.getHeader('x-request-id'),
+  });
+}
+
 /** Temporary local experiment; no persistence, provider keys or audio upload. */
 export function createFeasibilityHandler(origin: string) {
   let active = 0;
   return async (request: Request, response: Response): Promise<void> => {
     if (!allowsLocalFeasibility(origin, request.headers.host, request.get('origin'))) {
-      response
-        .status(403)
-        .json({ error: { code: 'FORBIDDEN', message: 'Local same-origin access required.' } });
+      fail(response, 403, 'FORBIDDEN', 'Local same-origin access required.');
       return;
     }
     const parsed = FeasibilityRequestSchema.safeParse(request.body);
     if (!parsed.success) {
-      response
-        .status(400)
-        .json({
-          error: {
-            code: 'INVALID_INPUT',
-            message: 'Choose one bounded input and an explicit locale.',
-          },
-        });
+      fail(response, 400, 'INVALID_INPUT', 'Choose one bounded input and an explicit locale.');
       return;
     }
     if (active >= 4) {
       response.setHeader('Retry-After', '2');
-      response
-        .status(429)
-        .json({ error: { code: 'BUSY', message: 'The local lab is busy. Retry shortly.' } });
+      fail(response, 429, 'BUSY', 'The local lab is busy. Retry shortly.');
       return;
     }
     active++;

@@ -63,4 +63,44 @@ describe('local-only fixture HTTP stream', () => {
       await locked.close();
     }
   });
+  it('bounds concurrent streams and releases capacity when clients disconnect', async () => {
+    const isolated = await createApplication({
+      providerMode: 'fixture',
+      localDocs: true,
+      feasibilityOrigin: 'http://localhost:4320',
+      probe: async () => ({ status: 'ready', dependencies: {} }),
+    });
+    const controllers = Array.from({ length: 4 }, () => new AbortController());
+    try {
+      await isolated.listen(0, '127.0.0.1');
+      const url = `${await isolated.getUrl()}/api/v1/feasibility/turn`;
+      const init = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Origin: 'http://localhost:4320' },
+        body: JSON.stringify({ locale: 'en-US', generation: 1, scenario: 'interrupt_answer' }),
+      };
+      const responses = await Promise.all(
+        controllers.map((controller) => fetch(url, { ...init, signal: controller.signal })),
+      );
+      expect(responses.every((response) => response.status === 200)).toBe(true);
+      const busy = await fetch(url, init);
+      expect(busy.status).toBe(429);
+      expect(busy.headers.get('retry-after')).toBe('2');
+      expect((await busy.json()).error.retryable).toBe(true);
+      controllers.forEach((controller) => controller.abort());
+      // Probe liveness of admission after disconnect; close each probe immediately.
+      await expect
+        .poll(async () => {
+          const controller = new AbortController();
+          const response = await fetch(url, { ...init, signal: controller.signal });
+          const status = response.status;
+          controller.abort();
+          return status;
+        })
+        .toBe(200);
+    } finally {
+      controllers.forEach((controller) => controller.abort());
+      await isolated.close();
+    }
+  });
 });
