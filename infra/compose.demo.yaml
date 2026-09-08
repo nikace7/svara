@@ -74,6 +74,12 @@ services:
   web:
     <<: *runtime
     command: [node, apps/web/.next/standalone/apps/web/server.js]
+    environment:
+      APP_ENV: local
+      APP_ORIGIN: http://localhost:4320
+      PROVIDER_MODE: fixture
+      ALLOW_LIVE_EVAL: 'false'
+    volumes: []
     depends_on:
       api:
         condition: service_healthy

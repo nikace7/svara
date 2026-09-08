@@ -26,3 +26,15 @@ latest major.
 Svara uses PostgreSQL, not MySQL. The packages are nevertheless in the installed
 dependency graph and will be patched rather than excluded from auditing. This
 checkpoint records the failing audit before updating the lockfile.
+
+## Remediation
+
+`pnpm-workspace.yaml` overrides `deepmerge-ts` to 8.0.0 and `mysql2` to 3.23.1.
+Prisma config loading and client generation pass with these overrides. The complete
+`pnpm audit` now reports **no known vulnerabilities**, including development dependencies.
+Keep the overrides until a compatible Prisma update resolves both transitively;
+rerun migrations, integration tests and contract generation when updating them.
+
+CI runs the dependency audit and all GitHub Actions are pinned to resolved commit
+SHAs. Dependabot configuration is ready for a future GitHub remote; no remote or
+hosted update job has been created in this local-only initialization.
