@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { loadWorkspaceEnvironment } from '../../packages/config/src/server.js';
 import { createDatabase } from '../../packages/database/src/index.js';
 import { assertTestDatabase } from '../../packages/database/src/safety.js';
-import { IdentityService } from '../../packages/domain/src/identity/service.js';
+import { IdentityService } from '../../packages/domain/dist/index.js';
 
 export async function staffFixture() {
   loadWorkspaceEnvironment();

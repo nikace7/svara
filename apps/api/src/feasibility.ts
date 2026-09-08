@@ -12,7 +12,10 @@ function fail(response: Response, status: number, code: string, message: string)
 }
 
 /** Temporary local experiment; no persistence, provider keys or audio upload. */
-export function createFeasibilityHandler(origin: string) {
+export function createFeasibilityHandler(
+  origin: string,
+  authorize: (request: Request) => Promise<unknown>,
+) {
   let active = 0;
   return async (request: Request, response: Response): Promise<void> => {
     if (!allowsLocalFeasibility(origin, request.headers.host, request.get('origin'))) {
@@ -39,6 +42,7 @@ export function createFeasibilityHandler(origin: string) {
     response.flushHeaders();
     try {
       for await (const event of runFixtureTurn(parsed.data, controller.signal)) {
+        await authorize(request);
         if (!response.write(`${JSON.stringify(event)}\n`))
           await once(response, 'drain', { signal: controller.signal });
       }

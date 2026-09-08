@@ -1,6 +1,16 @@
 import 'reflect-metadata';
 import { randomUUID } from 'node:crypto';
-import { Catch, Controller, Get, HttpException, Inject, Module, Res } from '@nestjs/common';
+import {
+  BadRequestException,
+  Catch,
+  Controller,
+  Get,
+  HttpException,
+  Inject,
+  Module,
+  Res,
+  ValidationPipe,
+} from '@nestjs/common';
 import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -14,7 +24,12 @@ import {
 import type { NextFunction, Request, Response } from 'express';
 import type { ProviderMode } from '@svara/contracts';
 import type { Readiness } from '@svara/domain';
+import { IdentityError } from '@svara/domain';
 import { createFeasibilityHandler } from './feasibility.js';
+import { AUTH_BOUNDARY, StaffBoundary } from './auth/boundary.js';
+import type { IdentityHttpOptions } from './auth/boundary.js';
+import { AuthController, MembersController, OrganisationController } from './auth/controller.js';
+import { StaffGuard } from './auth/guard.js';
 
 const OPTIONS = Symbol('application-options');
 export interface ApplicationOptions {
@@ -22,6 +37,8 @@ export interface ApplicationOptions {
   localDocs: boolean;
   probe: () => Promise<Readiness>;
   feasibilityOrigin?: string;
+  identity?: IdentityHttpOptions;
+  trustedProxyHops?: 0 | 1;
 }
 
 class HealthData {
@@ -78,26 +95,61 @@ class SafeExceptionFilter implements ExceptionFilter {
     const parserType =
       exception instanceof Error && 'type' in exception ? exception.type : undefined;
     const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : parserType === 'entity.too.large'
-          ? 413
-          : parserType === 'entity.parse.failed'
-            ? 400
-            : 500;
+      exception instanceof IdentityError
+        ? (
+            {
+              INVALID_INPUT: 400,
+              UNAUTHENTICATED: 401,
+              FORBIDDEN: 403,
+              NOT_FOUND: 404,
+              CONFLICT: 409,
+              LAST_OWNER: 409,
+              INVALID_LINK: 400,
+            } as const
+          )[exception.code]
+        : exception instanceof HttpException
+          ? exception.getStatus()
+          : parserType === 'entity.too.large'
+            ? 413
+            : parserType === 'entity.parse.failed'
+              ? 400
+              : 500;
     const errors: Record<number, { code: string; message: string }> = {
       400: { code: 'INVALID_INPUT', message: 'The request is invalid.' },
+      401: { code: 'UNAUTHENTICATED', message: 'Sign in to continue.' },
+      403: { code: 'FORBIDDEN', message: 'You do not have access to this action.' },
       404: { code: 'NOT_FOUND', message: 'Resource not found.' },
+      409: {
+        code: 'CONFLICT',
+        message: 'This change conflicts with existing access. Refresh and try again.',
+      },
       413: { code: 'PAYLOAD_TOO_LARGE', message: 'The request exceeds the allowed size.' },
+      429: { code: 'RATE_LIMITED', message: 'Too many requests. Wait before trying again.' },
+      503: {
+        code: 'UNAVAILABLE',
+        message: 'The service is temporarily unavailable. Try again shortly.',
+      },
     };
+    const detail = exception instanceof HttpException ? exception.getResponse() : null;
+    const fields =
+      detail && typeof detail === 'object' && 'fieldErrors' in detail ? detail.fieldErrors : {};
+    const specific =
+      exception instanceof IdentityError && exception.code === 'LAST_OWNER'
+        ? { code: 'LAST_OWNER', message: 'Keep at least one enabled owner in this organisation.' }
+        : exception instanceof IdentityError && exception.code === 'INVALID_LINK'
+          ? {
+              code: 'INVALID_LINK',
+              message: 'This link is expired, already used or no longer available.',
+            }
+          : errors[status];
     response.status(status).json({
       error: {
-        ...(errors[status] ?? {
+        ...(specific ?? {
           code: 'INTERNAL_ERROR',
           message: 'The request could not be completed.',
         }),
-        fieldErrors: {},
-        retryable: status >= 500,
+        fieldErrors: fields,
+        retryable: status === 429 || status >= 500,
       },
       requestId: response.getHeader('x-request-id'),
     });
@@ -118,33 +170,86 @@ export function createOpenApiDocument(app: NestExpressApplication) {
     new DocumentBuilder()
       .setTitle('Svara API')
       .setDescription(
-        'M0 process and dependency health contract. Business endpoints arrive in later milestones.',
+        'Staff identity, organisation access and process/dependency health. Mutations require the configured Origin and authenticated mutations also require X-CSRF-Token.',
       )
       .setVersion('0.1.0')
+      .addCookieAuth(
+        'svara-session',
+        {
+          type: 'apiKey',
+          in: 'cookie',
+          description: 'Host-only staff cookie; __Host-svara-session on HTTPS.',
+        },
+        'staff',
+      )
       .build(),
-    { operationIdFactory: (_controller, method) => `health_${method}` },
+    {
+      operationIdFactory: (controller, method) =>
+        `${controller.replace('Controller', '').toLowerCase()}_${method}`,
+    },
   );
 }
 
 export async function createApplication(
   options: ApplicationOptions,
 ): Promise<NestExpressApplication> {
-  @Module({ controllers: [HealthController], providers: [{ provide: OPTIONS, useValue: options }] })
+  const boundary = new StaffBoundary(options.identity);
+  @Module({
+    controllers: [HealthController, AuthController, MembersController, OrganisationController],
+    providers: [
+      { provide: OPTIONS, useValue: options },
+      { provide: AUTH_BOUNDARY, useValue: boundary },
+      StaffGuard,
+    ],
+  })
   class AppModule {}
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: false });
   app.disable('x-powered-by');
-  app.set('trust proxy', 'loopback');
+  app.set('trust proxy', options.trustedProxyHops ?? false);
   app.use((_request: Request, response: Response, next: NextFunction) => {
     response.setHeader('x-request-id', randomUUID());
     response.setHeader('Cache-Control', 'no-store');
     next();
   });
-  if (options.localDocs && options.providerMode === 'fixture' && options.feasibilityOrigin) {
-    app.useBodyParser('json', { limit: '16kb' });
+  app.useBodyParser('json', { limit: '16kb' });
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transformOptions: { enableImplicitConversion: false },
+      validationError: { target: false, value: false },
+      exceptionFactory: (errors) =>
+        new BadRequestException({
+          fieldErrors: Object.fromEntries(
+            errors.map((error) => [error.property, ['Check this field.']]),
+          ),
+        }),
+    }),
+  );
+  if (
+    options.localDocs &&
+    options.providerMode === 'fixture' &&
+    options.feasibilityOrigin &&
+    options.identity
+  ) {
+    const handler = createFeasibilityHandler(options.feasibilityOrigin, (request) =>
+      boundary.settings.service.resolve(boundary.token(request)),
+    );
     app
       .getHttpAdapter()
       .getInstance()
-      .post('/api/v1/feasibility/turn', createFeasibilityHandler(options.feasibilityOrigin));
+      .post(
+        '/api/v1/feasibility/turn',
+        async (request: Request, response: Response, next: NextFunction) => {
+          try {
+            await boundary.authorize(request, response);
+            await handler(request, response);
+          } catch (error) {
+            next(error);
+          }
+        },
+      );
   }
   app.setGlobalPrefix('api/v1');
   app.useGlobalFilters(new SafeExceptionFilter());
