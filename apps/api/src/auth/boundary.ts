@@ -107,7 +107,7 @@ export class StaffBoundary {
     const token = this.token(request);
     await this.limit(response, 'staff-session', token, 180, 60000);
     if (mutation) this.checkCsrf(request);
-    response.locals.staffIdentity = await service.resolve(token);
+    response.locals.staffIdentity = await service.resolve(token, mutation);
   }
 
   identity(response: Response): SafeIdentity {
