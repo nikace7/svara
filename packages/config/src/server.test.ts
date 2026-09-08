@@ -18,6 +18,8 @@ describe('server configuration', () => {
     expect(config.GEMINI_MODEL).toBe('gemini-2.5-flash');
     expect(config.TRUST_PROXY_HOPS).toBe(0);
     expect(config.APP_ORIGIN).toBe('http://localhost:4320');
+    expect(config.MEDIA_INSPECTION_MODE).toBe('sandboxed');
+    expect(config.FFPROBE_PATH).toBe('ffprobe');
   });
 
   it('names all missing live settings without exposing any supplied secret', () => {
@@ -90,6 +92,25 @@ describe('server configuration', () => {
     expect(() =>
       parseServerConfig({ ...valid, APP_ENV: 'local', APP_ORIGIN: 'https://example.com' }),
     ).toThrow('APP_ORIGIN');
+  });
+
+  it('allows explicit native inspection for development but requires the sandbox in production', () => {
+    expect(
+      parseServerConfig({ ...valid, MEDIA_INSPECTION_MODE: 'native' }).MEDIA_INSPECTION_MODE,
+    ).toBe('native');
+    expect(() =>
+      parseServerConfig({
+        ...valid,
+        APP_ENV: 'production',
+        APP_ORIGIN: 'https://studio.example.test',
+        PROVIDER_MODE: 'live',
+        AZURE_SPEECH_KEY: 'synthetic',
+        AZURE_SPEECH_REGION: 'eastus',
+        GEMINI_API_KEY: 'synthetic',
+        MEDIA_INSPECTION_MODE: 'native',
+      }),
+    ).toThrow('MEDIA_INSPECTION_MODE');
+    expect(() => parseServerConfig({ ...valid, FFPROBE_PATH: '' })).toThrow('FFPROBE_PATH');
   });
 
   it.each([
