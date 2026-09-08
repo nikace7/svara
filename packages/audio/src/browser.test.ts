@@ -28,6 +28,30 @@ function harness(media?: Promise<MediaStream>) {
 }
 
 describe('browser microphone lifecycle', () => {
+  it('cleans up when microphone access throws synchronously in an unsupported browser', async () => {
+    const context = {
+      state: 'running',
+      resume: async () => {},
+      close: vi.fn(async () => {}),
+    } as unknown as AudioContext;
+    const audio = new LabAudio({
+      createContext: () => context,
+      getUserMedia: () => {
+        throw new Error('Unsupported');
+      },
+      createWorklet: () => {
+        throw new Error('Not reached');
+      },
+    });
+    await expect(
+      audio.startCapture(
+        new AbortController().signal,
+        () => {},
+        () => {},
+      ),
+    ).rejects.toThrow('Unsupported');
+    expect(context.close).toHaveBeenCalledTimes(1);
+  });
   it('stops all tracks, context and ports on end, idempotently', async () => {
     const { audio, track, context, node } = harness();
     await audio.startCapture(
