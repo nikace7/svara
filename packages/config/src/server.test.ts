@@ -16,6 +16,7 @@ describe('server configuration', () => {
     expect(config.ALLOW_LIVE_EVAL).toBe(false);
     expect(config.GENERATION_PROVIDER).toBe('gemini');
     expect(config.GEMINI_MODEL).toBe('gemini-2.5-flash');
+    expect(config.TRUST_PROXY_HOPS).toBe(0);
     expect(config.APP_ORIGIN).toBe('http://localhost:4320');
   });
 
@@ -97,6 +98,7 @@ describe('server configuration', () => {
     { ALLOW_LIVE_EVAL: 'yes' },
     { MEDIA_ROOT: '' },
     { APP_ENV: 'staging' },
+    { TRUST_PROXY_HOPS: '2' },
   ])('rejects invalid settings', (override) => {
     expect(() => parseServerConfig({ ...valid, ...override })).toThrow(
       'Invalid server configuration',
