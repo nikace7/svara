@@ -13,4 +13,5 @@ export function createDatabase(connectionString: string): PrismaClient {
 }
 
 export { PrismaClient } from './generated/client.js';
+export type { Prisma } from './generated/client.js';
 export { assertDemoDatabase, assertTestDatabase } from './safety.js';
