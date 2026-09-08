@@ -30,6 +30,7 @@ export default tseslint.config(
     ...config,
     files: ['apps/web/**/*.{ts,tsx}', 'packages/ui/**/*.{ts,tsx}'],
   })),
+  { settings: { next: { rootDir: 'apps/web/' } } },
   {
     files: ['apps/web/**/*.{ts,tsx}', 'packages/{ui,audio,contracts}/**/*.{ts,tsx}'],
     rules: {
@@ -52,13 +53,17 @@ export default tseslint.config(
               ],
               message: 'Server-only packages cannot enter browser bundles.',
             },
+            {
+              group: ['@svara/web', '@svara/api', '@svara/worker', '**/apps/**'],
+              message: 'Shared browser packages must not import application entrypoints.',
+            },
           ],
         },
       ],
     },
   },
   {
-    files: ['packages/**/*.{ts,tsx}'],
+    files: ['packages/{config,database,domain,providers}/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
         'error',
