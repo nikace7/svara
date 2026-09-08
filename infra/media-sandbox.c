@@ -57,6 +57,9 @@ static void sandbox(const char *input) {
     allow_path(rules, "/lib", read);
     allow_path(rules, "/lib64", read);
     allow_path(rules, "/etc/ld.so.cache", LANDLOCK_ACCESS_FS_READ_FILE);
+    /* The kernel also checks EXECUTE on an ELF program's dynamic interpreter. */
+    allow_path(rules, "/lib64/ld-linux-x86-64.so.2", LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_EXECUTE);
+    allow_path(rules, "/lib/ld-linux-aarch64.so.1", LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_EXECUTE);
     allow_path(rules, "/usr/bin/ffprobe", LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_EXECUTE);
     if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) ||
         syscall(SYS_landlock_restrict_self, rules, 0)) unavailable();
