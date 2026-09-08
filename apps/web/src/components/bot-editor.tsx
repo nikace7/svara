@@ -12,6 +12,7 @@ import type { BotDetail, BotDraft } from '@svara/contracts';
 import { errorMessage, StaffApiError } from '../lib/staff-api';
 import { useStaffRequest, useStaffSession } from './session-provider';
 import { StudioLink, useDraftDirty } from './draft-navigation';
+import { BotSections } from './bot-sections';
 
 const toolLabels = {
   lookup_knowledge: 'Search approved knowledge',
@@ -114,6 +115,7 @@ function DraftForm({ initial }: { initial: BotDetail }) {
           {saved.archivedAt ? 'Archived' : `Draft · r${saved.revision}`}
         </StatusBadge>
       </div>
+      <BotSections id={saved.id} active="identity" />
       {!canAuthor && (
         <p className="form-notice">
           You have view access. Ask an owner or administrator to update this draft.
