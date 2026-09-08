@@ -36,13 +36,11 @@ const server = createServer((request, response) => {
     }
     const readiness =
       request.url === '/health/ready' ? await dependencies.ready() : { status: 'ok' };
-    response
-      .writeHead(readiness.status === 'unavailable' ? 503 : 200)
-      .end(
-        JSON.stringify({
-          data: { ...readiness, service: 'worker', providerMode: config.PROVIDER_MODE },
-        }),
-      );
+    response.writeHead(readiness.status === 'unavailable' ? 503 : 200).end(
+      JSON.stringify({
+        data: { ...readiness, service: 'worker', providerMode: config.PROVIDER_MODE },
+      }),
+    );
   })().catch(() => {
     response.writeHead(503).end(JSON.stringify({ error: 'UNAVAILABLE' }));
   });

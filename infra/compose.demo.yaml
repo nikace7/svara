@@ -1,0 +1,101 @@
+x-runtime: &runtime
+  image: svara-app:local
+  build:
+    context: ..
+    dockerfile: infra/Dockerfile
+  init: true
+  environment: &environment
+    APP_ENV: local
+    APP_ORIGIN: http://localhost:4320
+    PROVIDER_MODE: fixture
+    ALLOW_LIVE_EVAL: 'false'
+    DATABASE_URL: postgresql://svara:${POSTGRES_PASSWORD:?Run pnpm setup:local}@postgres:5432/svara_dev
+    TEST_DATABASE_URL: postgresql://svara:${POSTGRES_PASSWORD:?Run pnpm setup:local}@postgres:5432/svara_test
+    REDIS_URL: redis://redis:6379
+    MEDIA_ROOT: /app/.local/media
+    AUTH_TOKEN_PEPPER: ${AUTH_TOKEN_PEPPER:?Run pnpm setup:local}
+    BIND_HOST: 0.0.0.0
+  volumes:
+    - media_data:/app/.local/media
+
+services:
+  migrate:
+    <<: *runtime
+    command: [node, --import, tsx, scripts/database.ts, migrate]
+    depends_on:
+      postgres:
+        condition: service_healthy
+  seed:
+    <<: *runtime
+    command: [node, --import, tsx, scripts/database.ts, seed]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  api:
+    <<: *runtime
+    command: [node, apps/api/dist/main.js]
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:4100/api/v1/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+    restart: unless-stopped
+  worker:
+    <<: *runtime
+    command: [node, apps/worker/dist/main.js]
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:4101/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+    restart: unless-stopped
+  web:
+    <<: *runtime
+    command: [node, apps/web/.next/standalone/apps/web/server.js]
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000/studio').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+    restart: unless-stopped
+  gateway:
+    environment:
+      API_UPSTREAM: api:4100
+      WEB_UPSTREAM: web:3000
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  media_data:
