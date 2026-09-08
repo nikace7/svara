@@ -272,4 +272,52 @@ describe('staff identity on isolated PostgreSQL', () => {
       }),
     ).rejects.toMatchObject({ code: 'P2003' });
   });
+
+  it('prevents one organisation owner from recovering an account shared with another tenant', async () => {
+    const first = await register('recovery-scope-a');
+    const second = await register('recovery-scope-b');
+    const email = `shared-recovery-${testSuffix}`;
+    const firstInvite = await identity.invite(first.token, { email, role: 'VIEWER' });
+    await identity.activate({ token: firstInvite.token, displayName: 'Shared', password });
+    const member = await identity.login({ email, password });
+    const pending = await identity.issueRecovery(first.token, member.identity.membership.id);
+    const secondInvite = await identity.invite(second.token, { email, role: 'VIEWER' });
+    await identity.activate({ token: secondInvite.token, displayName: 'Shared', password });
+    await expect(
+      identity.issueRecovery(first.token, member.identity.membership.id),
+    ).rejects.toMatchObject({ code: 'CONFLICT' });
+    await expect(
+      identity.recover({ token: pending.token, password: 'Tenant takeover password 42!' }),
+    ).rejects.toMatchObject({ code: 'CONFLICT' });
+    expect((await identity.login({ email, password })).identity.user.id).toBe(
+      member.identity.user.id,
+    );
+  });
+
+  it('validates organisation settings and records only safe audit categories and identifiers', async () => {
+    const owner = await register('settings');
+    await expect(
+      identity.updateOrganisation(owner.token, { name: 'Changed', timezone: 'invalid/timezone' }),
+    ).rejects.toMatchObject({ code: 'INVALID_INPUT' });
+    const updated = await identity.updateOrganisation(owner.token, {
+      name: 'हिमाल अध्ययन केन्द्र',
+      timezone: 'Asia/Kathmandu',
+    });
+    expect(updated.name).toBe('हिमाल अध्ययन केन्द्र');
+    const grant = await identity.invite(owner.token, {
+      email: `settings-viewer-${testSuffix}`,
+      role: 'VIEWER',
+    });
+    await identity.activate({ token: grant.token, displayName: 'Viewer', password });
+    const viewer = await identity.login({ email: `settings-viewer-${testSuffix}`, password });
+    await expect(
+      identity.updateOrganisation(viewer.token, { name: 'Forbidden', timezone: 'UTC' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    const audit = await db.auditEntry.findMany({
+      where: { organisationId: owner.identity.organisation.id },
+    });
+    expect(audit.some((entry) => entry.action === 'organisation.updated')).toBe(true);
+    for (const secret of [owner.token, grant.token, password, owner.identity.user.email])
+      expect(JSON.stringify(audit)).not.toContain(secret);
+  });
 });
