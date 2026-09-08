@@ -15,6 +15,7 @@ x-runtime: &runtime
     MEDIA_ROOT: /app/.local/media
     AUTH_TOKEN_PEPPER: ${AUTH_TOKEN_PEPPER:?Run pnpm setup:local}
     BIND_HOST: 0.0.0.0
+    TRUST_PROXY_HOPS: '1'
   volumes:
     - media_data:/app/.local/media
 
@@ -77,6 +78,7 @@ services:
     environment:
       APP_ENV: local
       APP_ORIGIN: http://localhost:4320
+      API_INTERNAL_ORIGIN: http://api:4100
       PROVIDER_MODE: fixture
       ALLOW_LIVE_EVAL: 'false'
     volumes: []

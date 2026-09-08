@@ -38,6 +38,7 @@ const serverSchema = z
     TRANSCRIPT_RETENTION_DAYS: positiveInteger(30, 365),
     ALLOW_LIVE_EVAL: booleanSetting,
     BIND_HOST: z.enum(['127.0.0.1', '0.0.0.0']).default('127.0.0.1'),
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(1).default(0),
     API_PORT: positiveInteger(4100, 65535),
     WORKER_PORT: positiveInteger(4101, 65535),
   })

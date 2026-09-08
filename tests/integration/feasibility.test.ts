@@ -1,26 +1,35 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import { createApplication } from '../../apps/api/src/app.js';
+import { request as httpRequest } from 'node:http';
+import type { IncomingMessage } from 'node:http';
+import { createApplication } from '../../apps/api/dist/app.js';
+import { staffFixture } from './staff-fixture.js';
 
 describe('local-only fixture HTTP stream', () => {
   let app: Awaited<ReturnType<typeof createApplication>>;
+  let staff: Awaited<ReturnType<typeof staffFixture>>;
   beforeAll(async () => {
+    staff = await staffFixture();
     app = await createApplication({
       providerMode: 'fixture',
       localDocs: true,
       feasibilityOrigin: 'http://localhost:4320',
+      identity: staff.options,
       probe: async () => ({ status: 'ready', dependencies: {} }),
     });
     await app.init();
   });
   afterAll(async () => {
     await app.close();
+    await staff.close();
   });
   const post = () =>
     request(app.getHttpServer())
       .post('/api/v1/feasibility/turn')
       .set('Host', 'localhost:4320')
-      .set('Origin', 'http://localhost:4320');
+      .set('Origin', 'http://localhost:4320')
+      .set('Cookie', `svara-session=${staff.owner.token}`)
+      .set('X-CSRF-Token', staff.owner.csrfToken);
 
   it('streams ordered versioned events and never advertises fixture speech', async () => {
     const response = await post()
@@ -68,6 +77,7 @@ describe('local-only fixture HTTP stream', () => {
       providerMode: 'fixture',
       localDocs: true,
       feasibilityOrigin: 'http://localhost:4320',
+      identity: staff.options,
       probe: async () => ({ status: 'ready', dependencies: {} }),
     });
     const controllers = Array.from({ length: 4 }, () => new AbortController());
@@ -76,24 +86,43 @@ describe('local-only fixture HTTP stream', () => {
       const url = `${await isolated.getUrl()}/api/v1/feasibility/turn`;
       const init = {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Origin: 'http://localhost:4320' },
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: 'http://localhost:4320',
+          Host: 'localhost:4320',
+          Cookie: `svara-session=${staff.owner.token}`,
+          'X-CSRF-Token': staff.owner.csrfToken,
+        },
         body: JSON.stringify({ locale: 'en-US', generation: 1, scenario: 'interrupt_answer' }),
       };
+      // Node fetch rewrites Host. Native HTTP exercises the same Host the gateway forwards.
+      const stream = (signal?: AbortSignal) =>
+        new Promise<IncomingMessage>((resolve, reject) => {
+          const outgoing = httpRequest(
+            url,
+            { method: init.method, headers: init.headers, ...(signal ? { signal } : {}) },
+            resolve,
+          );
+          outgoing.on('error', reject);
+          outgoing.end(init.body);
+        });
       const responses = await Promise.all(
-        controllers.map((controller) => fetch(url, { ...init, signal: controller.signal })),
+        controllers.map((controller) => stream(controller.signal)),
       );
-      expect(responses.every((response) => response.status === 200)).toBe(true);
-      const busy = await fetch(url, init);
-      expect(busy.status).toBe(429);
-      expect(busy.headers.get('retry-after')).toBe('2');
-      expect((await busy.json()).error.retryable).toBe(true);
+      expect(responses.map((response) => response.statusCode)).toEqual([200, 200, 200, 200]);
+      const busy = await stream();
+      expect(busy.statusCode).toBe(429);
+      expect(busy.headers['retry-after']).toBe('2');
+      let busyBody = '';
+      for await (const chunk of busy) busyBody += String(chunk);
+      expect(JSON.parse(busyBody).error.retryable).toBe(true);
       controllers.forEach((controller) => controller.abort());
       // Probe liveness of admission after disconnect; close each probe immediately.
       await expect
         .poll(async () => {
           const controller = new AbortController();
-          const response = await fetch(url, { ...init, signal: controller.signal });
-          const status = response.status;
+          const response = await stream(controller.signal);
+          const status = response.statusCode;
           controller.abort();
           return status;
         })
