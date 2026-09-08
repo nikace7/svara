@@ -14,12 +14,14 @@ describe('server configuration', () => {
     const config = parseServerConfig(valid);
     expect(config.PROVIDER_MODE).toBe('fixture');
     expect(config.ALLOW_LIVE_EVAL).toBe(false);
+    expect(config.GENERATION_PROVIDER).toBe('gemini');
+    expect(config.GEMINI_MODEL).toBe('gemini-2.5-flash');
     expect(config.APP_ORIGIN).toBe('http://localhost:4320');
   });
 
   it('names all missing live settings without exposing any supplied secret', () => {
     expect(() => parseServerConfig({ ...valid, PROVIDER_MODE: 'live' })).toThrow(
-      /AZURE_SPEECH_KEY.*AZURE_SPEECH_REGION.*OPENAI_API_KEY/,
+      /AZURE_SPEECH_KEY.*AZURE_SPEECH_REGION.*GEMINI_API_KEY/,
     );
     expect(() => parseServerConfig({ ...valid, AUTH_TOKEN_PEPPER: 'private-value' })).toThrow(
       'AUTH_TOKEN_PEPPER',
@@ -33,6 +35,7 @@ describe('server configuration', () => {
     const config = parseServerConfig({
       ...valid,
       PROVIDER_MODE: 'live',
+      GENERATION_PROVIDER: 'openai',
       AZURE_SPEECH_KEY: 'test-key',
       AZURE_SPEECH_REGION: 'test-region',
       OPENAI_API_KEY: 'test-key',
@@ -40,6 +43,27 @@ describe('server configuration', () => {
     });
     expect(config.PROVIDER_MODE).toBe('live');
     expect(config.ALLOW_LIVE_EVAL).toBe(true);
+  });
+
+  it('accepts the free-tier demo provider without requiring an OpenAI key', () => {
+    const config = parseServerConfig({
+      ...valid,
+      PROVIDER_MODE: 'live',
+      AZURE_SPEECH_KEY: 'synthetic',
+      AZURE_SPEECH_REGION: 'eastus',
+      GEMINI_API_KEY: 'synthetic',
+    });
+    expect(config.GENERATION_PROVIDER).toBe('gemini');
+    expect(config.OPENAI_API_KEY).toBeUndefined();
+    expect(() =>
+      parseServerConfig({
+        ...valid,
+        PROVIDER_MODE: 'live',
+        AZURE_SPEECH_KEY: 'synthetic',
+        AZURE_SPEECH_REGION: 'eastus',
+        OPENAI_API_KEY: 'synthetic',
+      }),
+    ).toThrow('GEMINI_API_KEY');
   });
 
   it.each([
