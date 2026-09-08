@@ -26,6 +26,8 @@ describe('local setup', () => {
     await createLocalSetup(root);
     expect(await readFile(join(root, '.env'), 'utf8')).toBe(customised);
     expect(await readFile(join(root, '.env.compose'), 'utf8')).not.toContain('AZURE_SPEECH_KEY');
+    expect(await readFile(join(root, '.env.compose'), 'utf8')).toContain(`SVARA_LOCAL_UID=${process.getuid?.() ?? 1000}`);
+    expect(await readFile(join(root, '.env.compose'), 'utf8')).toContain(`SVARA_LOCAL_GID=${process.getgid?.() ?? 1000}`);
     const secondRoot = await mkdtemp(join(tmpdir(), 'svara-setup-test-'));
     directories.push(secondRoot);
     await createLocalSetup(secondRoot);
