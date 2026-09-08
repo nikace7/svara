@@ -32,7 +32,9 @@ The temporary feasibility transport is HTTP NDJSON. Microphone data remains in t
 browser in fixture mode. Authenticated Socket.IO session admission and live audio
 transport belong to the subsequent identity/conversation work; this endpoint cannot
 stand in for their authorization or durability contracts. It is guarded by explicit
-local fixture settings, loopback Host and exact Origin, and absent in production.
+local fixture settings, configured loopback Host and exact Origin, and absent in
+production. M2 additionally requires a staff cookie and CSRF header and rechecks
+session validity during the stream.
 
 ## Acceptance evidence
 
@@ -57,7 +59,7 @@ local fixture settings, loopback Host and exact Origin, and absent in production
 ## Known limits and next steps
 
 The browser lab currently uses fixture mode only. Provider interfaces define the
-future server boundary, but Azure/OpenAI SDK adapters and real speech transport
+future server boundary, but Azure/Gemini SDK adapters and real speech transport
 are not connected. No account/region/voice compatibility or live latency has been
 measured. Do not interpret positive fixture results as completion of the live gate.
 
@@ -72,7 +74,8 @@ supports output contexts from 24 to 192 kHz. Tested common rates are 44.1/48 kHz
 
 The copied worklet assets refresh at web startup/build; restart native development
 after editing worklet source. No transcript or microphone data is persisted. M2
-must replace the local preview gate before staff or visitor use is hosted.
+has replaced the studio preview gate with staff sessions; the lab also retains its
+local-only restriction. Visitor sessions and hosted operation remain later work.
 
 ## Primary references
 
