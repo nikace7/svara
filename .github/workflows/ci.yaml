@@ -1,7 +1,7 @@
 name: Verify Svara
 on:
   push:
-    branches: [main, 'feat/**', 'fix/**', 'chore/**', 'docs/**']
+    branches: [main, 'codex/**', 'feat/**', 'fix/**', 'chore/**', 'docs/**']
   pull_request:
 
 permissions:
@@ -35,7 +35,10 @@ jobs:
       - run: pnpm infra:up
       - run: pnpm db:generate && pnpm db:migrate && pnpm db:seed
       - run: pnpm check
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - run: pnpm test:integration
+        env:
+          MEDIA_INSPECTION_MODE: native
       - run: pnpm exec playwright install --with-deps chromium
       - name: Verify production containers and browser journeys
         run: |
@@ -43,6 +46,7 @@ jobs:
           pnpm demo:up
           pnpm test:integration:container
           pnpm test:container
+          pnpm test:media:sandbox
           pnpm test:e2e
       - name: Save browser failure evidence
         if: failure()
