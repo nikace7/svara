@@ -9,7 +9,7 @@ either environment file.
 
 Native URLs use loopback. Compose passes internal `postgres`/`redis` hosts explicitly.
 Web receives only preview flags and origin. Database/authentication secrets and the
-media volume belong to API/worker/init jobs. Actual Azure/OpenAI adapters and live
+media volume belong to API/worker/init jobs. Actual Azure/Gemini adapters and live
 feasibility are M1; configuration validation alone does not establish live support.
 
 Run one native or Compose stack at a time. The default Compose project is `svara`;

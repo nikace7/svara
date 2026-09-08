@@ -6,7 +6,7 @@ Updated 2026-09-08. Evidence is local unless explicitly marked otherwise.
 | ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
 | M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.       |
 | M1 — Bilingual voice feasibility         | Partial     | Local fixture lab and audio/protocol checks pass. Live adapters and bilingual provider smoke tests remain pending. |
-| M2 — Identity and tenant boundaries      | Not started | Authentication, policies and adversarial access tests pending.                                                     |
+| M2 — Identity and tenant boundaries      | In progress | Domain/database sessions, policies and adversarial tests implemented; HTTP and staff screens pending.              |
 | M3 — Authoring and immutable publication | Not started | Drafts, media, knowledge and releases pending.                                                                     |
 | M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                   |
 | M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                                |
@@ -22,11 +22,19 @@ Updated 2026-09-08. Evidence is local unless explicitly marked otherwise.
 - Existing Git author identity is configured and preserved.
 - No provider keys have been loaded, no provider calls made, and no remote created.
 
+## Active project objective
+
+Complete all milestones step by step with Conventional Commits. The current user
+request changes the visual direction to a professional light background with a
+subtle purple gradient and asks for free demo APIs. The remaining M3–M8 scope is
+unchanged. Missing provider accounts do not block independent product development.
+
 ## Scope of this build increment
 
 The first increment completed the M0 foundation. The second implements M1's local
 audio and fixture paths, while retaining an explicitly pending live gate. Later
-milestones retain their status above. Authentication and live voice are not claimed.
+milestones retain their status above. M2 domain work is now underway; HTTP/browser
+authentication and live voice are not claimed.
 
 ## M0 delivered
 
@@ -100,9 +108,45 @@ was performed. Full Compose services are healthy at `http://localhost:4320`.
 
 ## Remaining M1 gate and next independent increment
 
-Azure key/region and OpenAI key are absent; `ALLOW_LIVE_EVAL` is false. The live
+Azure key/region and Gemini key are not configured; `ALLOW_LIVE_EVAL` is false. The live
 SDK adapters, region/voice availability and actual English/Nepali STT → generation
 → TTS smoke results are still pending. M1 is therefore not marked complete.
 Hands-free interruption and speaker feedback need the intended physical setup.
 See `docs/M1-VOICE.md` for the precise scope. M2 can independently add staff identity
 and tenant enforcement before any hosted studio access.
+
+## Light theme and M2 domain increment — 2026-09-08
+
+- Replaced dark/cyan tokens with white surfaces, slate text, accessible muted
+  purple controls and a subtle lavender workspace gradient. The full 16-test
+  browser suite passed on the rebuilt light-theme app; desktop/mobile screenshots
+  were reviewed.
+- Added registration, session/role policies, organisation switching, invitations,
+  recovery, last-owner protection and audit storage at the domain/database layer.
+  Eleven new PostgreSQL integration tests pass. A dedicated RED/GREEN regression
+  closes cross-tenant account takeover through owner-issued recovery.
+- Default generation configuration now selects Gemini without requiring an OpenAI
+  key. Both live provider adapters and billing-tier verification remain pending.
+  The user has neither provider account yet and selected written setup instructions.
+  See `docs/FREE-DEMO-SETUP.md`.
+- Next: M2 cookie/CSRF/Origin/rate-limit HTTP layer, generated contracts and staff
+  onboarding/settings screens. Then continue M3–M8 in order. See `docs/M2-IDENTITY.md`.
+
+Verification for this increment:
+
+| Check                    | Result                                                                                                               |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `pnpm check`             | Passed format, lint, all types, contract drift and all production builds                                             |
+| Unit suite               | 89 tests across 16 files passed                                                                                      |
+| Selected module coverage | 98.02% lines / 93.60% branches; database identity service is exercised separately through integration tests          |
+| Integration suite        | All 22 passed both natively and in the rebuilt Linux container                                                       |
+| Browser suite            | All 16 passed on the light-theme build; all five responsive/axe checks passed again after refining the gradient fade |
+| Production preview gate  | Studio/gallery/voice lab remain unavailable in production mode                                                       |
+| Compose                  | New migration and seed complete; all six long-running services healthy                                               |
+| Dependency audit         | No known vulnerabilities                                                                                             |
+
+Final screenshots reviewed: `artifacts/screenshots/light-studio-desktop.png` and
+`artifacts/screenshots/light-studio-mobile.png`. Conventional Commits on
+`feat/light-theme-identity` preserve each test/implementation checkpoint. The
+original supplied blueprint files are unchanged. No provider call, account
+creation, remote push or hosted deployment was performed.

@@ -96,3 +96,34 @@ language change, hidden/disposed pages and terminal audio errors release owned
 tracks, nodes, ports and contexts. Permission granted after cancellation is
 immediately released. Stream sequence failures produce retry guidance. No late
 response is accepted as part of a newer generation.
+
+## ADR 011 — Light professional studio and free-tier demo providers
+
+Accepted 2026-09-08 from the user's revised direction. White surfaces, slate text,
+muted purple controls and a restrained lavender gradient replace the original
+dark/cyan palette. Existing typography, accessible components and responsive
+layout constraints remain the foundation.
+
+The user's free-demo requirement supersedes the blueprint's fixed OpenAI choice:
+prepare Gemini free-tier generation with Azure Speech F0 for both locales. Keep
+one recognition/generation/synthesis pipeline and its cancellation contracts.
+`GENERATION_PROVIDER=gemini` is the default; OpenAI requires explicit selection.
+Provider accounts, SDK adapters, real tier/voice availability and the bilingual
+live evaluation remain pending. Configuration does not prove a key is on a free
+billing plan. The user selected account setup instructions, now recorded in
+`docs/FREE-DEMO-SETUP.md`. No paid fallback or account upgrade is authorized.
+
+## ADR 012 — Transactional staff identity and scoped recovery
+
+Use opaque random session credentials with purpose-separated HMAC digests and
+asynchronous bounded scrypt password derivation. Resolve live membership inside
+the same serializable transaction as each domain operation. Retry serialization
+conflicts without changing session or tenant authority. Composite membership/
+organisation relationships apply to session, grant and audit records.
+
+Invitations to existing users require their current password. A tenant owner cannot
+issue or consume password recovery for another user with memberships outside that
+tenant. A regression test demonstrated the otherwise possible cross-tenant account
+takeover. Own-account recovery remains available to an authenticated owner;
+multi-organisation local recovery tooling is pending. See `docs/M2-IDENTITY.md` for
+the implemented domain scope and the HTTP/browser work still required.
