@@ -18,6 +18,16 @@ export function useStaffSession(): StaffSession {
   return session;
 }
 
+/** Bind actions to the rendered session; cookie rotation makes stale forms fail CSRF checks. */
+export function useStaffRequest() {
+  const { csrfToken } = useStaffSession();
+  return <T,>(path: string, init?: RequestInit): Promise<T> => {
+    const headers = new Headers(init?.headers);
+    headers.set('X-CSRF-Token', csrfToken);
+    return staffData<T>(path, { ...init, headers });
+  };
+}
+
 export function SessionProvider({
   initial,
   children,

@@ -12,14 +12,9 @@ import {
   organisationInputSchema,
   staffRoleSchema,
 } from '@svara/contracts';
-import {
-  broadcastSessionChange,
-  errorMessage,
-  navigateWithFreshSession,
-  staffData,
-} from '../lib/staff-api';
+import { broadcastSessionChange, errorMessage, navigateWithFreshSession } from '../lib/staff-api';
 import type { AccessLink, StaffMember } from '../lib/staff-api';
-import { useStaffSession } from './session-provider';
+import { useStaffRequest, useStaffSession } from './session-provider';
 
 const roleLabels = {
   OWNER: 'Owner',
@@ -84,6 +79,7 @@ function MemberAccess({
   onSaved: () => Promise<unknown>;
   onLink: (link: AccessLink) => void;
 }) {
+  const send = useStaffRequest();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
@@ -101,7 +97,7 @@ function MemberAccess({
     setPending(true);
     setError('');
     try {
-      await staffData(`/members/${member.id}`, {
+      await send(`/members/${member.id}`, {
         method: 'PATCH',
         body: JSON.stringify(parsed.data),
       });
@@ -123,7 +119,7 @@ function MemberAccess({
     setError('');
     try {
       onLink(
-        await staffData<AccessLink>(`/members/${member.id}/recovery`, {
+        await send<AccessLink>(`/members/${member.id}/recovery`, {
           method: 'POST',
           body: '{}',
         }),
@@ -217,6 +213,7 @@ function MemberAccess({
 
 export function OrganisationSettings() {
   const { identity } = useStaffSession();
+  const send = useStaffRequest();
   const owner = identity.membership.role === 'OWNER';
   const [pending, setPending] = useState('');
   const [notice, setNotice] = useState('');
@@ -224,7 +221,7 @@ export function OrganisationSettings() {
   const [link, setLink] = useState<AccessLink | null>(null);
   const members = useQuery({
     queryKey: ['members', identity.organisation.id],
-    queryFn: ({ signal }) => staffData<StaffMember[]>('/members', { signal }),
+    queryFn: ({ signal }) => send<StaffMember[]>('/members', { signal }),
   });
   async function action(name: string, run: () => Promise<unknown>) {
     if (pending) return;
@@ -249,7 +246,7 @@ export function OrganisationSettings() {
       return;
     }
     void action('organisation', async () => {
-      await staffData('/organisation', { method: 'PATCH', body: JSON.stringify(parsed.data) });
+      await send('/organisation', { method: 'PATCH', body: JSON.stringify(parsed.data) });
       setNotice('Organisation saved.');
     });
   }
@@ -263,7 +260,7 @@ export function OrganisationSettings() {
     }
     void action('invite', async () => {
       setLink(
-        await staffData<AccessLink>('/members/invitations', {
+        await send<AccessLink>('/members/invitations', {
           method: 'POST',
           body: JSON.stringify(parsed.data),
         }),
@@ -291,7 +288,7 @@ export function OrganisationSettings() {
           pending={pending === 'logout'}
           onClick={() =>
             void action('logout', async () => {
-              await staffData('/auth/logout', { method: 'POST', body: '{}' });
+              await send('/auth/logout', { method: 'POST', body: '{}' });
               broadcastSessionChange();
               navigateWithFreshSession('/login');
             })
@@ -351,7 +348,7 @@ export function OrganisationSettings() {
                 event.preventDefault();
                 const organisationId = new FormData(event.currentTarget).get('organisationId');
                 void action('switch', async () => {
-                  await staffData('/auth/organisation', {
+                  await send('/auth/organisation', {
                     method: 'POST',
                     body: JSON.stringify({ organisationId }),
                   });

@@ -5,7 +5,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe('staff browser request ownership', () => {
   it('never replaces a form CSRF token with one from a newly switched workspace', async () => {
-    const fetcher = vi.fn(
+    const fetcher = vi.fn<typeof fetch>(
       async () =>
         new Response(JSON.stringify({ data: { csrfToken: 'new-workspace' } }), { status: 200 }),
     );
@@ -21,7 +21,7 @@ describe('staff browser request ownership', () => {
     );
   });
   it('fails before a protected mutation if the rendered session token is missing', async () => {
-    const fetcher = vi.fn(
+    const fetcher = vi.fn<typeof fetch>(
       async () =>
         new Response(JSON.stringify({ data: { csrfToken: 'new-workspace' } }), { status: 200 }),
     );
