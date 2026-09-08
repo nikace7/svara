@@ -14,3 +14,10 @@ export { MediaService } from './media/service.js';
 export { MediaStorage } from './media/storage.js';
 export { MediaError } from './media/errors.js';
 export { parseMediaRange } from './media/range.js';
+export { MediaJobs } from './media/jobs.js';
+export type {
+  InspectionClaim,
+  InspectedMedia,
+  InspectMedia,
+  MediaJobOutcome,
+} from './media/jobs.js';

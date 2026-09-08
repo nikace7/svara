@@ -8,33 +8,14 @@ import {
   mediaUploadSchema,
   resourceIdSchema,
 } from '@svara/contracts';
-import type { MediaStorage } from '@svara/domain';
+import type { MediaStorage, InspectionClaim, InspectedMedia } from '@svara/domain';
 import { detectMediaMime, InspectionError, validateVideoMetadata } from './policy.js';
 import { runMediaProcess } from './process.js';
 
-export type InspectionClaim = {
-  id: string;
-  leaseToken: string;
-  declaredMime: string;
-  declaredBytes: number;
-  sourceSha256: string;
-};
 type InspectorConfig = Pick<
   ServerConfig,
   'MEDIA_INSPECTION_MODE' | 'FFPROBE_PATH' | 'MEDIA_SANDBOX_PATH'
 >;
-export type InspectedMedia = {
-  mimeType: 'image/png' | 'image/jpeg' | 'video/mp4';
-  storageKey: string;
-  byteLength: number;
-  sha256: string;
-  width: number;
-  height: number;
-  durationSeconds: number | null;
-  thumbnailKey: string | null;
-  thumbnailBytes: number | null;
-  thumbnailSha256: string | null;
-};
 
 function ffprobeArguments(input: string) {
   return [

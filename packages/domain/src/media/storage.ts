@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
-import { link, mkdir, open, realpath, unlink } from 'node:fs/promises';
+import { link, lstat, mkdir, open, opendir, realpath, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Transform, Writable } from 'node:stream';
 import type { Readable } from 'node:stream';
@@ -24,6 +24,19 @@ export class MediaStorage {
   path(key: string): string {
     if (!keyPattern.test(key)) throw new Error('Invalid private media key.');
     return join(this.root, key);
+  }
+  async *entries() {
+    const directory = await opendir(this.root);
+    for await (const entry of directory) {
+      if (!keyPattern.test(entry.name) || (!entry.isFile() && !entry.isSymbolicLink())) continue;
+      try {
+        const stat = await lstat(this.path(entry.name));
+        if (stat.isFile() || stat.isSymbolicLink())
+          yield { key: entry.name, assetId: entry.name.split('.')[0]!, modifiedAt: stat.mtime };
+      } catch (error) {
+        if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error;
+      }
+    }
   }
   async remove(key: string): Promise<void> {
     try {
