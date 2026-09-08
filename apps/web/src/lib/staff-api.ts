@@ -31,12 +31,9 @@ export async function staffResponse(
   const mutation = !!init.method && init.method !== 'GET';
   if (mutation) {
     headers.set('Content-Type', 'application/json');
-    if (!anonymous) {
-      const csrf = await staffData<components['schemas']['CsrfData']>('/auth/csrf', {
-        ...(init.signal ? { signal: init.signal } : {}),
-      });
-      headers.set('X-CSRF-Token', csrf.csrfToken);
-    }
+    // A fresh token fetched here could authorize an old form against a different workspace.
+    if (!anonymous && !headers.get('X-CSRF-Token'))
+      throw new StaffApiError(403, 'FORBIDDEN', 'Refresh the workspace before making changes.');
   }
   const response = await fetch(`/api/v1${path}`, {
     ...init,

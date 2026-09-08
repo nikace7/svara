@@ -8,6 +8,7 @@ import type { CaptureMeter } from '@svara/audio';
 import type { FixtureScenarioId, Locale } from '@svara/contracts';
 import { readVoiceStream } from '../lib/voice-stream';
 import { staffResponse } from '../lib/staff-api';
+import { useStaffSession } from './session-provider';
 
 type Phase = 'Ready' | 'Answering' | 'Completed' | 'Interrupted' | 'Failed';
 const scenarios: { id: FixtureScenarioId; label: string }[] = [
@@ -19,6 +20,7 @@ const scenarios: { id: FixtureScenarioId; label: string }[] = [
 ];
 
 export function VoiceLab() {
+  const { csrfToken } = useStaffSession();
   const [locale, setLocale] = useState<Locale>('en-US');
   const [scenario, setScenario] = useState<FixtureScenarioId>('supported_faq');
   const [typed, setTyped] = useState('');
@@ -105,7 +107,7 @@ export function VoiceLab() {
     try {
       const response = await staffResponse('/feasibility/turn', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
         cache: 'no-store',
         body: JSON.stringify({
           locale,
