@@ -207,4 +207,30 @@ describe('staff HTTP authority', () => {
     expect(unavailable.text).not.toContain('private redis');
     redisFailed = false;
   });
+
+  it('does not keep an idle browser signed in just because it polls the session endpoint', async () => {
+    const lastSeenAt = new Date(Date.now() - 29 * 60000);
+    await fixture.db.staffSession.updateMany({
+      where: { membershipId: fixture.owner.identity.membership.id, revokedAt: null },
+      data: { lastSeenAt },
+    });
+    await http()
+      .get('/api/v1/auth/session')
+      .set('Host', 'localhost:4320')
+      .set('Cookie', cookie())
+      .expect(200);
+    const stored = await fixture.db.staffSession.findFirstOrThrow({
+      where: { membershipId: fixture.owner.identity.membership.id, revokedAt: null },
+    });
+    expect(stored.lastSeenAt.getTime()).toBe(lastSeenAt.getTime());
+    await fixture.db.staffSession.update({
+      where: { id: stored.id },
+      data: { lastSeenAt: new Date(Date.now() - 31 * 60000) },
+    });
+    await http()
+      .get('/api/v1/auth/session')
+      .set('Host', 'localhost:4320')
+      .set('Cookie', cookie())
+      .expect(401);
+  });
 });
