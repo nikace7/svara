@@ -55,6 +55,7 @@ export class MediaQueueRuntime {
         if (outcome === 'RETRY') {
           this.lastProbe = 0;
           this.lastSuccess = 0;
+          await this.worker.pause(true);
         }
         return outcome;
       },
@@ -122,7 +123,7 @@ export class MediaQueueRuntime {
     await this.jobs.sweep();
     if (this.stopping.signal.aborted) return;
     await this.queue.getWaitingCount();
-    if (this.worker.isPaused()) this.worker.resume();
+    if (this.worker.isPaused()) await this.worker.resume();
     else if (!this.worker.isRunning()) {
       void this.worker.run().catch(() => {
         this.reportFailure('media.queue.consumer.failed');
