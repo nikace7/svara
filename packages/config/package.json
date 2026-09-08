@@ -1,0 +1,21 @@
+{
+  "name": "@svara/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./server": {
+      "types": "./src/server.ts",
+      "default": "./dist/server.js"
+    },
+    "./tsconfig.base.json": "./tsconfig.base.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "4.5.4"
+  }
+}

@@ -1,0 +1,16 @@
+packages:
+  - apps/*
+  - packages/*
+
+useNodeVersion: 22.23.2
+nodeVersion: 22.23.2
+engineStrict: true
+saveExact: true
+strictPeerDependencies: true
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - '@prisma/engines'
+  - '@tailwindcss/oxide'
+  - esbuild
+  - prisma
+  - sharp

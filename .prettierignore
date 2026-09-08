@@ -1,0 +1,16 @@
+pnpm-lock.yaml
+node_modules/
+.next/
+dist/
+coverage/
+artifacts/
+test-results/
+playwright-report/
+.local/
+.env*
+packages/database/src/generated/
+packages/database/prisma/migrations/
+packages/contracts/openapi.json
+packages/contracts/src/http.generated.ts
+docs/01-robot-voice.md
+docs/BLUEPRINT.md

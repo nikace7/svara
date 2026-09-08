@@ -1,0 +1,17 @@
+{
+  "name": "@svara/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@svara/config": "workspace:*",
+    "@svara/contracts": "workspace:*",
+    "@svara/domain": "workspace:*"
+  }
+}
