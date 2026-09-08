@@ -223,6 +223,9 @@ importers:
       '@svara/database':
         specifier: workspace:*
         version: link:../database
+      '@svara/providers':
+        specifier: workspace:*
+        version: link:../providers
       ioredis:
         specifier: 5.11.1
         version: 5.11.1

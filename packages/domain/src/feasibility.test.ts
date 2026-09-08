@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { runFixtureTurn } from './feasibility.js';
 
+async function collect<T>(stream: AsyncIterable<T>): Promise<T[]> {
+  const result: T[] = [];
+  for await (const item of stream) result.push(item);
+  return result;
+}
+
 describe('real fixture pipeline lifecycle', () => {
   const options = { delayMs: 0 };
   it.each(['en-US', 'ne-NP'] as const)(
     'streams the %s scripted answer with truthful audio status',
     async (locale) => {
-      const events = await Array.fromAsync(
+      const events = await collect(
         runFixtureTurn(
           { locale, generation: 1, scenario: 'supported_faq' },
           new AbortController().signal,
@@ -28,7 +34,7 @@ describe('real fixture pipeline lifecycle', () => {
     },
   );
   it('does not answer arbitrary typed questions using scripted facts', async () => {
-    const events = await Array.fromAsync(
+    const events = await collect(
       runFixtureTurn(
         { locale: 'en-US', generation: 1, text: 'Where is admissions?' },
         new AbortController().signal,
@@ -51,7 +57,7 @@ describe('real fixture pipeline lifecycle', () => {
   it.each(['tts_failure', 'provider_quota'] as const)(
     'ends %s with a stage-specific error',
     async (scenario) => {
-      const events = await Array.fromAsync(
+      const events = await collect(
         runFixtureTurn(
           { locale: 'en-US', generation: 1, scenario },
           new AbortController().signal,
