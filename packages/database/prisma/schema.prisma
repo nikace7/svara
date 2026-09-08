@@ -104,15 +104,21 @@ model StaffGrant {
   @@index([targetMembershipId])
 }
 
+enum AuditActorKind {
+  STAFF
+  LOCAL
+}
+
 model AuditEntry {
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   organisationId String @db.Uuid
-  actorMembershipId String @db.Uuid
+  actorMembershipId String? @db.Uuid
+  actorKind AuditActorKind @default(STAFF)
   action String @db.VarChar(64)
   targetId String @db.Uuid
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
-  actor Membership @relation(fields: [actorMembershipId, organisationId], references: [id, organisationId], onDelete: Restrict)
+  actor Membership? @relation(fields: [actorMembershipId, organisationId], references: [id, organisationId], onDelete: Restrict)
 
   @@index([organisationId, createdAt])
   @@index([actorMembershipId])

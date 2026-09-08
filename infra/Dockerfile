@@ -27,6 +27,6 @@ WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
 # M0 keeps one common image for web/API/worker and explicit migration init jobs.
 COPY --from=build --chown=node:node /app /app
-RUN mkdir -p /app/.local/media && chown -R node:node /app/.local
+RUN mkdir -p /app/.local/media /app/.local/setup && chown -R node:node /app/.local
 USER node
 CMD ["node", "apps/web/.next/standalone/apps/web/server.js"]

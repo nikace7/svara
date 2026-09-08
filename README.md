@@ -15,10 +15,10 @@ microphone capture and PCM speaker checks. Live recognition/generation/synthesis
 and their bilingual quality gate remain pending provider setup. The professional
 light theme uses white surfaces and a subtle lavender gradient.
 
-**M2 staff flows are implemented:** register/sign in, scoped cookie sessions,
+**M2 identity is implemented:** register/sign in, scoped cookie sessions,
 organisation settings, team invitations, recovery links, role changes and workspace
-switching work through the browser and API. Safe demo staff seeds and the explicit
-local recovery command remain in progress.
+switching work through the browser and API. Demo staff credentials are generated
+locally; an explicit local recovery command revokes sessions and preserves roles.
 See [identity scope](docs/M2-IDENTITY.md), [free provider account setup](docs/FREE-DEMO-SETUP.md)
 and [progress and verification](docs/PROGRESS.md).
 
@@ -81,8 +81,10 @@ Stop with `pnpm demo:down`; named data volumes are retained.
 
 The studio requires sign-in. Choose **Create a workspace** at `/login` to create
 your own organisation and owner account. The seed currently creates only the
-fictional Himal and Riverside organisations; it does not assign staff or a default
-password. The voice lab and component gallery additionally require local fixture
+fictional Himal and Riverside organisations, with five staff accounts covering all
+roles. Read the generated passwords in `.local/setup/demo-staff.json`; native and
+Compose modes share this ignored file. No default password is committed. The voice
+lab and component gallery additionally require local fixture
 mode, including after sign-in. Free provider account instructions are linked above.
 
 ## Native development

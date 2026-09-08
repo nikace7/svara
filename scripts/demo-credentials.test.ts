@@ -13,8 +13,12 @@ describe('local demo credentials', () => {
   it('does not invent replacement credentials when accounts already exist', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'svara-credentials-'));
     directories.push(directory);
-    await expect(loadDemoCredentials(directory, { allowCreate: false })).rejects.toThrow('Existing demo credentials');
-    await expect(readFile(join(directory, 'demo-staff.json'))).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(loadDemoCredentials(directory, { allowCreate: false })).rejects.toThrow(
+      'Existing demo credentials',
+    );
+    await expect(readFile(join(directory, 'demo-staff.json'))).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
   });
   it('generates distinct local passwords once and preserves them on repeated setup', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'svara-credentials-'));
