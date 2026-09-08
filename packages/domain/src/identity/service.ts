@@ -60,6 +60,19 @@ function isDatabaseError(error: unknown, code: string): boolean {
   return error instanceof Error && 'code' in error && error.code === code;
 }
 
+function isTransactionConflict(error: unknown): boolean {
+  if (isDatabaseError(error, 'P2034')) return true;
+  // The pg adapter can reject COMMIT before Prisma wraps the error as P2034.
+  return (
+    error instanceof Error &&
+    error.name === 'DriverAdapterError' &&
+    typeof error.cause === 'object' &&
+    error.cause !== null &&
+    'kind' in error.cause &&
+    error.cause.kind === 'TransactionWriteConflict'
+  );
+}
+
 function safeMember(member: Member): SafeMember {
   return {
     id: member.id,
@@ -88,7 +101,7 @@ export class IdentityService {
           timeout: 10000,
         });
       } catch (error) {
-        if (isDatabaseError(error, 'P2034') && attempt < 3) continue;
+        if (isTransactionConflict(error) && attempt < 3) continue;
         if (isDatabaseError(error, 'P2002')) throw new IdentityError('CONFLICT');
         throw error;
       }
