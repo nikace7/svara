@@ -37,6 +37,7 @@ model Bot {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
   draft BotDraft?
+  knowledge KnowledgeEntry[]
 
   @@unique([id, organisationId])
   @@index([organisationId, archivedAt, createdAt])
@@ -49,6 +50,41 @@ model BotDraft {
   bot Bot @relation(fields: [botId, organisationId], references: [id, organisationId], onDelete: Cascade)
 
   @@unique([botId, organisationId])
+}
+
+enum KnowledgeType {
+  FAQ
+  NOTE
+}
+
+enum KnowledgeStatus {
+  DRAFT
+  APPROVED
+}
+
+model KnowledgeEntry {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  botId String @db.Uuid
+  type KnowledgeType
+  title String @db.VarChar(160)
+  contentEn String @default("") @db.VarChar(8000)
+  contentNe String @default("") @db.VarChar(8000)
+  questionEn String @default("") @db.VarChar(500)
+  questionNe String @default("") @db.VarChar(500)
+  status KnowledgeStatus @default(DRAFT)
+  selected Boolean @default(true)
+  revision Int @default(1)
+  approvedAt DateTime? @db.Timestamptz(3)
+  approvedByMembershipId String? @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  bot Bot @relation(fields: [botId, organisationId], references: [id, organisationId], onDelete: Cascade)
+  approvedBy Membership? @relation(fields: [approvedByMembershipId, organisationId], references: [id, organisationId], onDelete: Restrict)
+
+  @@unique([id, organisationId])
+  @@index([organisationId, botId, status, createdAt])
+  @@index([approvedByMembershipId])
 }
 
 model User {
@@ -83,6 +119,8 @@ model Membership {
   issuedGrants StaffGrant[] @relation("GrantIssuer")
   recoveryGrants StaffGrant[] @relation("GrantTarget")
   auditEntries AuditEntry[]
+
+  approvedKnowledge KnowledgeEntry[]
 
   @@unique([organisationId, userId])
   @@unique([id, organisationId])

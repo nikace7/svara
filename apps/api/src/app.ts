@@ -109,13 +109,17 @@ class SafeExceptionFilter implements ExceptionFilter {
             'This draft changed elsewhere. Your edits have not been saved. Load the latest version before trying again.',
         },
         ARCHIVED: { status: 409, message: 'Restore this bot before editing its draft.' },
+        INCOMPLETE_TRANSLATIONS: {
+          status: 422,
+          message: 'Complete both languages before approving this entry.',
+        },
       }[exception.code];
       response.status(details.status).json({
         error: {
           code: exception.code,
           message: details.message,
           currentRevision: exception.currentRevision,
-          fieldErrors: {},
+          fieldErrors: exception.fieldErrors,
           retryable: false,
         },
         requestId: response.getHeader('x-request-id'),
