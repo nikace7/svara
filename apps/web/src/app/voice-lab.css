@@ -25,7 +25,7 @@
 .voice-controls select {
   width: 100%;
   font: inherit;
-  color-scheme: dark;
+  color-scheme: inherit;
 }
 .voice-controls form {
   display: grid;
