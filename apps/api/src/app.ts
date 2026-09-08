@@ -22,9 +22,12 @@ import {
   SwaggerModule,
 } from '@nestjs/swagger';
 import type { NextFunction, Request, Response } from 'express';
+import { mediaRejectionMessages } from '@svara/contracts';
 import type { ProviderMode } from '@svara/contracts';
 import type { Readiness } from '@svara/domain';
-import { AuthoringError, IdentityError } from '@svara/domain';
+import { AuthoringError, IdentityError, MediaError } from '@svara/domain';
+import { MEDIA_SERVICE, MediaController } from './media/controller.js';
+import type { MediaHttpService } from './media/controller.js';
 import { createFeasibilityHandler } from './feasibility.js';
 import { AUTH_BOUNDARY, StaffBoundary } from './auth/boundary.js';
 import type { IdentityHttpOptions } from './auth/boundary.js';
@@ -48,6 +51,7 @@ export interface ApplicationOptions {
   identity?: IdentityHttpOptions;
   authoring?: BotHttpService;
   knowledge?: KnowledgeHttpService;
+  media?: MediaHttpService;
   trustedProxyHops?: 0 | 1;
 }
 
@@ -104,6 +108,32 @@ class SafeExceptionFilter implements ExceptionFilter {
     const response = host.switchToHttp().getResponse<Response>();
     const parserType =
       exception instanceof Error && 'type' in exception ? exception.type : undefined;
+    if (exception instanceof MediaError) {
+      const codes = {
+        MEDIA_BUSY: [409, 'This file is being processed. Wait and refresh before trying again.'],
+        MEDIA_NOT_READY: [409, 'This file is not ready for playback.'],
+        MEDIA_QUOTA: [
+          429,
+          'The media library limit has been reached. Remove unused files or wait for pending uploads.',
+        ],
+        INVALID_RANGE: [416, 'The requested byte range is invalid.'],
+      } as const;
+      const detail =
+        exception.code in codes ? codes[exception.code as keyof typeof codes] : undefined;
+      const status = detail?.[0] ?? 422;
+      response.status(status).json({
+        error: {
+          code: exception.code,
+          message:
+            detail?.[1] ??
+            mediaRejectionMessages[exception.code as keyof typeof mediaRejectionMessages],
+          fieldErrors: {},
+          retryable: exception.code === 'MEDIA_BUSY' || exception.code === 'MEDIA_NOT_READY',
+        },
+        requestId: response.getHeader('x-request-id'),
+      });
+      return;
+    }
     if (exception instanceof AuthoringError) {
       const details = {
         PRECONDITION_REQUIRED: {
@@ -248,12 +278,14 @@ export async function createApplication(
       BotsController,
       BotKnowledgeController,
       KnowledgeController,
+      MediaController,
     ],
     providers: [
       { provide: OPTIONS, useValue: options },
       { provide: AUTH_BOUNDARY, useValue: boundary },
       { provide: BOT_SERVICE, useValue: options.authoring ?? null },
       { provide: KNOWLEDGE_SERVICE, useValue: options.knowledge ?? null },
+      { provide: MEDIA_SERVICE, useValue: options.media ?? null },
       StaffGuard,
     ],
   })

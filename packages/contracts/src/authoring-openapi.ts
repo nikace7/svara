@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { mediaDeleteSchema, mediaDetailSchema, mediaPageSchema } from './media.js';
 import {
   botArchiveSchema,
   botCreateSchema,
@@ -37,4 +38,13 @@ export const knowledgeApiSchemas = {
     z.object({ data: z.object({ ok: z.literal(true), botRevision: z.number().int().positive() }) }),
     { target: 'openapi-3.0' },
   ),
+};
+
+export const mediaApiSchemas = {
+  detail: z.toJSONSchema(z.object({ data: mediaDetailSchema }), { target: 'openapi-3.0' }),
+  page: z.toJSONSchema(z.object({ data: mediaPageSchema }), { target: 'openapi-3.0' }),
+  remove: z.toJSONSchema(mediaDeleteSchema, { target: 'openapi-3.0', io: 'input' }),
+  removed: z.toJSONSchema(z.object({ data: z.object({ ok: z.literal(true) }) }), {
+    target: 'openapi-3.0',
+  }),
 };

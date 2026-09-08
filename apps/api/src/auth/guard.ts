@@ -6,6 +6,8 @@ import type { StaffBoundary } from './boundary.js';
 
 const PUBLIC_STAFF = 'public-staff-endpoint';
 export const PublicStaff = () => SetMetadata(PUBLIC_STAFF, true);
+const MULTIPART_STAFF = 'multipart-staff-endpoint';
+export const MultipartStaff = () => SetMetadata(MULTIPART_STAFF, true);
 
 @Injectable()
 export class StaffGuard implements CanActivate {
@@ -21,6 +23,9 @@ export class StaffGuard implements CanActivate {
         context.getHandler(),
         context.getClass(),
       ]) ?? false,
+      this.reflector.get<boolean>(MULTIPART_STAFF, context.getHandler())
+        ? 'multipart/form-data'
+        : 'application/json',
     );
     return true;
   }

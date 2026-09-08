@@ -86,7 +86,12 @@ export class StaffBoundary {
     }
   }
 
-  async authorize(request: Request, response: Response, anonymous = false): Promise<void> {
+  async authorize(
+    request: Request,
+    response: Response,
+    anonymous = false,
+    bodyType: 'application/json' | 'multipart/form-data' = 'application/json',
+  ): Promise<void> {
     const { origin, service } = this.settings;
     const mutation = !['GET', 'HEAD', 'OPTIONS'].includes(request.method);
     if (
@@ -95,7 +100,7 @@ export class StaffBoundary {
       (mutation && request.get('origin') !== origin)
     )
       throw new IdentityError('FORBIDDEN');
-    if (mutation && !request.is('application/json')) throw new IdentityError('INVALID_INPUT');
+    if (mutation && !request.is(bodyType)) throw new IdentityError('INVALID_INPUT');
     await this.limit(
       response,
       'staff-ip',
