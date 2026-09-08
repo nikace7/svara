@@ -29,7 +29,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const items = [
     { label: 'Overview', icon: LayoutDashboard, href: '/studio' },
     { label: 'Bots', icon: Bot, href: '/studio/bots' },
-    { label: 'Media', icon: Images },
+    { label: 'Media', icon: Images, href: '/studio/media' },
     { label: 'Devices', icon: Monitor },
     { label: 'Events & Deployments', icon: CalendarDays },
     { label: 'Sessions', icon: FileText },

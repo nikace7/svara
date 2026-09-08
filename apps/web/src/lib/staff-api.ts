@@ -30,7 +30,8 @@ export async function staffResponse(
   const headers = new Headers(init.headers);
   const mutation = !!init.method && init.method !== 'GET';
   if (mutation) {
-    headers.set('Content-Type', 'application/json');
+    if (init.body instanceof FormData) headers.delete('Content-Type');
+    else headers.set('Content-Type', 'application/json');
     // A fresh token fetched here could authorize an old form against a different workspace.
     if (!anonymous && !headers.get('X-CSRF-Token'))
       throw new StaffApiError(403, 'FORBIDDEN', 'Refresh the workspace before making changes.');
@@ -53,7 +54,7 @@ export async function staffResponse(
   const details = body && typeof body === 'object' && 'error' in body ? body.error : undefined;
   const error = details && typeof details === 'object' ? details : {};
   const message =
-    response.status === 429
+    response.status === 429 && !('code' in error && error.code === 'MEDIA_QUOTA')
       ? `Too many attempts. Try again in ${response.headers.get('Retry-After') ?? 'a few'} seconds.`
       : 'message' in error && typeof error.message === 'string'
         ? error.message
