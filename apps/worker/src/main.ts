@@ -1,18 +1,43 @@
 import { createServer } from 'node:http';
 import { loadWorkspaceEnvironment, parseServerConfig } from '@svara/config/server';
-import { createDependencies } from '@svara/domain';
+import { createDependencies, MediaJobs, MediaStorage, type Readiness } from '@svara/domain';
+import { MediaInspector } from './media/inspector.js';
+import { MediaQueueRuntime } from './media/queue.js';
 
 loadWorkspaceEnvironment();
 const config = parseServerConfig(process.env);
 const dependencies = await createDependencies(config);
+const storage = await MediaStorage.open(config.MEDIA_ROOT);
+const inspector = new MediaInspector(storage, config);
+const jobs = new MediaJobs(dependencies.database, storage, inspector.inspect.bind(inspector));
+const mediaQueue = new MediaQueueRuntime(config.REDIS_URL, jobs, inspector.check.bind(inspector), {
+  prefix: `${config.WORKER_NAMESPACE}:media`,
+});
 let closing = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
+
+async function ready(): Promise<Readiness> {
+  const infrastructure = await dependencies.ready();
+  const available = !closing && mediaQueue.isReady();
+  return {
+    status: infrastructure.status === 'ready' && available ? 'ready' : 'unavailable',
+    dependencies: {
+      ...infrastructure.dependencies,
+      mediaInspection: available ? 'ready' : 'unavailable',
+    },
+  };
+}
 
 async function heartbeat(): Promise<void> {
   if (closing) return;
   try {
-    if ((await dependencies.ready()).status === 'ready') {
-      await dependencies.redis.set('svara:worker:heartbeat', new Date().toISOString(), 'EX', 15);
+    if ((await ready()).status === 'ready' && !closing) {
+      await dependencies.redis.set(
+        `${config.WORKER_NAMESPACE}:worker:heartbeat`,
+        new Date().toISOString(),
+        'EX',
+        15,
+      );
     }
   } catch {
     console.error(JSON.stringify({ event: 'worker.heartbeat.failed' }));
@@ -34,8 +59,7 @@ const server = createServer((request, response) => {
       response.writeHead(404).end(JSON.stringify({ error: 'NOT_FOUND' }));
       return;
     }
-    const readiness =
-      request.url === '/health/ready' ? await dependencies.ready() : { status: 'ok' };
+    const readiness = request.url === '/health/ready' ? await ready() : { status: 'ok' };
     response.writeHead(readiness.status === 'unavailable' ? 503 : 200).end(
       JSON.stringify({
         data: { ...readiness, service: 'worker', providerMode: config.PROVIDER_MODE },
@@ -51,20 +75,38 @@ async function shutdown(): Promise<void> {
   closing = true;
   clearTimeout(timer);
   server.close();
-  await dependencies.close();
+  const deadline = setTimeout(() => {
+    console.error(JSON.stringify({ event: 'worker.shutdown.timeout' }));
+    process.exit(1);
+  }, 25_000);
+  deadline.unref();
+  try {
+    await mediaQueue.close();
+  } finally {
+    await dependencies.close();
+    clearTimeout(deadline);
+  }
 }
-process.once('SIGINT', () => {
-  void shutdown();
-});
-process.once('SIGTERM', () => {
-  void shutdown();
+function stop(): void {
+  void shutdown().catch(() => {
+    console.error(JSON.stringify({ event: 'worker.shutdown.failed' }));
+    process.exitCode = 1;
+  });
+}
+process.once('SIGINT', stop);
+process.once('SIGTERM', stop);
+server.on('error', () => {
+  console.error(JSON.stringify({ event: 'worker.http.failed' }));
+  process.exitCode = 1;
+  stop();
 });
 server.listen(config.WORKER_PORT, config.BIND_HOST);
+mediaQueue.start();
 await heartbeat();
 console.info(
   JSON.stringify({
     event: 'worker.started',
     port: config.WORKER_PORT,
-    responsibilities: ['dependency-health', 'heartbeat'],
+    responsibilities: ['dependency-health', 'heartbeat', 'media-inspection', 'media-cleanup'],
   }),
 );
