@@ -23,6 +23,32 @@ model Organisation {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   memberships Membership[]
   auditEntries AuditEntry[]
+  bots Bot[]
+}
+
+model Bot {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  name String @db.VarChar(120)
+  description String @default("") @db.VarChar(1000)
+  revision Int @default(1)
+  archivedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+  draft BotDraft?
+
+  @@unique([id, organisationId])
+  @@index([organisationId, archivedAt, createdAt])
+}
+
+model BotDraft {
+  botId String @id @db.Uuid
+  organisationId String @db.Uuid
+  config Json
+  bot Bot @relation(fields: [botId, organisationId], references: [id, organisationId], onDelete: Cascade)
+
+  @@unique([botId, organisationId])
 }
 
 model User {

@@ -11,7 +11,7 @@ import {
 } from '@svara/contracts';
 import { IdentityError } from './errors.js';
 import { requirePermission } from './policies.js';
-import type { StaffRole } from './policies.js';
+import type { Permission, StaffRole } from './policies.js';
 import {
   createToken,
   csrfToken,
@@ -111,6 +111,20 @@ export class IdentityService {
     if (touch)
       await tx.staffSession.update({ where: { id: session.id }, data: { lastSeenAt: now } });
     return { member: session.membership, sessionId: session.id };
+  }
+
+  /** Shared domain entrypoint: resolve current staff and execute under one transaction. */
+  async asStaff<T>(
+    token: string,
+    permission: Permission,
+    run: (tx: Transaction, actor: Actor) => Promise<T>,
+    touch = true,
+  ): Promise<T> {
+    return this.transaction(async (tx) => {
+      const actor = await this.actor(tx, token, touch);
+      requirePermission(actor.member.role, permission);
+      return run(tx, actor);
+    });
   }
 
   private async safeIdentity(tx: Transaction, member: Member): Promise<SafeIdentity> {
