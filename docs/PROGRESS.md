@@ -289,3 +289,48 @@ creation or remote push was performed. The original supplied blueprints are unch
 Live provider adapters, accounts and the bilingual live gate remain pending. Media,
 presentations, releases and query inspection against a pinned release are the next
 M3 work. Approval and inclusion alone do not publish content or drive the Voice lab.
+
+## M3 media storage and inspection foundation — 2026-09-08
+
+Media reservations, exact streaming receipt, scoped metadata, current-authority
+completion checks and revision-aware deletion requests are implemented. Private
+UUID keys, checksums and quarantine states prevent uninspected files from becoming
+available. Migrations 007/008 add tenant constraints, leases, inspection metadata,
+READY/rejection invariants and SYSTEM audit actors. See `MEDIA-INSPECTION.md`.
+
+The standalone inspector now re-encodes JPEG/PNG with orientation and metadata
+stripping, produces bounded PNG thumbnails and validates H.264/AAC MP4 metadata.
+Input signatures, source integrity, dimensions, duration, parser time and process
+output are bounded. Existing outputs are preserved; failed attempts clean only
+their own generated outputs. Sharp and BullMQ are pinned, and native development
+now compiles child inspection programs when source changes.
+
+ffprobe runs through an unprivileged Linux Landlock/seccomp helper in the demo
+image. Its real runtime regression verifies denied file/network/process access
+and successful inspection of a generated H.264 clip. The first Linux clip test
+identified an ELF-loader execute denial; a separate regression/fix pair added the
+specific loader permissions while retaining the other restrictions. Native Windows
+uses an explicit development mode; production configuration requires the sandbox.
+
+Verification completed:
+
+- `pnpm check` passed format, lint, types, contracts, production builds and the
+  then-current 115 unit tests. Subsequent test additions passed their format,
+  lint/type checks and all **120 unit tests**. Coverage now includes media contracts,
+  storage, ranges, metadata policy and process supervision: **97.87% lines and
+  93.61% branches** across the configured source subset, not the whole application.
+- All **63 integration tests** passed natively and in the rebuilt Linux demo,
+  including real image processing and sandboxed video inspection. The 19 focused
+  media unit tests also passed in a restricted Linux container.
+- The sandbox runtime gate and network-disabled production preview guard passed.
+  All six long-running demo services are healthy; migration and seed jobs succeeded.
+- Dependency audit found no known vulnerabilities. A history scan through the
+  implementation/docs checkpoint covered 92 commits with no detected secrets.
+  Supplied blueprints remain unchanged; no provider call or remote push was made.
+
+This increment does **not** complete the media feature. The worker still runs its
+health/heartbeat loop. Durable job claims and conditional READY publication,
+reconciliation, expired/orphan/deletion cleanup, scoped upload/range handlers and
+the studio media library are the next M3 work. No new UI was introduced in this
+increment; the previous 27-journey browser result remains the last full UI gate.
+Presentations, immutable releases and subsequent milestones remain on the active goal.
