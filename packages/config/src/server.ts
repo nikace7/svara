@@ -20,6 +20,9 @@ const serverSchema = z
     TEST_DATABASE_URL: connectionUrl(['postgres:', 'postgresql:']),
     REDIS_URL: connectionUrl(['redis:', 'rediss:']),
     MEDIA_ROOT: z.string().min(1),
+    MEDIA_INSPECTION_MODE: z.enum(['sandboxed', 'native']).default('sandboxed'),
+    FFPROBE_PATH: z.string().trim().min(1).default('ffprobe'),
+    MEDIA_SANDBOX_PATH: z.string().trim().min(1).default('/usr/local/bin/svara-media-sandbox'),
     AUTH_TOKEN_PEPPER: z.string().min(64),
     PROVIDER_MODE: z.enum(['fixture', 'live']).default('fixture'),
     AZURE_SPEECH_KEY: z.string().optional(),
@@ -43,6 +46,13 @@ const serverSchema = z
     WORKER_PORT: positiveInteger(4101, 65535),
   })
   .superRefine((config, context) => {
+    if (config.APP_ENV === 'production' && config.MEDIA_INSPECTION_MODE !== 'sandboxed') {
+      context.addIssue({
+        code: 'custom',
+        path: ['MEDIA_INSPECTION_MODE'],
+        message: 'Production media inspection requires the Linux sandbox.',
+      });
+    }
     const origin = new URL(config.APP_ORIGIN);
     if (
       !['http:', 'https:'].includes(origin.protocol) ||
