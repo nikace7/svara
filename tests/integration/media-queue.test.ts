@@ -14,6 +14,7 @@ import { MediaQueueRuntime } from '../../apps/worker/src/media/queue.js';
 import { mediaQueueFixture } from '../../apps/worker/test/media-queue-fixture.js';
 import { imageFixture } from '../../apps/worker/test/media-fixtures.js';
 import { staffFixture } from './staff-fixture.js';
+import { redisRelay } from './redis-relay.js';
 
 describe('recoverable media queue runtime', () => {
   let staff: Awaited<ReturnType<typeof staffFixture>>;
@@ -71,9 +72,10 @@ describe('recoverable media queue runtime', () => {
   function runtime(
     jobs: Pick<MediaJobs, 'process' | 'pending' | 'sweep' | 'close'>,
     probe = async () => {},
+    redisUrl = config.REDIS_URL,
   ) {
     const fixture = mediaQueueFixture(config.REDIS_URL);
-    const instance = new MediaQueueRuntime(config.REDIS_URL, jobs, probe, {
+    const instance = new MediaQueueRuntime(redisUrl, jobs, probe, {
       prefix: fixture.prefix,
       intervalMs: 100,
     });
@@ -200,4 +202,31 @@ describe('recoverable media queue runtime', () => {
       )
       .toEqual(['READY', 'READY']);
   });
+
+  it('recovers from Redis being unavailable both at startup and after a ready connection', async () => {
+    const relay = await redisRelay(config.REDIS_URL);
+    const coordinator = new MediaJobs(staff.db, storage, inspector.inspect.bind(inspector));
+    const { instance } = runtime(coordinator, async () => {}, relay.url);
+    try {
+      instance.start();
+      await instance.tick();
+      expect(instance.isReady()).toBe(false);
+      relay.setAvailable(true);
+      await expect.poll(() => instance.isReady(), { timeout: 8000 }).toBe(true);
+      relay.setAvailable(false);
+      await expect.poll(() => instance.isReady(), { timeout: 3000 }).toBe(false);
+      const entry = await upload();
+      await instance.tick();
+      expect(await media.get(staff.owner.token, entry.id)).toMatchObject({ state: 'QUARANTINED' });
+      relay.setAvailable(true);
+      await expect
+        .poll(async () => (await media.get(staff.owner.token, entry.id)).state, { timeout: 8000 })
+        .toBe('READY');
+      await expect.poll(() => instance.isReady(), { timeout: 3000 }).toBe(true);
+    } finally {
+      relay.setAvailable(true);
+      await instance.close();
+      await relay.close();
+    }
+  }, 25000);
 });
