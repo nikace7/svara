@@ -1,7 +1,8 @@
 # M3 — Bot authoring and publication
 
 M3 is in progress. Persisted bot drafts and bilingual knowledge now have a protected
-API and studio editors. Media, presentations and immutable releases remain pending.
+API and studio editors. Media storage and isolated inspection are implemented;
+queue/HTTP/UI integration, presentations and immutable releases remain pending.
 Draft tool choices are configuration; they do not execute tools.
 
 ## Draft architecture
@@ -65,7 +66,8 @@ provider or establishes the factual accuracy of the submitted text.
 
 ## Remaining M3 work
 
-1. Quarantined media uploads, worker inspection, readiness and safe serving.
+1. Connect the tested media storage/inspector to durable worker jobs, cleanup,
+   scoped upload/serving handlers and the studio library. See `MEDIA-INSPECTION.md`.
 2. Presentations, ordered slides, screen targets and media references.
 3. Release readiness checks, immutable preview/published snapshots, idempotent
    publication and release-local search projections.

@@ -7,6 +7,11 @@ Prisma 7.10.0 and TypeScript 5.9.3 are pinned. PostgreSQL 17, Redis 7,
 Caddy 2 and the Node container base are pinned to verified image digests.
 One `pnpm-lock.yaml` covers all 11 projects.
 
+The media worker pins Sharp 0.35.4 and BullMQ 6.3.4. FFmpeg and libseccomp come
+from the Debian image's signed repositories; the current image resolved FFmpeg
+5.1.9. Native Windows verification uses FFmpeg 9.0.1. The sandbox compiler exists
+only in its build stage. See `MEDIA-INSPECTION.md` for supported inspection modes.
+
 ESLint 9.39.5 is retained for `eslint-plugin-react` compatibility: the installed
 React lint plugin does not declare ESLint 10 support. Revisit together with Next's
 lint dependency set. This is a compatibility pin, not a claim that ESLint 9 is the

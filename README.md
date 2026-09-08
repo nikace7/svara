@@ -24,7 +24,9 @@ and [progress and verification](docs/PROGRESS.md).
 
 **M3 bot drafts and knowledge are implemented:** scoped search, bilingual editing,
 revision conflicts, read-only roles, archive/restore, FAQ/reference approval and
-release inclusion. Media, presentations and immutable publication are next.
+release inclusion. Media now has a tested private-storage and inspection foundation;
+its queue, HTTP handlers and studio library are still pending. Presentations and
+immutable publication follow.
 See [authoring scope](docs/M3-AUTHORING.md).
 
 ## Architecture
@@ -109,6 +111,11 @@ Use `http://localhost:4320`. Native web uses port 3001, API 4100, worker 4101,
 PostgreSQL 5434 and Redis 6381. Port 3001 avoids an unrelated service on this machine;
 containers use web port 3000 internally. Ctrl+C stops the coordinated app watchers;
 `pnpm infra:down` stops infrastructure while retaining data.
+
+Native media integration tests additionally need FFmpeg/ffprobe and an explicit
+development inspection setting. See [media inspection setup](docs/MEDIA-INSPECTION.md).
+Compose includes the Linux ffprobe sandbox. The worker watcher compiles inspection
+children as well as its main process, so new jobs use the current emitted code.
 
 ## Explore the voice lab
 
