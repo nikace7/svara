@@ -93,6 +93,7 @@ test('reference notes work on mobile and conflicting edits preserve local text',
   await dialog.getByLabel('Entry type').selectOption('NOTE');
   await dialog.getByLabel(/^Entry title/).fill('Welcome note');
   await dialog.getByRole('button', { name: 'Create entry' }).click();
+  await expect(page.getByRole('heading', { name: 'Welcome note', exact: true })).toBeVisible();
   const english = page.getByRole('tabpanel', { name: /English/ });
   const nepali = page.getByRole('tabpanel', { name: /Nepali/ });
   await expect(english.getByRole('textbox', { name: 'Question', exact: true })).toHaveCount(0);
