@@ -97,7 +97,8 @@ export class MediaJobs {
     const asset = await this.db.mediaAsset.findFirst({ where: { id, ...this.available() } });
     if (!asset) return;
     if (
-      asset.createdAt.getTime() + MEDIA_LIMITS.retentionMs <= this.now().getTime() ||
+      (asset.uploadedAt ?? asset.createdAt).getTime() + MEDIA_LIMITS.retentionMs <=
+        this.now().getTime() ||
       asset.attempts >= maxAttempts ||
       !asset.sourceSha256
     ) {
@@ -288,15 +289,18 @@ export class MediaJobs {
       throw new Error('Invalid media sweep limit.');
     const now = this.now();
     const before = new Date(now.getTime() - MEDIA_LIMITS.retentionMs);
+    const retainedAge: Prisma.MediaAssetWhereInput = {
+      OR: [{ uploadedAt: { lte: before } }, { uploadedAt: null, createdAt: { lte: before } }],
+    };
     const expired = await this.db.mediaAsset.findMany({
       where: {
         OR: [
-          { state: { in: ['UPLOADING', 'QUARANTINED'] }, createdAt: { lte: before } },
+          { state: { in: ['UPLOADING', 'QUARANTINED'] }, AND: retainedAge },
           { state: 'RECEIVING', leaseExpiresAt: { lte: now } },
           {
             state: 'INSPECTING',
             leaseExpiresAt: { lte: now },
-            OR: [{ attempts: { gte: maxAttempts } }, { createdAt: { lte: before } }],
+            OR: [{ attempts: { gte: maxAttempts } }, retainedAge],
           },
         ],
       },
@@ -314,10 +318,7 @@ export class MediaJobs {
       );
     const cleanup = await this.db.mediaAsset.findMany({
       where: {
-        OR: [
-          { state: 'DELETING' },
-          { state: 'REJECTED', createdAt: { lte: before }, cleanedAt: null },
-        ],
+        OR: [{ state: 'DELETING' }, { state: 'REJECTED', AND: retainedAge, cleanedAt: null }],
       },
       orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
       take: 50,
