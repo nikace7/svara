@@ -200,3 +200,18 @@ Do not retry unrelated adapter errors or perform external side effects within th
 transaction callback. The regression synchronizes two predicate reads and inserts,
 forcing the conflict at commit, and verifies both operations complete without
 duplicate rows after the losing transaction retries.
+
+## ADR 018 — Private media inspection before READY publication
+
+Separate reservation, bounded byte receipt, inspection and database publication.
+Receiving completion rechecks current staff authority. Inspection outputs use
+generated asset/lease keys and never overwrite another attempt's files. Database
+state, leases and conditional completion will remain authoritative over queue jobs.
+Preserve private files when commit acknowledgement is uncertain; reconcile later.
+
+Re-encode images and regenerate their thumbnails. Inspect H.264/AAC MP4 metadata
+without transcoding or exposing quarantine. Use an unprivileged Linux
+Landlock/seccomp helper for ffprobe, with narrow runtime-loader permissions and
+bounded processes, output and resources. Missing sandbox support fails closed.
+Native development is an explicit configuration choice rejected in production.
+See `MEDIA-INSPECTION.md` for current implementation boundaries and tests.
