@@ -8,24 +8,12 @@ import {
   emptyBotDraft,
   resourceIdSchema,
 } from '@svara/contracts';
-import type { BotDraft } from '@svara/contracts';
+import type { BotDetail, BotSummary } from '@svara/contracts';
 import type { IdentityService } from '../identity/service.js';
 import { IdentityError } from '../identity/errors.js';
 import { AuthoringError } from './errors.js';
 
 type StoredBot = Prisma.BotGetPayload<{ include: { draft: true } }>;
-export interface BotSummary {
-  id: string;
-  name: string;
-  description: string;
-  revision: number;
-  archivedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-export interface BotDetail extends BotSummary {
-  draft: BotDraft;
-}
 
 function parse<T>(
   schema: { safeParse(value: unknown): { success: true; data: T } | { success: false } },

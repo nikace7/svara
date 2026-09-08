@@ -1,21 +1,23 @@
 import { loadWorkspaceEnvironment, parseServerConfig } from '@svara/config/server';
-import { createDependencies, createStaffLimiter, IdentityService } from '@svara/domain';
+import { BotService, createDependencies, createStaffLimiter, IdentityService } from '@svara/domain';
 import { createApplication } from './app.js';
 
 loadWorkspaceEnvironment();
 const config = parseServerConfig(process.env);
 const dependencies = await createDependencies(config);
+const identity = new IdentityService(dependencies.database, config.AUTH_TOKEN_PEPPER);
 const app = await createApplication({
   providerMode: config.PROVIDER_MODE,
   localDocs: config.APP_ENV === 'local',
   probe: () => dependencies.ready(true),
   trustedProxyHops: config.TRUST_PROXY_HOPS === 1 ? 1 : 0,
   identity: {
-    service: new IdentityService(dependencies.database, config.AUTH_TOKEN_PEPPER),
+    service: identity,
     origin: config.APP_ORIGIN,
     pepper: config.AUTH_TOKEN_PEPPER,
     consumeLimit: createStaffLimiter(dependencies.redis, config.AUTH_TOKEN_PEPPER),
   },
+  authoring: new BotService(identity),
   ...(config.APP_ENV === 'local' && config.PROVIDER_MODE === 'fixture'
     ? { feasibilityOrigin: config.APP_ORIGIN }
     : {}),
