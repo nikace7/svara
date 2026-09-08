@@ -111,6 +111,12 @@ describe('real media inspection', () => {
     expect(thumbnail.height).toBeLessThanOrEqual(480);
   });
 
+  it('checks actual image and video processing readiness without retaining probe files', async () => {
+    const before = await readdir(root);
+    await inspector.check();
+    expect(await readdir(root)).toEqual(before);
+  });
+
   it('rejects content disguises, corrupt image data and oversized pixel counts', async () => {
     const png = await imageFixture();
     for (const [bytes, mime, code] of [
