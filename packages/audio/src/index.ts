@@ -1,6 +1,7 @@
 export * from './pcm.js';
 export * from './playback.js';
 export * from './generation.js';
+export * from './browser.js';
 
 /** The protocol uses raw signed PCM16 little-endian mono. */
 export const AUDIO_FORMAT = {

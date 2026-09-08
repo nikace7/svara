@@ -43,11 +43,11 @@ test('speech failure retains readable text and quota failure stays incomplete', 
   await page.goto('/studio/voice-lab');
   await page.getByLabel('Scenario', { exact: true }).selectOption('tts_failure');
   await page.getByRole('button', { name: 'Run scenario', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('speech failure');
+  await expect(page.getByRole('alert').filter({ hasText: 'speech failure' })).toBeVisible();
   await expect(page.getByLabel('Answer subtitles')).toContainText('A-101');
   await page.getByLabel('Scenario', { exact: true }).selectOption('provider_quota');
   await page.getByRole('button', { name: 'Run scenario', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('quota');
+  await expect(page.getByRole('alert').filter({ hasText: 'quota' })).toBeVisible();
 });
 
 test('speaker check uses real PCM worklet playback and mobile layout fits', async ({ page }) => {
@@ -58,6 +58,7 @@ test('speaker check uses real PCM worklet playback and mobile layout fits', asyn
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
+  await page.getByRole('heading', { name: 'Voice lab', exact: true }).click();
   await page.screenshot({ path: 'artifacts/screenshots/m1-voice-lab-mobile.png', fullPage: true });
 });
 
@@ -69,6 +70,71 @@ test('microphone denial offers text fallback', async ({ page }) => {
   });
   await page.goto('/studio/voice-lab');
   await page.getByRole('button', { name: 'Test microphone' }).click();
-  await expect(page.getByRole('alert')).toContainText('Microphone permission denied');
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'Microphone permission denied' }),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Send text' })).toBeEnabled();
+});
+
+test('real worklet capture releases tracks on language change, end and navigation', async ({
+  playwright,
+}) => {
+  const browser = await playwright.chromium.launch({
+    args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
+  });
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  try {
+    await page.addInitScript(() => {
+      const state = window as unknown as {
+        labTracks: MediaStreamTrack[];
+        labContexts: AudioContext[];
+      };
+      state.labTracks = [];
+      state.labContexts = [];
+      const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+      navigator.mediaDevices.getUserMedia = async (constraints) => {
+        const stream = await original(constraints);
+        state.labTracks.push(...stream.getTracks());
+        return stream;
+      };
+      const OriginalContext = window.AudioContext;
+      window.AudioContext = class extends OriginalContext {
+        constructor(options?: AudioContextOptions) {
+          super(options);
+          state.labContexts.push(this);
+        }
+      };
+    });
+    let audioUploads = 0;
+    page.on('request', (request) => {
+      if (request.method() === 'POST') audioUploads++;
+    });
+    await page.goto('http://localhost:4320/studio/voice-lab');
+    const stopped = () =>
+      page.evaluate(() => {
+        const state = window as unknown as {
+          labTracks: MediaStreamTrack[];
+          labContexts: AudioContext[];
+        };
+        return (
+          state.labTracks.length > 0 &&
+          state.labTracks.every((track) => track.readyState === 'ended') &&
+          state.labContexts.every((context) => context.state === 'closed')
+        );
+      });
+    for (const action of ['language', 'end', 'navigation']) {
+      await page.getByRole('button', { name: 'Test microphone' }).click();
+      await expect(page.getByText(/3200 bytes · batch/)).toBeVisible();
+      if (action === 'language')
+        await page.getByLabel('Language', { exact: true }).selectOption('ne-NP');
+      if (action === 'end') await page.getByRole('button', { name: 'End & clear' }).click();
+      if (action === 'navigation')
+        await page.getByRole('link', { name: 'Overview', exact: true }).click();
+      await expect.poll(stopped).toBe(true);
+    }
+    expect(audioUploads).toBe(0);
+  } finally {
+    await browser.close();
+  }
 });

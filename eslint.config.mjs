@@ -15,6 +15,7 @@ export default tseslint.config(
       'test-results/**',
       'playwright-report/**',
       'apps/web/next-env.d.ts',
+      'apps/web/public/audio/**',
     ],
   },
   js.configs.recommended,

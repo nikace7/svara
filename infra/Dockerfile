@@ -20,6 +20,7 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
 RUN cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static
+RUN cp -r apps/web/public apps/web/.next/standalone/apps/web/public
 
 FROM base AS runtime
 WORKDIR /app

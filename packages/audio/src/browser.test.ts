@@ -7,8 +7,12 @@ function harness(media?: Promise<MediaStream>) {
   const node = {
     connect: vi.fn(),
     disconnect: vi.fn(),
-    onprocessorerror: null,
-    port: { postMessage: vi.fn(), close: vi.fn(), onmessage: null },
+    onprocessorerror: null as null | (() => void),
+    port: {
+      postMessage: vi.fn(),
+      close: vi.fn(),
+      onmessage: null as null | ((event: MessageEvent) => void),
+    },
   };
   const context = {
     sampleRate: 48000,
@@ -28,6 +32,47 @@ function harness(media?: Promise<MediaStream>) {
 }
 
 describe('browser microphone lifecycle', () => {
+  it('acknowledges consumed frames and ends capture after a processor error', async () => {
+    const { audio, node, track } = harness();
+    const meter = vi.fn();
+    const failure = vi.fn();
+    await audio.startCapture(new AbortController().signal, meter, failure);
+    await expect(audio.startCapture(new AbortController().signal, meter, failure)).rejects.toThrow(
+      'already active',
+    );
+    node.port.onmessage?.(new MessageEvent('message', { data: { type: 'ignored' } }));
+    node.port.onmessage?.(
+      new MessageEvent('message', {
+        data: {
+          type: 'pcm',
+          seq: 0,
+          inputRate: 48000,
+          pcm: new Int16Array(1600).fill(16000).buffer,
+        },
+      }),
+    );
+    expect(meter).toHaveBeenCalledWith(
+      expect.objectContaining({ seq: 0, bytes: 3200, inputRate: 48000 }),
+    );
+    expect(node.port.postMessage).toHaveBeenCalledWith({ type: 'ack', seq: 0 });
+    node.port.onmessage?.(new MessageEvent('message', { data: { type: 'error' } }));
+    expect(track.stop).toHaveBeenCalledTimes(1);
+    expect(failure).toHaveBeenCalledTimes(1);
+    await audio.stop();
+  });
+  it('does not create resources for an already aborted start', async () => {
+    const { audio, context } = harness();
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      audio.startCapture(
+        controller.signal,
+        () => {},
+        () => {},
+      ),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+    expect(context.resume).not.toHaveBeenCalled();
+  });
   it('cleans up when microphone access throws synchronously in an unsupported browser', async () => {
     const context = {
       state: 'running',
@@ -105,5 +150,48 @@ describe('browser microphone lifecycle', () => {
       ),
     ).rejects.toMatchObject({ name: 'NotAllowedError' });
     expect(denied.context.close).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('speaker check resource ownership', () => {
+  it('reports actual worklet playback and disposes after the last segment', async () => {
+    const { audio, node, context } = harness();
+    const callback = vi.fn();
+    await audio.playTone(new AbortController().signal, callback);
+    await expect(audio.playTone(new AbortController().signal, callback)).rejects.toThrow(
+      'already active',
+    );
+    node.port.onmessage?.(new MessageEvent('message', { data: { type: 'started' } }));
+    expect(callback).toHaveBeenCalledWith('started');
+    node.port.onmessage?.(new MessageEvent('message', { data: { type: 'segment-completed' } }));
+    expect(callback).toHaveBeenCalledWith('completed');
+    expect(context.close).toHaveBeenCalledTimes(1);
+    await audio.stop();
+  });
+  it.each([{ type: 'accepted', accepted: false }, { type: 'error' }])(
+    'terminates on output rejection %j',
+    async (data) => {
+      const { audio, node, context } = harness();
+      const callback = vi.fn();
+      await audio.playTone(new AbortController().signal, callback);
+      node.port.onmessage?.(new MessageEvent('message', { data }));
+      expect(callback).toHaveBeenCalledWith('failed');
+      expect(context.close).toHaveBeenCalledTimes(1);
+    },
+  );
+  it('closes playback after setup failure or cancellation during setup', async () => {
+    const failing = harness();
+    failing.context.audioWorklet.addModule.mockRejectedValueOnce(new Error('Unavailable'));
+    await expect(failing.audio.playTone(new AbortController().signal, () => {})).rejects.toThrow();
+    expect(failing.context.close).toHaveBeenCalledTimes(1);
+    const cancelled = harness();
+    const controller = new AbortController();
+    cancelled.context.audioWorklet.addModule.mockImplementationOnce(async () => {
+      controller.abort();
+    });
+    await expect(cancelled.audio.playTone(controller.signal, () => {})).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+    expect(cancelled.context.close).toHaveBeenCalledTimes(1);
   });
 });
