@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { parseServerConfig } from '../../packages/config/src/server.js';
 import { IdentityService } from '../../packages/domain/src/identity/service.js';
 import { MediaJobs } from '../../packages/domain/src/media/jobs.js';
@@ -31,6 +31,10 @@ describe('recoverable media queue runtime', () => {
     media = new MediaService(new IdentityService(staff.db, staff.pepper), staff.db, storage);
     config = parseServerConfig(process.env);
     inspector = new MediaInspector(storage, config);
+  });
+  afterEach(async () => {
+    await Promise.all(runtimes.splice(0).map((runtime) => runtime.close()));
+    await Promise.all(fixtures.splice(0).map((fixture) => fixture.close()));
   });
   afterAll(async () => {
     await Promise.all(runtimes.map((runtime) => runtime.close()));
@@ -158,5 +162,42 @@ describe('recoverable media queue runtime', () => {
     expect(
       await new MediaJobs(staff.db, storage, inspector.inspect.bind(inspector)).process(entry.id),
     ).toBe('READY');
+  });
+
+  it('pauses queued uploads after a parser failure and resumes once its probe recovers', async () => {
+    const entries = [await upload(), await upload()];
+    let available = true;
+    let inspections = 0;
+    let failedProbes = 0;
+    const coordinator = new MediaJobs(staff.db, storage, async (claim, signal) => {
+      if (++inspections === 1) available = false;
+      if (!available) throw new MediaError('INSPECTION_UNAVAILABLE');
+      return inspector.inspect(claim, signal);
+    });
+    const { instance } = runtime(coordinator, async () => {
+      if (!available) {
+        failedProbes++;
+        throw new MediaError('INSPECTION_UNAVAILABLE');
+      }
+    });
+    instance.start();
+    await expect.poll(() => failedProbes, { timeout: 5000 }).toBeGreaterThan(0);
+    expect(instance.isReady()).toBe(false);
+    expect(inspections).toBe(1);
+    const rows = await staff.db.mediaAsset.findMany({
+      where: { id: { in: entries.map((entry) => entry.id) } },
+    });
+    expect(rows.every((row) => row.state === 'QUARANTINED')).toBe(true);
+    expect(rows.map((row) => row.attempts).sort()).toEqual([0, 1]);
+    available = true;
+    await expect
+      .poll(
+        async () =>
+          Promise.all(
+            entries.map(async (entry) => (await media.get(staff.owner.token, entry.id)).state),
+          ),
+        { timeout: 8000 },
+      )
+      .toEqual(['READY', 'READY']);
   });
 });
