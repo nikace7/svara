@@ -1,0 +1,48 @@
+import { FeasibilityEventSchema } from '@svara/contracts';
+import type { FeasibilityEvent } from '@svara/contracts';
+
+export async function* readVoiceStream(
+  response: Response,
+  generation: number,
+): AsyncGenerator<FeasibilityEvent> {
+  if (!response.ok || !response.body)
+    throw new Error('The local voice stream is unavailable. Retry the scenario.');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8', { fatal: true });
+  let buffer = '';
+  let sequence = 0;
+  let turnId: string | undefined;
+  let complete = false;
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      buffer += chunk.done ? decoder.decode() : decoder.decode(chunk.value, { stream: true });
+      while (buffer.includes('\n')) {
+        const split = buffer.indexOf('\n');
+        if (split > 16000) throw new Error('Voice event exceeds its size limit.');
+        const event = FeasibilityEventSchema.parse(JSON.parse(buffer.slice(0, split)));
+        buffer = buffer.slice(split + 1);
+        if (
+          complete ||
+          event.generation !== generation ||
+          event.seq !== sequence++ ||
+          (turnId && turnId !== event.turnId)
+        )
+          throw new Error('Voice stream sequence changed. Retry the scenario.');
+        turnId = event.turnId;
+        complete = event.type === 'complete' || event.type === 'error';
+        yield event;
+      }
+      if (buffer.length > 16000) throw new Error('Voice event exceeds its size limit.');
+      if (chunk.done) break;
+    }
+    if (!complete || buffer.trim())
+      throw new Error('Voice stream interrupted before completion. Retry the scenario.');
+  } finally {
+    try {
+      await reader.cancel();
+    } finally {
+      reader.releaseLock();
+    }
+  }
+}

@@ -70,11 +70,13 @@ export function WorkspaceOverview() {
         <div>
           <strong>Your studio is taking shape.</strong> <span>Authentication arrives in M2</span>
           <p>
-            This local preview contains the workspace foundation. Voice, content publishing and
-            device pairing are being built next.
+            The foundation is ready. Explore the bilingual fixture lab while live voice, content
+            publishing and device pairing are developed.
           </p>
         </div>
-        <span className="mono notice-label">M0 / FOUNDATION</span>
+        <a href="/studio/voice-lab" className="button button--secondary">
+          Open voice lab
+        </a>
       </div>
       <div className="overview-grid">
         <section className="panel runtime-panel" aria-labelledby="runtime-title">
@@ -162,12 +164,12 @@ export function WorkspaceOverview() {
               {
                 title: 'Workspace foundation',
                 text: 'Shared contracts, local services and accessible components.',
-                state: 'In progress',
+                state: 'Complete',
               },
               {
                 title: 'Bilingual voice feasibility',
-                text: 'English and Nepali speech, interruption and fixture playback.',
-                state: 'Next',
+                text: 'Bilingual fixture lab, PCM audio checks and interruption. Live validation pending.',
+                state: 'Fixture ready',
               },
               {
                 title: 'Identity & access',
@@ -180,7 +182,7 @@ export function WorkspaceOverview() {
                 state: 'Planned',
               },
             ].map((step, index) => (
-              <li key={step.title} className={index === 0 ? 'step-current' : ''}>
+              <li key={step.title} className={index === 1 ? 'step-current' : ''}>
                 <span className="step-number mono">0{index + 1}</span>
                 <div>
                   <h3>{step.title}</h3>

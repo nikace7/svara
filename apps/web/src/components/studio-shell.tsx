@@ -76,6 +76,15 @@ function Navigation() {
         </ul>
       </nav>
       <div className="sidebar-bottom">
+        <Link
+          href="/studio/voice-lab"
+          className="nav-item"
+          aria-label="Voice lab"
+          aria-current={path === '/studio/voice-lab' ? 'page' : undefined}
+        >
+          <AudioLines size={18} aria-hidden="true" />
+          <span>Voice lab</span>
+        </Link>
         <a href="/api/docs" className="nav-item" aria-label="API reference">
           <CircleHelp size={18} aria-hidden="true" />
           <span>API reference</span>
@@ -93,7 +102,9 @@ function Navigation() {
 }
 
 export function StudioShell({ children }: { children: ReactNode }) {
-  const gallery = usePathname().endsWith('design-system');
+  const pathname = usePathname();
+  const gallery = pathname.endsWith('design-system');
+  const voiceLab = pathname.endsWith('voice-lab');
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
@@ -130,7 +141,7 @@ export function StudioShell({ children }: { children: ReactNode }) {
             </div>
             <span className="breadcrumb">
               Studio <ChevronRight size={13} aria-hidden="true" />
-              <strong>{gallery ? 'Component gallery' : 'Overview'}</strong>
+              <strong>{gallery ? 'Component gallery' : voiceLab ? 'Voice lab' : 'Overview'}</strong>
             </span>
           </div>
           <StatusBadge tone="warning">Foundation preview</StatusBadge>

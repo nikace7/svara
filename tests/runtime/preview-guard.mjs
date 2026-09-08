@@ -32,6 +32,8 @@ try {
   assert.equal(response?.status, 404, 'Production must not expose the unauthenticated M0 studio.');
   const gallery = await globalThis.fetch('http://127.0.0.1:4319/studio/design-system');
   assert.equal(gallery.status, 404, 'Production must not expose the component gallery.');
+  const lab = await globalThis.fetch('http://127.0.0.1:4319/studio/voice-lab');
+  assert.equal(lab.status, 404, 'Production must not expose the unauthenticated voice lab.');
   process.stdout.write('Production studio and gallery access is denied (404).\n');
 } finally {
   if (server.exitCode === null) {
