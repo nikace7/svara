@@ -34,7 +34,8 @@ unchanged. Missing provider accounts do not block independent product developmen
 The first increment completed the M0 foundation. The second implements M1's local
 audio and fixture paths, while retaining an explicitly pending live gate. Later
 milestones retain their status above. M2 includes real HTTP/browser staff
-authentication and safe local provisioning. M3 includes bot drafts and knowledge. Live voice
+authentication and safe local provisioning. M3 includes bot drafts, knowledge and durable
+media inspection/cleanup. Live voice
 remains pending account setup and provider adapters.
 
 ## M0 delivered
@@ -334,3 +335,52 @@ reconciliation, expired/orphan/deletion cleanup, scoped upload/range handlers an
 the studio media library are the next M3 work. No new UI was introduced in this
 increment; the previous 27-journey browser result remains the last full UI gate.
 Presentations, immutable releases and subsequent milestones remain on the active goal.
+
+## M3 durable media worker — 2026-09-08
+
+The worker now discovers quarantined uploads from PostgreSQL, processes BullMQ
+notifications and conditionally publishes READY metadata under a current lease.
+Duplicate notifications, expired claims, stale output and lost commit acknowledgement
+are covered by integration tests. Inspection and audit state commit together.
+Cleanup expires abandoned uploads, removes deletion requests and scans bounded
+batches of aged generated orphan files while preserving active and referenced files.
+A regression corrected the retention anchor to completed receipt, giving a late
+upload its full 24-hour quarantine window.
+
+Actual PNG and H.264 processing probes gate worker readiness. A missing parser leaves
+liveness available, pauses inspection and lets the heartbeat expire. Retryable parser
+failure pauses the consumer immediately so other queued uploads retain their attempts.
+Redis outage tests use a local relay to interrupt only test connections and verify
+recovery both at startup and after readiness. Graceful shutdown cancels inspection
+before closing dependencies; Compose's 30-second grace exceeds the worker's 25-second
+deadline. Queue and heartbeat namespaces are validated and shared by API/worker.
+
+The first queue integration exposed a producer startup command issued before Redis
+was ready. Waiting for connection initialization, while keeping reconciliation
+nonblocking when disconnected, restored recovery. Separate RED/GREEN commits retain
+this work and the parser-pause regression on `codex/feat/media-authoring`.
+
+Verified at this checkpoint:
+
+- `pnpm check` passed formatting, lint, types, all **121 unit tests**, contract drift
+  and production builds. Configured-subset coverage is **96.50% lines / 90.49% branches**;
+  it does not represent whole-application coverage. Database/queue orchestration is
+  exercised by real integration tests.
+- All **81 integration tests** passed natively and in the rebuilt Linux image,
+  including the compiled worker process, durable claims, cleanup and queue recovery.
+- Sandbox restrictions and actual H.264 inspection passed in the restricted image.
+  The network-disabled production preview guard passed.
+- The browser overview/readiness journey passed against the rebuilt demo. There are
+  no UI changes in this increment; the preceding full **27-journey** browser gate
+  remains the last complete UI run.
+- All six long-running Compose services are healthy; migration/seed completed.
+  Native database/Redis ports are closed again by the demo configuration.
+- Dependency audit found no known vulnerabilities. Gitleaks scanned all 106 commits
+  through `6f995cf` with no detected secrets; subsequent changes are the Compose
+  shutdown grace and this progress record. No account creation, provider call, remote
+  push or public deployment occurred.
+
+Media HTTP admission/upload/range serving and the studio library are next. Release
+reference protection must be added with presentations/releases before those references
+can exist. M1 live adapters and M3–M8 remain on the active goal. The account instructions
+are available in `FREE-DEMO-SETUP.md`; the local demo stays in fixture mode.
