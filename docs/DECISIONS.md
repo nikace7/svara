@@ -172,3 +172,31 @@ The editor saves explicitly, retains both language buffers and preserves local t
 on conflict. It does not automatically adopt a new revision to force a stale save.
 Readiness, knowledge approval and published versions will derive from persisted
 resources when those subsequent authoring increments are implemented.
+
+## ADR 016 — Versioned knowledge review and release inclusion
+
+Keep entry approval separate from inclusion in the next release. Changing inclusion
+does not alter the reviewed content; saving text resets approval to DRAFT. Require
+both translations before approval, while permitting incomplete draft saves. Store
+the approving membership and date under an organisation-scoped composite foreign
+key. Approval is a staff review record, not a claim of automated fact verification.
+
+Every entry mutation increments its revision and the root bot revision atomically.
+This gives later release assembly one draft revision that also covers knowledge
+changes. Explicit expected revisions prevent approving or deleting a version that
+another author has changed. Draft deletion retains audit history; release snapshots
+will copy approved content independently of mutable entry records.
+
+## ADR 017 — Retry known serialization failures at query and commit boundaries
+
+The pinned Prisma pg adapter can raise a raw `DriverAdapterError` with cause kind
+`TransactionWriteConflict` when PostgreSQL rejects COMMIT. Query conflicts normally
+arrive wrapped as Prisma P2034. A deterministic integration race demonstrated that
+handling P2034 alone lets commit conflicts escape as HTTP 500.
+
+Recognize both exact conflict forms under the existing maximum of three retries.
+Rerun the whole transaction, including session, membership and revision checks.
+Do not retry unrelated adapter errors or perform external side effects within the
+transaction callback. The regression synchronizes two predicate reads and inserts,
+forcing the conflict at commit, and verifies both operations complete without
+duplicate rows after the losing transaction retries.

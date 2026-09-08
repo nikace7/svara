@@ -83,6 +83,27 @@ Missing revisions return 428; stale saves return 409 with `REVISION_CONFLICT` an
 See `M3-AUTHORING.md` for transaction and editor behavior. The explicit reversible
 archive endpoint currently replaces the blueprint's draft DELETE operation.
 
+## Knowledge drafts
+
+| Route                                  | Behavior                                                          |
+| -------------------------------------- | ----------------------------------------------------------------- |
+| `GET /api/v1/bots/:botId/knowledge`    | Scoped paginated summaries; title search, status and type filters |
+| `POST /api/v1/bots/:botId/knowledge`   | Create an incomplete FAQ or reference note                        |
+| `GET /api/v1/knowledge/:id`            | Read a scoped entry with both translations and current revisions  |
+| `PATCH /api/v1/knowledge/:id`          | Save full entry text and clear previous approval                  |
+| `POST /api/v1/knowledge/:id/approval`  | Approve or return to draft using the approved boolean             |
+| `POST /api/v1/knowledge/:id/selection` | Include or exclude using the selected boolean; preserves approval |
+| `DELETE /api/v1/knowledge/:id`         | Remove the draft entry and retain its audit history               |
+
+All staff roles may read; owners and administrators may mutate. The same cookie,
+Host/Origin, CSRF and Redis controls apply. Knowledge JSON bodies are bounded at
+64 KiB. Each existing-entry mutation requires `expectedRevision`; missing/stale
+revisions return 428/409. Archived parents return 409 `ARCHIVED`, and foreign IDs
+return 404. Approval of incomplete translations returns 422
+`INCOMPLETE_TRANSLATIONS`, with `fieldErrors` keyed by content/question and locale.
+Successful entry mutations also advance the bot revision. Generated OpenAPI derives
+body and response shapes from the shared strict contracts.
+
 ## Temporary M1 experiment
 
 `POST /api/v1/feasibility/turn` is registered only when the API is explicitly local

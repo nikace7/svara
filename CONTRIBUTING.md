@@ -4,6 +4,8 @@
 
 `main` is the integration branch. Use focused branches named `feat/<milestone-or-feature>`,
 `fix/<issue>`, `docs/<topic>` or `chore/<maintenance>`.
+Codex-created branches use the `codex/` prefix, for example
+`codex/feat/media-authoring`. Existing feature branches keep their recorded names.
 
 Use Conventional Commits: `type(scope): imperative description`. Types include
 `feat`, `fix`, `test`, `refactor`, `docs`, `build`, `ci` and `chore`.

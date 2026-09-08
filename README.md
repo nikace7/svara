@@ -22,9 +22,10 @@ locally; an explicit local recovery command revokes sessions and preserves roles
 See [identity scope](docs/M2-IDENTITY.md), [free provider account setup](docs/FREE-DEMO-SETUP.md)
 and [progress and verification](docs/PROGRESS.md).
 
-**M3 bot drafts are implemented:** scoped search, bilingual identity editing,
-revision conflicts, read-only roles and archive/restore. Knowledge, media,
-presentations and immutable publication are next. See [authoring scope](docs/M3-AUTHORING.md).
+**M3 bot drafts and knowledge are implemented:** scoped search, bilingual editing,
+revision conflicts, read-only roles, archive/restore, FAQ/reference approval and
+release inclusion. Media, presentations and immutable publication are next.
+See [authoring scope](docs/M3-AUTHORING.md).
 
 ## Architecture
 

@@ -7,7 +7,7 @@ Updated 2026-09-08. Evidence is local unless explicitly marked otherwise.
 | M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.       |
 | M1 — Bilingual voice feasibility         | Partial     | Local fixture lab and audio/protocol checks pass. Live adapters and bilingual provider smoke tests remain pending. |
 | M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                          |
-| M3 — Authoring and immutable publication | In progress | Scoped bot drafts/API/editor implemented; knowledge, media, presentations and immutable releases remain.           |
+| M3 — Authoring and immutable publication | In progress | Bot drafts and bilingual knowledge implemented; media, presentations and immutable releases remain.                |
 | M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                   |
 | M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                                |
 | M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                            |
@@ -34,7 +34,7 @@ unchanged. Missing provider accounts do not block independent product developmen
 The first increment completed the M0 foundation. The second implements M1's local
 audio and fixture paths, while retaining an explicitly pending live gate. Later
 milestones retain their status above. M2 includes real HTTP/browser staff
-authentication and safe local provisioning. M3 starts with bot drafts. Live voice
+authentication and safe local provisioning. M3 includes bot drafts and knowledge. Live voice
 remains pending account setup and provider adapters.
 
 ## M0 delivered
@@ -241,3 +241,51 @@ passed type/lint/format checks and the Linux production build.
 
 No live provider call or account creation was made. The supplied specification
 files remain unchanged. No remote has been configured or pushed.
+
+## M3 bilingual knowledge increment — 2026-09-08
+
+FAQ and reference entries now have scoped storage, generated HTTP contracts and
+light-theme studio screens. Authors can save incomplete translations, review both
+languages, approve a specific revision and choose release inclusion independently.
+Text edits clear approval; inclusion changes preserve it. Entry mutations increment
+the root bot revision, archived bots are frozen, and conflicting saves keep local
+text until explicit discard. Lists support title search, review/type filters and
+pagination. Deleting a draft entry preserves its audit record.
+
+Migration 006 adds composite organisation foreign keys and approval consistency
+constraints. The API enforces staff authority, JSON/Origin/CSRF, quotas, strict input
+and explicit revisions. Both full Unicode payloads and missing-translation errors
+are covered by HTTP tests. See `M3-AUTHORING.md` and ADR 016 for the data model.
+
+The first complete browser run passed 25 of 27 journeys, including both new
+knowledge journeys and their accessibility checks. Two failures prompted separate
+regressions and fixes:
+
+- A deterministic PostgreSQL race reproduced a raw pg adapter conflict raised at
+  COMMIT, outside the previous P2034-only retry. The shared transaction boundary now
+  recognizes that exact conflict kind under the existing three-retry bound and
+  reruns current authority and revision checks. ADR 017 records the evidence. This
+  fixes the reproduced failure path; the exact exception from the earlier archive
+  request was not retained, so its historical attribution remains unconfirmed.
+- The viewer browser test inherited the worker's owner cookie. Its sign-in then
+  correctly revoked the owner's session, causing the following overview test to
+  redirect. Explicit empty storage isolates the second actor. An added assertion
+  verifies the original owner remains signed in. No application access rule was
+  relaxed to make the test pass.
+
+After those fixes, `pnpm check` passed formatting, lint, types, all 100 unit tests,
+contract drift and production builds. All 53 native integration tests passed,
+including the new commit-time race.
+
+Final rebuilt-image verification passed all 53 Linux integration tests and all 27
+browser journeys together. The network-disabled production guard also passed.
+All six long-running Compose services are healthy; migration and seed jobs completed.
+The rebuilt API logged no failed requests during the final full browser run.
+Desktop and mobile screenshots were reviewed at
+`artifacts/screenshots/m3-knowledge-editor.png` and
+`artifacts/screenshots/m3-knowledge-mobile.png`. No live provider call, account
+creation or remote push was performed. The original supplied blueprints are unchanged.
+
+Live provider adapters, accounts and the bilingual live gate remain pending. Media,
+presentations, releases and query inspection against a pinned release are the next
+M3 work. Approval and inclusion alone do not publish content or drive the Voice lab.
