@@ -187,6 +187,12 @@ class SafeExceptionFilter implements ExceptionFilter {
           event: 'request.failed',
           status,
           requestId: response.getHeader('x-request-id'),
+          ...(exception instanceof Error &&
+          'code' in exception &&
+          typeof exception.code === 'string' &&
+          /^P[0-9]{4}$/.test(exception.code)
+            ? { databaseCode: exception.code }
+            : {}),
         }),
       );
   }
