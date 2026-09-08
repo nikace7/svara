@@ -9,6 +9,9 @@ const app = await createApplication({
   providerMode: config.PROVIDER_MODE,
   localDocs: config.APP_ENV === 'local',
   probe: () => dependencies.ready(true),
+  ...(config.APP_ENV === 'local' && config.PROVIDER_MODE === 'fixture'
+    ? { feasibilityOrigin: config.APP_ORIGIN }
+    : {}),
 });
 let closing = false;
 async function shutdown() {

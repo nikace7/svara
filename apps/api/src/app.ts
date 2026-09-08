@@ -14,12 +14,14 @@ import {
 import type { NextFunction, Request, Response } from 'express';
 import type { ProviderMode } from '@svara/contracts';
 import type { Readiness } from '@svara/domain';
+import { createFeasibilityHandler } from './feasibility.js';
 
 const OPTIONS = Symbol('application-options');
 export interface ApplicationOptions {
   providerMode: ProviderMode;
   localDocs: boolean;
   probe: () => Promise<Readiness>;
+  feasibilityOrigin?: string;
 }
 
 class HealthData {
@@ -73,11 +75,27 @@ class HealthController {
 class SafeExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>();
-    const status = exception instanceof HttpException ? exception.getStatus() : 500;
+    const parserType =
+      exception instanceof Error && 'type' in exception ? exception.type : undefined;
+    const status =
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : parserType === 'entity.too.large'
+          ? 413
+          : parserType === 'entity.parse.failed'
+            ? 400
+            : 500;
+    const errors: Record<number, { code: string; message: string }> = {
+      400: { code: 'INVALID_INPUT', message: 'The request is invalid.' },
+      404: { code: 'NOT_FOUND', message: 'Resource not found.' },
+      413: { code: 'PAYLOAD_TOO_LARGE', message: 'The request exceeds the allowed size.' },
+    };
     response.status(status).json({
       error: {
-        code: status === 404 ? 'NOT_FOUND' : 'INTERNAL_ERROR',
-        message: status === 404 ? 'Resource not found.' : 'The request could not be completed.',
+        ...(errors[status] ?? {
+          code: 'INTERNAL_ERROR',
+          message: 'The request could not be completed.',
+        }),
         fieldErrors: {},
         retryable: status >= 500,
       },
@@ -121,6 +139,13 @@ export async function createApplication(
     response.setHeader('Cache-Control', 'no-store');
     next();
   });
+  if (options.localDocs && options.providerMode === 'fixture' && options.feasibilityOrigin) {
+    app.useBodyParser('json', { limit: '16kb' });
+    app
+      .getHttpAdapter()
+      .getInstance()
+      .post('/api/v1/feasibility/turn', createFeasibilityHandler(options.feasibilityOrigin));
+  }
   app.setGlobalPrefix('api/v1');
   app.useGlobalFilters(new SafeExceptionFilter());
   const document = createOpenApiDocument(app);
