@@ -24,6 +24,9 @@ const serverSchema = z
     PROVIDER_MODE: z.enum(['fixture', 'live']).default('fixture'),
     AZURE_SPEECH_KEY: z.string().optional(),
     AZURE_SPEECH_REGION: z.string().optional(),
+    GENERATION_PROVIDER: z.enum(['gemini', 'openai']).default('gemini'),
+    GEMINI_API_KEY: z.string().optional(),
+    GEMINI_MODEL: z.string().min(1).default('gemini-2.5-flash'),
     OPENAI_API_KEY: z.string().optional(),
     OPENAI_MODEL: z.string().min(1).default('gpt-5-mini'),
     VOICE_EN: z.literal('en-US-JennyNeural').default('en-US-JennyNeural'),
@@ -54,7 +57,9 @@ const serverSchema = z
       });
     }
     if (config.PROVIDER_MODE === 'live') {
-      for (const key of ['AZURE_SPEECH_KEY', 'AZURE_SPEECH_REGION', 'OPENAI_API_KEY'] as const) {
+      const generationKey =
+        config.GENERATION_PROVIDER === 'gemini' ? 'GEMINI_API_KEY' : 'OPENAI_API_KEY';
+      for (const key of ['AZURE_SPEECH_KEY', 'AZURE_SPEECH_REGION', generationKey] as const) {
         if (!config[key]?.trim())
           context.addIssue({ code: 'custom', path: [key], message: 'Required in live mode.' });
       }
