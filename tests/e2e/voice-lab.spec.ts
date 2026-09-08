@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { AxeBuilder } from '@axe-core/playwright';
 
 test('English/Nepali fixtures and typed fallback are explicit and accessible', async ({ page }) => {
@@ -78,11 +78,12 @@ test('microphone denial offers text fallback', async ({ page }) => {
 
 test('real worklet capture releases tracks on language change, end and navigation', async ({
   playwright,
+  staffState,
 }) => {
   const browser = await playwright.chromium.launch({
     args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
   });
-  const context = await browser.newContext();
+  const context = await browser.newContext({ storageState: staffState });
   const page = await context.newPage();
   try {
     await page.addInitScript(() => {

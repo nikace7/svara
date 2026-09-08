@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { AxeBuilder } from '@axe-core/playwright';
 
 test('overview shows actual dependency readiness and honest milestone state', async ({ page }) => {
@@ -6,7 +6,7 @@ test('overview shows actual dependency readiness and honest milestone state', as
   await expect(page.getByRole('heading', { name: 'Workspace overview' })).toBeVisible();
   await expect(page.getByText('All services ready', { exact: true })).toBeVisible();
   await expect(page.getByText('No devices paired', { exact: true })).toBeVisible();
-  await expect(page.getByText('Authentication arrives in M2', { exact: true })).toBeVisible();
+  await expect(page.getByText('Staff access is ready', { exact: true })).toBeVisible();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
 

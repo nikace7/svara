@@ -9,6 +9,7 @@ const server = spawn(process.execPath, ['apps/web/.next/standalone/apps/web/serv
     ...process.env,
     APP_ENV: 'production',
     PROVIDER_MODE: 'fixture',
+    APP_ORIGIN: 'https://studio.example.test',
     HOSTNAME: '127.0.0.1',
     PORT: '4319',
   },
@@ -21,6 +22,7 @@ try {
     try {
       response = await globalThis.fetch('http://127.0.0.1:4319/studio', {
         signal: globalThis.AbortSignal.timeout(1000),
+        redirect: 'manual',
       });
       break;
     } catch {
@@ -29,12 +31,15 @@ try {
       await delay(250);
     }
   }
-  assert.equal(response?.status, 404, 'Production must not expose the unauthenticated M0 studio.');
-  const gallery = await globalThis.fetch('http://127.0.0.1:4319/studio/design-system');
-  assert.equal(gallery.status, 404, 'Production must not expose the component gallery.');
-  const lab = await globalThis.fetch('http://127.0.0.1:4319/studio/voice-lab');
-  assert.equal(lab.status, 404, 'Production must not expose the unauthenticated voice lab.');
-  process.stdout.write('Production studio and gallery access is denied (404).\n');
+  assert.equal(response?.status, 307, 'Studio must require staff login before reaching the API.');
+  assert.equal(response.headers.get('location'), '/login');
+  for (const path of ['/studio/design-system', '/studio/voice-lab']) {
+    const preview = await globalThis.fetch(`http://127.0.0.1:4319${path}`, { redirect: 'manual' });
+    // The parallel layout and page gates can finish in either order; neither serves a preview.
+    assert.ok([307, 404].includes(preview.status), 'Production preview access must be denied.');
+    if (preview.status === 307) assert.equal(preview.headers.get('location'), '/login');
+  }
+  process.stdout.write('Production studio requires login; local-only previews remain denied.\n');
 } finally {
   if (server.exitCode === null) {
     const exited = once(server, 'exit');

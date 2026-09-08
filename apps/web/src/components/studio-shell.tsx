@@ -18,11 +18,14 @@ import {
   Settings2,
   X,
 } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { StatusBadge } from '@svara/ui';
+import { useStaffSession } from './session-provider';
 
-function Navigation() {
+function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const path = usePathname();
+  const { identity } = useStaffSession();
   const items = [
     { label: 'Overview', icon: LayoutDashboard },
     { label: 'Bots', icon: Bot },
@@ -42,7 +45,7 @@ function Navigation() {
       <div className="workspace-label">
         <span className="workspace-icon">S</span>
         <div>
-          <strong>Local workspace</strong>
+          <strong>{identity.organisation.name}</strong>
           <span>Voice & Device Studio</span>
         </div>
       </div>
@@ -51,12 +54,15 @@ function Navigation() {
         <ul className="nav-list">
           {items.map(({ label, icon: Icon }, index) => (
             <li key={label}>
-              {index === 0 ? (
+              {index === 0 || label === 'Settings' ? (
                 <Link
-                  href="/studio"
+                  href={index === 0 ? '/studio' : '/studio/settings'}
+                  onClick={() => onNavigate?.()}
                   className="nav-item"
                   aria-label={label}
-                  aria-current={path === '/studio' ? 'page' : undefined}
+                  aria-current={
+                    path === (index === 0 ? '/studio' : '/studio/settings') ? 'page' : undefined
+                  }
                 >
                   <Icon size={18} aria-hidden="true" />
                   <span>{label}</span>
@@ -78,6 +84,7 @@ function Navigation() {
       <div className="sidebar-bottom">
         <Link
           href="/studio/voice-lab"
+          onClick={() => onNavigate?.()}
           className="nav-item"
           aria-label="Voice lab"
           aria-current={path === '/studio/voice-lab' ? 'page' : undefined}
@@ -102,6 +109,7 @@ function Navigation() {
 }
 
 export function StudioShell({ children }: { children: ReactNode }) {
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const pathname = usePathname();
   const gallery = pathname.endsWith('design-system');
   const voiceLab = pathname.endsWith('voice-lab');
@@ -117,7 +125,7 @@ export function StudioShell({ children }: { children: ReactNode }) {
         <header className="topbar">
           <div className="topbar-leading">
             <div className="mobile-nav">
-              <Dialog.Root>
+              <Dialog.Root open={navigationOpen} onOpenChange={setNavigationOpen}>
                 <Dialog.Trigger
                   className="button button--quiet icon-button"
                   aria-label="Open navigation"
@@ -134,17 +142,25 @@ export function StudioShell({ children }: { children: ReactNode }) {
                     >
                       <X size={20} aria-hidden="true" />
                     </Dialog.Close>
-                    <Navigation />
+                    <Navigation onNavigate={() => setNavigationOpen(false)} />
                   </Dialog.Popup>
                 </Dialog.Portal>
               </Dialog.Root>
             </div>
             <span className="breadcrumb">
               Studio <ChevronRight size={13} aria-hidden="true" />
-              <strong>{gallery ? 'Component gallery' : voiceLab ? 'Voice lab' : 'Overview'}</strong>
+              <strong>
+                {gallery
+                  ? 'Component gallery'
+                  : voiceLab
+                    ? 'Voice lab'
+                    : pathname.endsWith('settings')
+                      ? 'Settings'
+                      : 'Overview'}
+              </strong>
             </span>
           </div>
-          <StatusBadge tone="warning">Foundation preview</StatusBadge>
+          <StatusBadge tone="accent">Demo workspace</StatusBadge>
         </header>
         <main id="main-content" className="workspace" tabIndex={-1}>
           {children}

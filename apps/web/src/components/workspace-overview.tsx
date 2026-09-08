@@ -68,7 +68,7 @@ export function WorkspaceOverview() {
       <div className="preview-notice">
         <AudioLines size={19} aria-hidden="true" />
         <div>
-          <strong>Your studio is taking shape.</strong> <span>Authentication arrives in M2</span>
+          <strong>Your studio is taking shape.</strong> <span>Staff access is ready</span>
           <p>
             The foundation is ready. Explore the bilingual fixture lab while live voice, content
             publishing and device pairing are developed.
@@ -174,7 +174,7 @@ export function WorkspaceOverview() {
               {
                 title: 'Identity & access',
                 text: 'Staff accounts, roles and separate organisation workspaces.',
-                state: 'Planned',
+                state: 'Staff flows ready',
               },
               {
                 title: 'Publish, pair & deploy',

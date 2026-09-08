@@ -1,5 +1,5 @@
 import { mkdir } from 'node:fs/promises';
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { AxeBuilder } from '@axe-core/playwright';
 
 for (const [width, height] of [
