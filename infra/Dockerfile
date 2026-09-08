@@ -1,5 +1,10 @@
 FROM node:22.23.2-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5 AS base
-RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates ffmpeg libseccomp2 && rm -rf /var/lib/apt/lists/*
+
+FROM base AS media-sandbox-build
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev linux-libc-dev libseccomp-dev && rm -rf /var/lib/apt/lists/*
+COPY infra/media-sandbox.c /tmp/media-sandbox.c
+RUN cc -O2 -Wall -Wextra -Werror -fstack-protector-strong -D_FORTIFY_SOURCE=2 -Wl,-z,relro,-z,now /tmp/media-sandbox.c -lseccomp -o /usr/local/bin/svara-media-sandbox
 
 FROM base AS build
 WORKDIR /app
@@ -27,6 +32,7 @@ WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
 # M0 keeps one common image for web/API/worker and explicit migration init jobs.
 COPY --from=build --chown=node:node /app /app
+COPY --from=media-sandbox-build /usr/local/bin/svara-media-sandbox /usr/local/bin/svara-media-sandbox
 RUN mkdir -p /app/.local/media /app/.local/setup && chown -R node:node /app/.local
 USER node
 CMD ["node", "apps/web/.next/standalone/apps/web/server.js"]
