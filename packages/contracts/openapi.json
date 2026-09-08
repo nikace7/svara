@@ -1,0 +1,121 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/health/live": {
+      "get": {
+        "operationId": "health_live",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The API process is running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/health/ready": {
+      "get": {
+        "operationId": "health_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Local dependencies and worker heartbeat are ready.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "At least one dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Svara API",
+    "description": "M0 process and dependency health contract. Business endpoints arrive in later milestones.",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "HealthData": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "ready",
+              "unavailable"
+            ]
+          },
+          "service": {
+            "type": "string",
+            "enum": [
+              "api"
+            ]
+          },
+          "providerMode": {
+            "type": "string",
+            "enum": [
+              "fixture",
+              "live"
+            ]
+          },
+          "dependencies": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "ready",
+                "unavailable"
+              ]
+            }
+          }
+        },
+        "required": [
+          "status",
+          "service",
+          "providerMode"
+        ]
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/HealthData"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    }
+  }
+}

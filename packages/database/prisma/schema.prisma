@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client"
+  output = "../src/generated"
+  moduleFormat = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model ApplicationMetadata {
+  id String @id
+  schemaVersion Int
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+}
+
+model Organisation {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name String @db.VarChar(160)
+  timezone String @default("Asia/Kathmandu") @db.VarChar(64)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  memberships Membership[]
+}
+
+model User {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email String @unique @db.VarChar(254)
+  displayName String @db.VarChar(160)
+  passwordHash String
+  disabled Boolean @default(false)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  memberships Membership[]
+}
+
+enum MembershipRole {
+  OWNER
+  ADMINISTRATOR
+  OPERATOR
+  VIEWER
+}
+
+model Membership {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  userId String @db.Uuid
+  role MembershipRole
+  enabled Boolean @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([organisationId, userId])
+  @@unique([id, organisationId])
+  @@index([userId])
+}

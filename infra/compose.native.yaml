@@ -1,0 +1,13 @@
+services:
+  postgres:
+    ports:
+      - 127.0.0.1:5434:5432
+  redis:
+    ports:
+      - 127.0.0.1:6381:6379
+  gateway:
+    environment:
+      API_UPSTREAM: host.docker.internal:4100
+      WEB_UPSTREAM: host.docker.internal:3001
+    extra_hosts:
+      - host.docker.internal:host-gateway

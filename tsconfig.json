@@ -3,7 +3,9 @@
   "compilerOptions": {
     "noEmit": true,
     "types": ["node"],
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
   "include": ["scripts/**/*.ts", "tests/**/*.ts", "*.config.ts"]
 }
