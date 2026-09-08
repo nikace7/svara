@@ -14,7 +14,9 @@
   --border-subtle: #e1e3ed;
   --border-control: #8b90a4;
   --focus-ring: #6850b8;
-  --workspace-wash: linear-gradient(125deg, #efebfa 0%, #f7f8fc 48%, #f7f8fc 100%);
+  --workspace-wash:
+    linear-gradient(180deg, #f7f8fc00 0%, #f7f8fc 100%),
+    linear-gradient(125deg, #efebfa 0%, #f7f8fc 70%);
   --shadow-panel: 0 2px 6px #24243e04, 0 12px 32px #24243e03;
   --shadow-dialog: 0 24px 80px #29233f26;
   --overlay: #28263f42;
