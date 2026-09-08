@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { staffResponse } from './staff-api';
+import { staffResponse } from './staff-api.js';
 
 afterEach(() => vi.unstubAllGlobals());
 

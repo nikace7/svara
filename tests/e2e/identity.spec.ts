@@ -88,21 +88,29 @@ test('owner invitations, viewer restrictions, recovery and revocation work in se
     await member.getByRole('button', { name: 'Create recovery link' }).click();
     const recovery = await page.getByLabel('Access link', { exact: true }).inputValue();
     await guest.goto(recovery);
-    await guest.getByLabel(/^Password/).fill(`Recovered password ${randomUUID()}`);
+    const recoveredPassword = `Recovered password ${randomUUID()}`;
+    await guest.getByLabel(/^Password/).fill(recoveredPassword);
     await guest.getByRole('button', { name: 'Update password', exact: true }).click();
     await expect(guest.getByRole('heading', { name: 'Password updated' })).toBeVisible();
     await guest.goto('/studio');
     await expect(guest).toHaveURL(/\/login$/);
+    await guest.getByLabel(/^Email/).fill(email);
+    await guest.getByLabel(/^Password/).fill(recoveredPassword);
+    await guest.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await expect(guest.getByRole('heading', { name: 'Workspace overview' })).toBeVisible();
     await member.getByRole('button', { name: 'Manage Invited Viewer', exact: true }).click();
     await page.getByLabel('Enable workspace access').uncheck();
     await page.getByRole('button', { name: 'Save member access' }).click();
     await expect(member.getByText('Viewer · Disabled', { exact: true })).toBeVisible();
+    await guest.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await expect(guest).toHaveURL(/\/login$/);
     await page.getByRole('button', { name: 'Manage Invitation Owner', exact: true }).click();
     await page.getByLabel('Enable workspace access').uncheck();
     await page.getByRole('button', { name: 'Save member access' }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'owner' })).toBeVisible();
     await page.getByRole('button', { name: 'Close member access' }).click();
     await page.setViewportSize({ width: 360, height: 800 });
+    await page.getByRole('heading', { name: 'Organisation settings', exact: true }).click();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
