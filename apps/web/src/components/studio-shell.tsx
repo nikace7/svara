@@ -160,7 +160,9 @@ export function StudioShell({ children }: { children: ReactNode }) {
                       ? 'Bots'
                       : pathname.endsWith('settings')
                         ? 'Settings'
-                        : 'Overview'}
+                        : pathname.startsWith('/studio/media')
+                          ? 'Media library'
+                          : 'Overview'}
               </strong>
             </span>
           </div>
