@@ -6,3 +6,4 @@ export { IdentityService } from './identity/service.js';
 export type { SafeIdentity, SafeMember, IssuedSession } from './identity/service.js';
 export { IdentityError } from './identity/errors.js';
 export { csrfToken, verifyCsrf } from './identity/security.js';
+export { createStaffLimiter } from './identity/limits.js';
