@@ -41,6 +41,8 @@ jobs:
         run: |
           pnpm infra:down
           pnpm demo:up
+          pnpm test:integration:container
+          pnpm test:container
           pnpm test:e2e
       - name: Save browser failure evidence
         if: failure()
