@@ -20,6 +20,16 @@ describe('server configuration', () => {
     expect(config.APP_ORIGIN).toBe('http://localhost:4320');
     expect(config.MEDIA_INSPECTION_MODE).toBe('sandboxed');
     expect(config.FFPROBE_PATH).toBe('ffprobe');
+    expect(config).toMatchObject({ WORKER_NAMESPACE: 'svara' });
+  });
+
+  it('bounds and validates the shared queue and heartbeat namespace', () => {
+    expect(parseServerConfig({ ...valid, WORKER_NAMESPACE: 'svara-test-42' })).toMatchObject({
+      WORKER_NAMESPACE: 'svara-test-42',
+    });
+    for (const WORKER_NAMESPACE of ['', 'namespace with spaces', '*', 'a'.repeat(81)]) {
+      expect(() => parseServerConfig({ ...valid, WORKER_NAMESPACE })).toThrow('WORKER_NAMESPACE');
+    }
   });
 
   it('names all missing live settings without exposing any supplied secret', () => {
