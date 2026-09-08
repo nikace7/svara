@@ -1,7 +1,7 @@
 import { randomUUID, createHash } from 'node:crypto';
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { MediaStorage } from './storage.js';
@@ -15,6 +15,12 @@ describe('private streaming media storage', () => {
     storage = await MediaStorage.open(root);
   });
   afterEach(async () => {
+    if (
+      dirname(resolve(root)) !== resolve(tmpdir()) ||
+      !basename(root).startsWith('svara-media-test-')
+    ) {
+      throw new Error('Refusing cleanup outside the generated media test directory.');
+    }
     await rm(root, { recursive: true, force: true });
   });
 
