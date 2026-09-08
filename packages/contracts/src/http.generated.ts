@@ -287,6 +287,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bots/{botId}/knowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["botknowledge_list"];
+        put?: never;
+        post: operations["botknowledge_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/knowledge/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["knowledge_get"];
+        put?: never;
+        post?: never;
+        delete: operations["knowledge_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["knowledge_save"];
+        trace?: never;
+    };
+    "/api/v1/knowledge/{id}/approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["knowledge_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/knowledge/{id}/selection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["knowledge_select"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1075,6 +1139,479 @@ export interface operations {
                 content?: never;
             };
             /** @description expectedRevision is required. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    botknowledge_list: {
+        parameters: {
+            query?: {
+                type?: "ALL" | "FAQ" | "NOTE";
+                status?: "ALL" | "DRAFT" | "APPROVED";
+                pageSize?: number;
+                page?: number;
+                search?: string;
+            };
+            header?: never;
+            path: {
+                botId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            items: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                botId: string;
+                                /** @enum {string} */
+                                type: "FAQ" | "NOTE";
+                                title: string;
+                                /** @enum {string} */
+                                status: "DRAFT" | "APPROVED";
+                                selected: boolean;
+                                revision: number;
+                                complete: {
+                                    en: boolean;
+                                    ne: boolean;
+                                };
+                                /** Format: date-time */
+                                approvedAt: string | null;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            }[];
+                            total: number;
+                            page: number;
+                            pageSize: number;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    botknowledge_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                botId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    type: "FAQ" | "NOTE";
+                    title: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            /** @enum {string} */
+                            type: "FAQ" | "NOTE";
+                            title: string;
+                            /** @enum {string} */
+                            status: "DRAFT" | "APPROVED";
+                            selected: boolean;
+                            revision: number;
+                            complete: {
+                                en: boolean;
+                                ne: boolean;
+                            };
+                            /** Format: date-time */
+                            approvedAt: string | null;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            content: {
+                                en: string;
+                                ne: string;
+                            };
+                            question: {
+                                en: string;
+                                ne: string;
+                            };
+                            botRevision: number;
+                            /** Format: date-time */
+                            botArchivedAt: string | null;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    knowledge_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            /** @enum {string} */
+                            type: "FAQ" | "NOTE";
+                            title: string;
+                            /** @enum {string} */
+                            status: "DRAFT" | "APPROVED";
+                            selected: boolean;
+                            revision: number;
+                            complete: {
+                                en: boolean;
+                                ne: boolean;
+                            };
+                            /** Format: date-time */
+                            approvedAt: string | null;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            content: {
+                                en: string;
+                                ne: string;
+                            };
+                            question: {
+                                en: string;
+                                ne: string;
+                            };
+                            botRevision: number;
+                            /** Format: date-time */
+                            botArchivedAt: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict or archived parent bot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Mutations require expectedRevision. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    knowledge_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** @enum {boolean} */
+                            ok: true;
+                            botRevision: number;
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict or archived parent bot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Mutations require expectedRevision. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    knowledge_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    type: "FAQ" | "NOTE";
+                    title: string;
+                    content: {
+                        en: string;
+                        ne: string;
+                    };
+                    question: {
+                        en: string;
+                        ne: string;
+                    };
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            /** @enum {string} */
+                            type: "FAQ" | "NOTE";
+                            title: string;
+                            /** @enum {string} */
+                            status: "DRAFT" | "APPROVED";
+                            selected: boolean;
+                            revision: number;
+                            complete: {
+                                en: boolean;
+                                ne: boolean;
+                            };
+                            /** Format: date-time */
+                            approvedAt: string | null;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            content: {
+                                en: string;
+                                ne: string;
+                            };
+                            question: {
+                                en: string;
+                                ne: string;
+                            };
+                            botRevision: number;
+                            /** Format: date-time */
+                            botArchivedAt: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict or archived parent bot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Mutations require expectedRevision. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    knowledge_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                    approved: boolean;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            /** @enum {string} */
+                            type: "FAQ" | "NOTE";
+                            title: string;
+                            /** @enum {string} */
+                            status: "DRAFT" | "APPROVED";
+                            selected: boolean;
+                            revision: number;
+                            complete: {
+                                en: boolean;
+                                ne: boolean;
+                            };
+                            /** Format: date-time */
+                            approvedAt: string | null;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            content: {
+                                en: string;
+                                ne: string;
+                            };
+                            question: {
+                                en: string;
+                                ne: string;
+                            };
+                            botRevision: number;
+                            /** Format: date-time */
+                            botArchivedAt: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict or archived parent bot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing bilingual content; fieldErrors identify the content/question and locale. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Mutations require expectedRevision. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    knowledge_select: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                    selected: boolean;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            /** @enum {string} */
+                            type: "FAQ" | "NOTE";
+                            title: string;
+                            /** @enum {string} */
+                            status: "DRAFT" | "APPROVED";
+                            selected: boolean;
+                            revision: number;
+                            complete: {
+                                en: boolean;
+                                ne: boolean;
+                            };
+                            /** Format: date-time */
+                            approvedAt: string | null;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            content: {
+                                en: string;
+                                ne: string;
+                            };
+                            question: {
+                                en: string;
+                                ne: string;
+                            };
+                            botRevision: number;
+                            /** Format: date-time */
+                            botArchivedAt: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict or archived parent bot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Mutations require expectedRevision. */
             428: {
                 headers: {
                     [name: string]: unknown;

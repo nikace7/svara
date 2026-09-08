@@ -6,6 +6,15 @@ import {
   botPageSchema,
   botSaveSchema,
 } from './authoring.js';
+import {
+  knowledgeApprovalSchema,
+  knowledgeCreateSchema,
+  knowledgeDeleteSchema,
+  knowledgeDetailSchema,
+  knowledgePageSchema,
+  knowledgeSaveSchema,
+  knowledgeSelectionSchema,
+} from './knowledge.js';
 
 /** OpenAPI 3.0 shapes derive from the same strict schemas used at the domain boundary. */
 export const authoringApiSchemas = {
@@ -14,4 +23,18 @@ export const authoringApiSchemas = {
   archive: z.toJSONSchema(botArchiveSchema, { target: 'openapi-3.0', io: 'input' }),
   detail: z.toJSONSchema(z.object({ data: botDetailSchema }), { target: 'openapi-3.0' }),
   page: z.toJSONSchema(z.object({ data: botPageSchema }), { target: 'openapi-3.0' }),
+};
+
+export const knowledgeApiSchemas = {
+  create: z.toJSONSchema(knowledgeCreateSchema, { target: 'openapi-3.0', io: 'input' }),
+  save: z.toJSONSchema(knowledgeSaveSchema, { target: 'openapi-3.0', io: 'input' }),
+  approval: z.toJSONSchema(knowledgeApprovalSchema, { target: 'openapi-3.0', io: 'input' }),
+  selection: z.toJSONSchema(knowledgeSelectionSchema, { target: 'openapi-3.0', io: 'input' }),
+  remove: z.toJSONSchema(knowledgeDeleteSchema, { target: 'openapi-3.0', io: 'input' }),
+  detail: z.toJSONSchema(z.object({ data: knowledgeDetailSchema }), { target: 'openapi-3.0' }),
+  page: z.toJSONSchema(z.object({ data: knowledgePageSchema }), { target: 'openapi-3.0' }),
+  removed: z.toJSONSchema(
+    z.object({ data: z.object({ ok: z.literal(true), botRevision: z.number().int().positive() }) }),
+    { target: 'openapi-3.0' },
+  ),
 };

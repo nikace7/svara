@@ -1,5 +1,11 @@
 import { loadWorkspaceEnvironment, parseServerConfig } from '@svara/config/server';
-import { BotService, createDependencies, createStaffLimiter, IdentityService } from '@svara/domain';
+import {
+  BotService,
+  createDependencies,
+  createStaffLimiter,
+  IdentityService,
+  KnowledgeService,
+} from '@svara/domain';
 import { createApplication } from './app.js';
 
 loadWorkspaceEnvironment();
@@ -18,6 +24,7 @@ const app = await createApplication({
     consumeLimit: createStaffLimiter(dependencies.redis, config.AUTH_TOKEN_PEPPER),
   },
   authoring: new BotService(identity),
+  knowledge: new KnowledgeService(identity),
   ...(config.APP_ENV === 'local' && config.PROVIDER_MODE === 'fixture'
     ? { feasibilityOrigin: config.APP_ORIGIN }
     : {}),
