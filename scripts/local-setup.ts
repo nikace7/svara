@@ -14,6 +14,7 @@ async function writeIfMissing(path: string, content: string): Promise<void> {
 export async function createLocalSetup(root: string): Promise<void> {
   const mediaRoot = resolve(root, '.local/media').replaceAll('\\', '/');
   await mkdir(mediaRoot, { recursive: true });
+  await mkdir(resolve(root, '.local/setup'), { recursive: true, mode: 0o700 });
   const password = randomBytes(24).toString('hex');
   await writeIfMissing(
     join(root, '.env'),
@@ -48,6 +49,8 @@ export async function createLocalSetup(root: string): Promise<void> {
     [
       '# Generated local Compose interpolation. Do not commit.',
       'COMPOSE_PROJECT_NAME=svara',
+      `SVARA_LOCAL_UID=${process.getuid?.() ?? 1000}`,
+      `SVARA_LOCAL_GID=${process.getgid?.() ?? 1000}`,
       `POSTGRES_PASSWORD=${settings.POSTGRES_PASSWORD}`,
       `AUTH_TOKEN_PEPPER=${settings.AUTH_TOKEN_PEPPER}`,
       '',

@@ -28,6 +28,10 @@ services:
         condition: service_healthy
   seed:
     <<: *runtime
+    user: '${SVARA_LOCAL_UID:-1000}:${SVARA_LOCAL_GID:-1000}'
+    volumes:
+      - media_data:/app/.local/media
+      - ../.local/setup:/app/.local/setup
     command: [node, --import, tsx, scripts/database.ts, seed]
     depends_on:
       migrate:

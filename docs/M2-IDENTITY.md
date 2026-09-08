@@ -1,7 +1,7 @@
 # M2 — Identity and tenant boundaries
 
-In progress, 2026-09-08. Domain/database, HTTP and browser staff flows are implemented
-and tested. Safe local staff seed/recovery tooling is the remaining M2 increment.
+Identity gate passed, 2026-09-08. Domain/database, HTTP, browser staff flows and
+safe local seed/recovery tooling are implemented and tested.
 Future file, socket and job boundaries will be tested as those resources arrive.
 
 ## Implemented
@@ -36,8 +36,8 @@ An organisation owner cannot reset another user's password if that account also
 belongs to another organisation, including a disabled membership. This check runs
 both when issuing and consuming recovery links. Otherwise an owner could use a
 new membership to take over the user's other organisations. An authenticated owner
-may recover their own account. A scoped local recovery command remains to be built
-for multi-organisation recovery; there is no public reset bypass.
+may recover their own account. The explicit `pnpm staff:recover --email ...` local
+command supports recovery across memberships; there is no public reset bypass.
 
 ## Evidence
 
@@ -97,9 +97,27 @@ and recovery credentials arrive in URL fragments, which are cleared on page load
 Password parameters follow [OWASP's scrypt profiles](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
 using [Node's asynchronous crypto API](https://nodejs.org/docs/latest-v22.x/api/crypto.html).
 
-## Remaining M2 work
+## Local accounts and recovery
 
-1. Safe local staff seed/recovery tooling and operational instructions. There is
-   currently no generated staff seed password; use owner registration to get started.
-2. Extend the established tenant scope to file/socket/job resources as those
-   resources are implemented in M3–M6. No such resource endpoints exist yet.
+`pnpm db:seed` creates one owner per fictional organisation and administrator,
+operator and viewer accounts for Himal. Random credentials are written exclusively
+to ignored `.local/setup/demo-staff.json` before database changes. Compose mounts
+that setup directory only into its seed/recovery service; native and container
+setup reuse the same file. The seed refuses corrupt or missing prior credentials
+and identity conflicts. It never overwrites existing names, passwords, roles or
+disabled access. Initial passwords become historical after a password change.
+
+Local recovery checks the local `svara_dev` target, environment and application
+marker, requires an explicit email, writes a newly generated password to a unique
+ignored recovery file, then resets only that account and revokes its sessions and
+grants. It does not re-enable users or memberships. Audit entries identify local
+operations with `actorKind=LOCAL` and no staff actor; a database check constraint
+prevents mixing local and staff attribution. See `OPERATIONS.md` for commands.
+
+Four additional PostgreSQL tests verify idempotent seeding, account-collision denial,
+recovery across memberships, revocation and disabled-access preservation. Three
+credential-file tests verify non-overwriting generation and missing/corrupt file
+denial. The browser verifies all five generated credentials and role-aware settings.
+
+File/socket/job scope enforcement extends these boundaries as resources are built
+in M3–M6. No such resource endpoints exist yet.

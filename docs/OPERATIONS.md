@@ -20,18 +20,19 @@ Only the native override exposes PostgreSQL/Redis ports, both on loopback.
 
 ## Commands
 
-| Command                             | Behavior                                                          |
-| ----------------------------------- | ----------------------------------------------------------------- |
-| `pnpm setup:local`                  | Generate missing local settings; preserve existing files          |
-| `pnpm infra:up` / `pnpm infra:down` | Start/stop native infrastructure; retain volumes                  |
-| `pnpm db:generate`                  | Generate ignored Prisma 7 client; no database needed              |
-| `pnpm db:migrate`                   | Apply committed migrations only to local `svara_dev`              |
-| `pnpm db:seed`                      | Verify Svara marker; idempotently add two fictional organisations |
-| `pnpm db:test:prepare`              | Apply migrations only to local `svara_test`                       |
-| `pnpm dev`                          | Compile prerequisites and start coordinated app/package watchers  |
-| `pnpm demo:up` / `pnpm demo:down`   | Build/start or stop the full stack; retain volumes                |
-| `pnpm test:integration:container`   | Run guarded migrations and real PostgreSQL/API tests in the demo  |
-| `pnpm test:container`               | Test production preview denial without network access             |
+| Command                             | Behavior                                                                         |
+| ----------------------------------- | -------------------------------------------------------------------------------- |
+| `pnpm setup:local`                  | Generate missing local settings; preserve existing files                         |
+| `pnpm infra:up` / `pnpm infra:down` | Start/stop native infrastructure; retain volumes                                 |
+| `pnpm db:generate`                  | Generate ignored Prisma 7 client; no database needed                             |
+| `pnpm db:migrate`                   | Apply committed migrations only to local `svara_dev`                             |
+| `pnpm db:seed`                      | Verify Svara marker; add fictional organisations and generated staff credentials |
+| `pnpm staff:recover --email ...`    | Explicit local password recovery; revoke sessions and grants, preserve access    |
+| `pnpm db:test:prepare`              | Apply migrations only to local `svara_test`                                      |
+| `pnpm dev`                          | Compile prerequisites and start coordinated app/package watchers                 |
+| `pnpm demo:up` / `pnpm demo:down`   | Build/start or stop the full stack; retain volumes                               |
+| `pnpm test:integration:container`   | Run guarded migrations and real PostgreSQL/API tests in the demo                 |
+| `pnpm test:container`               | Test production preview denial without network access                            |
 
 Database guards validate protocol, host, exact database name, environment and absence
 of URL options. The migration creates a Svara marker; seed checks it before writing.
@@ -60,7 +61,7 @@ PostgreSQL volume; preserve its original generated credentials.
 
 ## Later operations
 
-Backup/restore, retention, offline account recovery, provider evaluation and public
+Backup/restore, retention, provider evaluation and public
 hosting remain later work. Owner-issued recovery links are available in settings.
 The image retains build/test tools for reproducibility; smaller service-specific
 images can follow. The supported deployment remains the local demo.
@@ -72,7 +73,7 @@ a new organisation; it cannot join or take ownership of an existing organisation
 Owners invite staff and issue recovery links in `/studio/settings`. Links work once
 and expire in 24 hours; share them privately yourself. No email is sent by this app.
 An existing account accepts an invitation using its current password. Recovery for
-accounts shared with another organisation requires the forthcoming local recovery
+accounts shared with another organisation requires the explicit local recovery
 tool; an owner cannot take over another organisation's accounts.
 
 Native `TRUST_PROXY_HOPS` defaults to 0. The Compose runtime uses 1 because API
@@ -80,6 +81,32 @@ traffic arrives only through Caddy on its private network. `APP_ORIGIN` must mat
 the gateway address exactly; use `http://localhost:4320`, including for staff forms.
 Changing the pepper invalidates stored credentials; keep the generated value stable.
 Do not manually reset Redis quotas to bypass a denied credential attempt.
+
+Demo accounts are `owner@himal.svara.test`, `admin@himal.svara.test`,
+`operator@himal.svara.test`, `viewer@himal.svara.test` and `owner@riverside.svara.test`.
+The initial random passwords are in `.local/setup/demo-staff.json`, shared by native
+and Compose seed runs and excluded from Git/images. Preserve this file with local
+setup backups; a repeated seed never resets an account's current password or role.
+Fresh Linux setup records the host UID/GID in `.env.compose` so the seed service
+owns the private credential file. Existing Linux setups can set `SVARA_LOCAL_UID`
+and `SVARA_LOCAL_GID` to their host IDs; Windows defaults to 1000.
+
+For explicit recovery in native mode:
+
+```sh
+pnpm staff:recover --email owner@himal.svara.test
+```
+
+For the running Compose database:
+
+```sh
+docker compose --env-file .env.compose -f infra/compose.yaml -f infra/compose.demo.yaml run --rm -T --no-deps seed node --import tsx scripts/recover-staff.ts --email owner@himal.svara.test
+```
+
+Both commands print the location of a new `.local/setup/recovery-<uuid>.json` file,
+not the password. Only the named account is reset; disabled access remains disabled.
+The original seed file is not updated. A missing original seed file must be restored
+from its local backup before seeding again; do not delete it to generate replacements.
 
 ## Worklet assets and audio troubleshooting
 

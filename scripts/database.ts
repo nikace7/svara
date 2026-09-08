@@ -5,6 +5,7 @@ import { loadWorkspaceEnvironment } from '../packages/config/src/server.js';
 import { createDatabase } from '../packages/database/src/index.js';
 import { assertDemoDatabase, assertTestDatabase } from '../packages/database/src/safety.js';
 import { seedOrganisations } from '../packages/database/src/seed.js';
+import { demoStaffIds, loadDemoCredentials } from './demo-credentials.js';
 
 loadWorkspaceEnvironment();
 const operation = process.argv[2];
@@ -34,8 +35,17 @@ if (operation !== 'seed') {
     if (marker?.schemaVersion !== 1)
       throw new Error('Refusing seed: expected Svara application marker.');
     await seedOrganisations(db);
+    const { seedLocalStaff } = await import('../packages/domain/src/identity/local.js');
+    const credentials = await loadDemoCredentials(
+      fileURLToPath(new URL('../.local/setup/', import.meta.url)),
+      { allowCreate: (await db.user.count({ where: { id: { in: demoStaffIds } } })) === 0 },
+    );
+    const created = await seedLocalStaff(db, credentials.accounts);
     console.info(
-      'Seeded two fictional organisations. Existing records were preserved. Create an owner workspace at /register; demo staff seeds are still pending.',
+      `Seeded two fictional organisations and ${created} new staff accounts. Existing identities and access were preserved.`,
+    );
+    console.info(
+      `Initial demo credentials: ${credentials.path}. Changed passwords are never reset by seeding.`,
     );
   } finally {
     await db.$disconnect();
