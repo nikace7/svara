@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "dev": "node --watch --import tsx src/main.ts",
+    "dev": "concurrently --kill-others --names compile,run \"tsc -p tsconfig.json --watch --preserveWatchOutput\" \"node --watch dist/main.js\"",
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
