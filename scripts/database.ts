@@ -35,7 +35,7 @@ if (operation !== 'seed') {
       throw new Error('Refusing seed: expected Svara application marker.');
     await seedOrganisations(db);
     console.info(
-      'Seeded two fictional organisations. Existing records were preserved. Staff identities arrive in M2.',
+      'Seeded two fictional organisations. Existing records were preserved. Create an owner workspace at /register; demo staff seeds are still pending.',
     );
   } finally {
     await db.$disconnect();

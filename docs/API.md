@@ -4,7 +4,7 @@
 | -------------------------- | ---------------------------------------------------------------------------------- |
 | `GET /api/v1/health/live`  | Process liveness without dependency queries                                        |
 | `GET /api/v1/health/ready` | Database, Redis, writable media and worker heartbeat; 200 ready or 503 unavailable |
-| `GET /api/openapi.json`    | Generated health API contract                                                      |
+| `GET /api/openapi.json`    | Generated health and staff API contract                                            |
 | `GET /api/docs`            | Swagger UI in local mode                                                           |
 | `GET /gateway-health`      | Caddy liveness                                                                     |
 
@@ -45,15 +45,33 @@ the first `device.updated` invalidation payload. Tests reject invalid UUIDs, dat
 versions, revisions and unknown properties. This is scaffolding: no Socket.IO
 namespace, ticket exchange, room or device command exists yet.
 
-Authentication, DTO mutation validation, CSRF, tenant policies and business routes
-arrive in M2 onward. The health API cannot query the seeded organisation/user tables.
+## Staff identity
+
+| Route                                                       | Behavior                                                                                 |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `POST /api/v1/auth/register`, `/auth/login`                 | Public credential admission; issue a host-only session cookie                            |
+| `GET /api/v1/auth/session`, `/auth/csrf`                    | Resolve staff identity or session-bound CSRF without extending idle expiry               |
+| `POST /api/v1/auth/logout`                                  | Idempotent logout and cookie clearing; requires Origin and CSRF when a cookie is present |
+| `POST /api/v1/auth/organisation`                            | Switch to an enabled membership and rotate the cookie                                    |
+| `POST /api/v1/auth/activate`, `/auth/recover`               | Consume one-use invitation/recovery credentials                                          |
+| `GET /api/v1/members`                                       | List only the current organisation's members                                             |
+| `POST /api/v1/members/invitations`, `/members/:id/recovery` | Owner-only, one-use access links returned once                                           |
+| `PATCH /api/v1/members/:id`                                 | Owner-only role/access changes with last-owner protection and session revocation         |
+| `PATCH /api/v1/organisation`                                | Owner-only name/timezone changes                                                         |
+
+Staff mutations require exact Origin, JSON and `X-CSRF-Token` (except public
+credential exchanges). All staff routes enforce the configured Host. Cookies are
+HttpOnly, SameSite=Lax and Secure on HTTPS, with no Domain attribute. Tokens never
+appear in authentication JSON. Use the generated OpenAPI document for body and
+response schemas; see `M2-IDENTITY.md` for quotas and authority details. Authentication
+HTTP tests load the compiled API so Nest's DTO decorator metadata is exercised.
 
 ## Temporary M1 experiment
 
 `POST /api/v1/feasibility/turn` is registered only when the API is explicitly local
-and in fixture mode. Requests must have a loopback Host and the exact configured
-Origin. The studio page has its own local/fixture/Host guard. This endpoint is not
-a public assistant or an authenticated conversation session.
+and in fixture mode. Requests require a staff cookie, CSRF and the exact configured
+Host/Origin. The studio page also retains its local/fixture gate. This endpoint is
+an authenticated experiment; it does not create persisted conversation sessions.
 
 `packages/contracts/src/feasibility.ts` is the canonical Zod request/event contract.
 The temporary NDJSON transport is separate from the stable generated health OpenAPI

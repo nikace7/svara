@@ -8,7 +8,8 @@ produce a named error rather than a guessed replacement password. Do not commit
 either environment file.
 
 Native URLs use loopback. Compose passes internal `postgres`/`redis` hosts explicitly.
-Web receives only preview flags and origin. Database/authentication secrets and the
+Web receives preview flags, origin and server-only `API_INTERNAL_ORIGIN` for session
+checks (Compose uses `http://api:4100`). Database/authentication secrets and the
 media volume belong to API/worker/init jobs. Actual Azure/Gemini adapters and live
 feasibility are M1; configuration validation alone does not establish live support.
 
@@ -59,10 +60,26 @@ PostgreSQL volume; preserve its original generated credentials.
 
 ## Later operations
 
-Reset, backup/restore, retention, account recovery, provider evaluation and public
-hosting are not implemented in M0. The initial image retains build/test tools for
-reproducibility; smaller service-specific images can follow. Do not expose this
-unauthenticated local foundation as a hosted product.
+Backup/restore, retention, offline account recovery, provider evaluation and public
+hosting remain later work. Owner-issued recovery links are available in settings.
+The image retains build/test tools for reproducibility; smaller service-specific
+images can follow. The supported deployment remains the local demo.
+
+## Staff setup
+
+Open `/login` and choose **Create a workspace**. Registration creates an owner and
+a new organisation; it cannot join or take ownership of an existing organisation.
+Owners invite staff and issue recovery links in `/studio/settings`. Links work once
+and expire in 24 hours; share them privately yourself. No email is sent by this app.
+An existing account accepts an invitation using its current password. Recovery for
+accounts shared with another organisation requires the forthcoming local recovery
+tool; an owner cannot take over another organisation's accounts.
+
+Native `TRUST_PROXY_HOPS` defaults to 0. The Compose runtime uses 1 because API
+traffic arrives only through Caddy on its private network. `APP_ORIGIN` must match
+the gateway address exactly; use `http://localhost:4320`, including for staff forms.
+Changing the pepper invalidates stored credentials; keep the generated value stable.
+Do not manually reset Redis quotas to bypass a denied credential attempt.
 
 ## Worklet assets and audio troubleshooting
 

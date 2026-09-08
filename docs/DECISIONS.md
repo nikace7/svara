@@ -126,4 +126,24 @@ issue or consume password recovery for another user with memberships outside tha
 tenant. A regression test demonstrated the otherwise possible cross-tenant account
 takeover. Own-account recovery remains available to an authenticated owner;
 multi-organisation local recovery tooling is pending. See `docs/M2-IDENTITY.md` for
-the implemented domain scope and the HTTP/browser work still required.
+the implemented scope and remaining local recovery tooling.
+
+## ADR 013 — Staff HTTP authority and browser session ownership
+
+Replace the M0 studio preview gate with a server-resolved opaque staff cookie.
+Experimental voice/gallery pages keep their additional local-only restriction.
+This supersedes the unauthenticated studio behavior recorded in ADRs 003 and 008.
+The web app receives no database credentials or auth pepper. Server session reads
+use the configured internal API and gateway Host with bounded native HTTP, because
+the pinned Node fetch implementation rewrites a caller-supplied Host header.
+
+Require exact Origin and session-bound CSRF for authenticated mutations. Keep the
+CSRF token attached to the rendered workspace rather than fetching a replacement
+just before submission: after a cookie rotates in another tab, the old form must
+fail instead of changing the newly selected organisation. Session changes discard
+the router cache and audio resources. Background polls do not renew idle expiry.
+
+Use atomic Redis quotas with HMAC-digested subjects, a process-local cap on expensive
+password operations, and failure-closed admission. Trust one proxy hop only on the
+unpublished Compose API behind Caddy; native development trusts none. HTTP tests
+import compiled Nest code so DTO metadata matches the actual production runtime.
