@@ -26,6 +26,30 @@ describe('bounded media subprocess', () => {
     ).rejects.toMatchObject({ code: 'INSPECTION_TIMEOUT' });
   });
 
+  it('honors cancellation before launch and while a child is running', async () => {
+    await expect(
+      runMediaProcess(process.execPath, ['-e', 'setInterval(()=>{},1000)'], {
+        timeoutMs: 3000,
+        signal: AbortSignal.abort(),
+      }),
+    ).rejects.toMatchObject({ code: 'INSPECTION_TIMEOUT' });
+    const controller = new AbortController();
+    const running = runMediaProcess(process.execPath, ['-e', 'setInterval(()=>{},1000)'], {
+      timeoutMs: 3000,
+      signal: controller.signal,
+    });
+    controller.abort();
+    await expect(running).rejects.toMatchObject({ code: 'INSPECTION_TIMEOUT' });
+  });
+
+  it('rejects missing or unbounded deadlines', () => {
+    for (const timeoutMs of [0, -1, 1.5, 15001]) {
+      expect(() => runMediaProcess(process.execPath, ['-e', ''], { timeoutMs })).toThrow(
+        'INSPECTION_TIMEOUT',
+      );
+    }
+  });
+
   it('bounds stdout and stderr independently and reports a missing executable safely', async () => {
     for (const stream of ['stdout', 'stderr']) {
       await expect(

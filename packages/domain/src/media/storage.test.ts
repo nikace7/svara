@@ -1,5 +1,5 @@
 import { randomUUID, createHash } from 'node:crypto';
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { link, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
@@ -65,6 +65,58 @@ describe('private streaming media storage', () => {
     expect(() => storage.path('C:\\outside.png')).toThrow();
     expect(await readdir(root)).toEqual([`${id}.upload`]);
   });
+
+  it('checks a stored file across read chunks and gives the caller ownership of its handle', async () => {
+    const id = randomUUID();
+    const bytes = Buffer.alloc(150_001, 83);
+    const receipt = await storage.receive(
+      id,
+      bytes.length,
+      Readable.from([bytes]),
+      AbortSignal.timeout(1000),
+    );
+    expect(await storage.checksum(`${id}.upload`)).toEqual(receipt);
+    const { handle, size } = await storage.read(`${id}.upload`);
+    try {
+      expect(size).toBe(bytes.length);
+      const sample = Buffer.alloc(4);
+      await handle.read(sample, 0, sample.length, 0);
+      expect(sample).toEqual(bytes.subarray(0, 4));
+    } finally {
+      await handle.close();
+    }
+  });
+
+  it('rejects empty files and extra hard links and propagates cleanup failures', async () => {
+    const empty = `${randomUUID()}.upload`;
+    await writeFile(storage.path(empty), '');
+    await expect(storage.read(empty)).rejects.toMatchObject({ code: 'INTEGRITY_MISMATCH' });
+    const original = `${randomUUID()}.upload`;
+    const alias = `${randomUUID()}.upload`;
+    await writeFile(storage.path(original), 'linked bytes');
+    await link(storage.path(original), storage.path(alias));
+    await expect(storage.checksum(original)).rejects.toMatchObject({ code: 'INTEGRITY_MISMATCH' });
+    await storage.remove(alias);
+    expect((await storage.checksum(original)).byteLength).toBe(12);
+    await storage.remove(alias);
+    const directory = `${randomUUID()}.upload`;
+    await mkdir(storage.path(directory));
+    await expect(storage.remove(directory)).rejects.toBeDefined();
+  });
+
+  it('rejects impossible declared sizes before creating files', async () => {
+    for (const size of [0, -1, 1.5, NaN, 50 * 1024 * 1024 + 1]) {
+      await expect(
+        storage.receive(
+          randomUUID(),
+          size,
+          Readable.from([Buffer.from('a')]),
+          AbortSignal.timeout(1000),
+        ),
+      ).rejects.toMatchObject({ code: 'UPLOAD_LENGTH_MISMATCH' });
+    }
+    expect(await readdir(root)).toEqual([]);
+  });
 });
 
 describe('single byte ranges', () => {
@@ -76,6 +128,7 @@ describe('single byte ranges', () => {
     expect(parseMediaRange('bytes=90-200', 100)).toEqual({ start: 90, end: 99, partial: true });
   });
   it('rejects ambiguous, unsatisfiable and overflowing ranges', () => {
+    expect(() => parseMediaRange(undefined, 0)).toThrow();
     for (const value of [
       'bytes=100-',
       'bytes=20-10',
