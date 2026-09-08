@@ -67,7 +67,8 @@ A lost commit acknowledgement preserves output files until the database can be r
 Invalid media is rejected immediately. Parser unavailability returns the upload to
 quarantine and pauses the consumer until its processing probe succeeds. Shutdown
 cancels inspection and leaves interrupted work retryable, subject to the same attempt
-limit. The supervisor gives graceful shutdown 25 seconds before terminating.
+limit. The supervisor gives graceful shutdown 25 seconds before terminating;
+Compose allows 30 seconds so it does not interrupt that cleanup window.
 
 Worker readiness requires connected queue clients, a running consumer, recent
 successful reconciliation and actual processing of bundled 32 × 24 PNG/MP4 probes.
