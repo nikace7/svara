@@ -1,5 +1,7 @@
 import { constants } from 'node:fs';
-import { copyFile, open } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { copyFile, open, readFile } from 'node:fs/promises';
+import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import type { ServerConfig } from '@svara/config/server';
 import {
@@ -52,6 +54,50 @@ export class MediaInspector {
     private readonly storage: MediaStorage,
     private readonly config: InspectorConfig,
   ) {}
+
+  async check(signal?: AbortSignal): Promise<void> {
+    for (const [extension, declaredMime] of [
+      ['png', 'image/png'],
+      ['mp4', 'video/mp4'],
+    ] as const) {
+      const id = randomUUID();
+      const leaseToken = randomUUID();
+      const deadline = AbortSignal.timeout(MEDIA_LIMITS.inspectionMs);
+      const probeSignal = signal ? AbortSignal.any([signal, deadline]) : deadline;
+      let received = false;
+      let output: InspectedMedia | undefined;
+      try {
+        const bytes = await readFile(
+          new URL(`../../assets/inspection-probe.${extension}`, import.meta.url),
+        );
+        const receipt = await this.storage.receive(
+          id,
+          bytes.length,
+          Readable.from([bytes]),
+          probeSignal,
+        );
+        received = true;
+        output = await this.inspect(
+          {
+            id,
+            leaseToken,
+            declaredMime,
+            declaredBytes: bytes.length,
+            sourceSha256: receipt.sha256,
+          },
+          probeSignal,
+        );
+        if (output.width !== 32 || output.height !== 24)
+          throw new InspectionError('INSPECTION_UNAVAILABLE');
+      } finally {
+        if (received) await this.storage.remove(`${id}.upload`);
+        if (output) {
+          await this.storage.remove(output.storageKey);
+          if (output.thumbnailKey) await this.storage.remove(output.thumbnailKey);
+        }
+      }
+    }
+  }
 
   async inspect(claim: InspectionClaim, signal?: AbortSignal): Promise<InspectedMedia> {
     resourceIdSchema.parse(claim.id);
