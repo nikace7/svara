@@ -35,3 +35,36 @@ Generate ignored secrets locally without replacing existing configuration.
 Initialize `main`, then build on `feat/m0-workspace`. Use Conventional Commits and
 focused verified checkpoints, including documented red/green TDD stages. No remote
 is created or published as part of local initialization.
+
+## ADR 006 — Prisma 7 and consistent API compilation
+
+Generate the Prisma TypeScript client into ignored `packages/database/src/generated`
+and instantiate it with `@prisma/adapter-pg`. Configure the datasource through
+`prisma.config.ts`, not the schema. Commit migrations, not generated clients. The
+CLI launcher resolves its real path for reliable Windows execution.
+
+Compile NestJS with TypeScript and decorator metadata for production, development
+watching and OpenAPI generation. This keeps contract generation aligned with the
+built API. Domain behavior tests remain independent of process startup.
+
+The worker uses Node's watch mode with the tsx import hook; its TypeScript does not
+need Nest decorator metadata. This launcher was verified under the root coordinated
+development command on Windows, including restart after a shared package rebuild.
+
+## ADR 007 — Local preview and runtime separation
+
+Native web uses 3001 because 3000 was occupied; Caddy preserves the public local URL
+at port 4320. Containers keep port 3000 internally. The M0 studio and gallery are
+request-rendered, guarded by local fixture mode and a loopback Host. A test verifies
+they return 404 in production mode with networking disabled.
+
+The web container has no database credentials, token pepper or media volume. Font
+files are bundled from licensed, pinned Fontsource packages. A full staff guard
+replaces the temporary local preview gate in M2.
+
+## ADR 008 — Dependency maintenance
+
+Pin compatible core packages and images; introduce later provider/job dependencies
+when their implementation starts. The documented Prisma transitive overrides close
+the initial audit findings while retaining the blueprint's Prisma 7 requirement.
+See `docs/DEPENDENCIES.md` for versions, advisories and removal criteria.
