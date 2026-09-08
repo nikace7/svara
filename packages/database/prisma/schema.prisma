@@ -24,6 +24,7 @@ model Organisation {
   memberships Membership[]
   auditEntries AuditEntry[]
   bots Bot[]
+  mediaAssets MediaAsset[]
 }
 
 model Bot {
@@ -121,6 +122,7 @@ model Membership {
   auditEntries AuditEntry[]
 
   approvedKnowledge KnowledgeEntry[]
+  uploadedMedia MediaAsset[]
 
   @@unique([organisationId, userId])
   @@unique([id, organisationId])
@@ -171,6 +173,57 @@ model StaffGrant {
 enum AuditActorKind {
   STAFF
   LOCAL
+  SYSTEM
+}
+
+enum MediaState {
+  UPLOADING
+  RECEIVING
+  QUARANTINED
+  INSPECTING
+  READY
+  REJECTED
+  DELETING
+}
+
+model MediaAsset {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  createdByMembershipId String @db.Uuid
+  filename String @db.VarChar(160)
+  declaredMime String @db.VarChar(32)
+  declaredBytes Int
+  state MediaState @default(UPLOADING)
+  revision Int @default(1)
+  uploadedBytes Int @default(0)
+  sourceSha256 String? @db.VarChar(64)
+  storageKey String? @db.VarChar(80)
+  thumbnailKey String? @db.VarChar(80)
+  mimeType String? @db.VarChar(32)
+  byteLength Int?
+  sha256 String? @db.VarChar(64)
+  width Int?
+  height Int?
+  durationSeconds Float?
+  thumbnailBytes Int?
+  thumbnailSha256 String? @db.VarChar(64)
+  rejection String? @db.VarChar(40)
+  leaseToken String? @db.Uuid
+  leaseExpiresAt DateTime? @db.Timestamptz(3)
+  attempts Int @default(0)
+  uploadedAt DateTime? @db.Timestamptz(3)
+  inspectedAt DateTime? @db.Timestamptz(3)
+  cleanedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+  createdBy Membership @relation(fields: [createdByMembershipId, organisationId], references: [id, organisationId], onDelete: Restrict)
+
+  @@unique([id, organisationId])
+  @@index([organisationId, createdAt])
+  @@index([state, leaseExpiresAt])
+  @@index([state, createdAt])
+  @@index([createdByMembershipId])
 }
 
 model AuditEntry {

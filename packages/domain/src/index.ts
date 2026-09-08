@@ -10,3 +10,7 @@ export { createStaffLimiter } from './identity/limits.js';
 export { BotService } from './authoring/bots.js';
 export { AuthoringError } from './authoring/errors.js';
 export { KnowledgeService } from './authoring/knowledge.js';
+export { MediaService } from './media/service.js';
+export { MediaStorage } from './media/storage.js';
+export { MediaError } from './media/errors.js';
+export { parseMediaRange } from './media/range.js';
