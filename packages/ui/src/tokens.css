@@ -1,0 +1,31 @@
+:root {
+  color-scheme: dark;
+  --canvas: #0b1016;
+  --surface: #121b25;
+  --raised: #1a2734;
+  --text-primary: #edf3f8;
+  --text-secondary: #9cafc1;
+  --accent: #50d8e8;
+  --on-accent: #0b1016;
+  --success: #78d4b0;
+  --warning: #f4be68;
+  --danger: #ff8f91;
+  --border-subtle: #293b4a;
+  --border-control: #60788e;
+  --focus-ring: #50d8e8;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-code: 'IBM Plex Mono', monospace;
+  --font-nepali: 'Noto Sans Devanagari', sans-serif;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --radius-control: 6px;
+  --radius-panel: 10px;
+  --radius-dialog: 16px;
+}

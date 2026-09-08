@@ -1,8 +1,5 @@
+import { WorkspaceOverview } from '../../components/workspace-overview';
+
 export default function StudioPage() {
-  return (
-    <main>
-      <h1>Workspace overview</h1>
-      <p>Local foundation preview</p>
-    </main>
-  );
+  return <WorkspaceOverview />;
 }
