@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, readdir, rm, utimes, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
@@ -285,6 +285,30 @@ describe('durable media inspection jobs', () => {
     ).not.toBeNull();
   });
 
+  it('retains a recent upload for 24 hours even when its reservation is older', async () => {
+    const entry = await upload();
+    const old = new Date(Date.now() - MEDIA_LIMITS.retentionMs - 1000);
+    await staff.db.mediaAsset.update({ where: { id: entry.id }, data: { createdAt: old } });
+    let now = new Date();
+    const coordinator = jobs(
+      async () => {
+        throw new MediaError('INVALID_MEDIA');
+      },
+      () => now,
+    );
+    await coordinator.sweep();
+    expect(await media.get(staff.owner.token, entry.id)).toMatchObject({ state: 'QUARANTINED' });
+    expect(await coordinator.process(entry.id)).toBe('REJECTED');
+    await coordinator.sweep();
+    expect(await readdir(root)).toContain(`${entry.id}.upload`);
+    expect(await staff.db.mediaAsset.findUnique({ where: { id: entry.id } })).toMatchObject({
+      cleanedAt: null,
+    });
+    now = new Date(now.getTime() + MEDIA_LIMITS.retentionMs + 1000);
+    await coordinator.sweep();
+    expect(await readdir(root)).not.toContain(`${entry.id}.upload`);
+  });
+
   it('collects old orphan keys without following directories or touching READY and active files', async () => {
     const old = new Date(Date.now() - MEDIA_LIMITS.retentionMs - 1000);
     const ready = await upload();
@@ -307,12 +331,19 @@ describe('durable media inspection jobs', () => {
     });
     await utimes(storage.path(`${active.id}.upload`), old, old);
     await writeFile(join(root, 'operator-note.txt'), 'preserve non-media files');
+    const directory = storage.path(`${randomUUID()}.upload`);
+    await mkdir(directory);
+    await writeFile(join(directory, 'preserve.txt'), 'preserve generated-name directories');
+    await utimes(directory, old, old);
     const coordinator = jobs();
     for (let page = 0; page < 30; page++) await coordinator.sweep(2);
     const keys = await readdir(root);
     expect(keys).not.toContain(orphan);
     expect(keys).toEqual(
       expect.arrayContaining([asset.storageKey, fresh, `${active.id}.upload`, 'operator-note.txt']),
+    );
+    expect(await readFile(join(directory, 'preserve.txt'), 'utf8')).toBe(
+      'preserve generated-name directories',
     );
   });
 });
