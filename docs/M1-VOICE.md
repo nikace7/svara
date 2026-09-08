@@ -1,5 +1,10 @@
 # M1 — Bilingual voice feasibility
 
+Update 2026-09-08: the user's free-demo requirement selects Gemini generation with
+Azure Speech F0 as the planned demo configuration. Live adapters remain pending.
+Historical Azure/OpenAI references below describe the original M1 increment;
+see `docs/FREE-DEMO-SETUP.md` and ADR 011 for the current provider direction.
+
 Implemented the local increment on 2026-09-08 on `feat/m1-voice-feasibility`.
 The live provider gate remains pending; M1 is not marked complete.
 

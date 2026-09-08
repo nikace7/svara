@@ -12,9 +12,13 @@ setup/seed, generated contracts and Docker stack run together.
 **M1's local fixture lab is implemented.** The bilingual lab includes scripted
 English/Nepali subtitles, typed fallback, interruption, measured fixture timings,
 microphone capture and PCM speaker checks. Live recognition/generation/synthesis
-and their bilingual quality gate remain pending provider setup. Authentication,
-authoring and device operations are subsequent milestones. No live credentials
-are needed or used. See [progress and verification](docs/PROGRESS.md).
+and their bilingual quality gate remain pending provider setup. The professional
+light theme uses white surfaces and a subtle lavender gradient.
+
+**M2 is in progress:** the tested identity domain supports scoped sessions, roles,
+invitations and recovery. HTTP authentication and staff screens are still pending.
+See [identity scope](docs/M2-IDENTITY.md), [free provider account setup](docs/FREE-DEMO-SETUP.md)
+and [progress and verification](docs/PROGRESS.md).
 
 ## Architecture
 
@@ -35,8 +39,10 @@ server domain code owns database/provider work. PostgreSQL is durable truth. Red
 will coordinate jobs, tickets and leases. The current worker runs dependency checks
 and a heartbeat; Socket.IO and business jobs arrive later.
 
-The planned bilingual pipeline is Azure STT → approved release knowledge → OpenAI
-Responses → Azure TTS. Live audio stays transient in its owning API process.
+The demo pipeline is Azure Speech F0 STT → approved release knowledge → Gemini
+free-tier generation → Azure Speech F0 TTS. Provider adapters and live validation
+are pending. OpenAI is an optional explicit alternative. Live audio will stay
+transient in its owning API process.
 
 See [the architecture decisions](docs/DECISIONS.md),
 [implementation progress](docs/PROGRESS.md) and
