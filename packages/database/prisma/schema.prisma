@@ -22,6 +22,7 @@ model Organisation {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   memberships Membership[]
+  auditEntries AuditEntry[]
 }
 
 model User {
@@ -52,8 +53,67 @@ model Membership {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  sessions StaffSession[]
+  issuedGrants StaffGrant[] @relation("GrantIssuer")
+  recoveryGrants StaffGrant[] @relation("GrantTarget")
+  auditEntries AuditEntry[]
 
   @@unique([organisationId, userId])
   @@unique([id, organisationId])
   @@index([userId])
+}
+
+model StaffSession {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tokenHash String @unique @db.VarChar(64)
+  membershipId String @db.Uuid
+  organisationId String @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  lastSeenAt DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  membership Membership @relation(fields: [membershipId, organisationId], references: [id, organisationId], onDelete: Restrict)
+
+  @@index([membershipId])
+  @@index([expiresAt])
+}
+
+enum StaffGrantPurpose {
+  INVITATION
+  RECOVERY
+}
+
+model StaffGrant {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tokenHash String @unique @db.VarChar(64)
+  purpose StaffGrantPurpose
+  organisationId String @db.Uuid
+  issuerMembershipId String @db.Uuid
+  targetMembershipId String? @db.Uuid
+  email String @db.VarChar(254)
+  role MembershipRole?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+  consumedAt DateTime? @db.Timestamptz(3)
+  issuer Membership @relation("GrantIssuer", fields: [issuerMembershipId, organisationId], references: [id, organisationId], onDelete: Restrict)
+  target Membership? @relation("GrantTarget", fields: [targetMembershipId, organisationId], references: [id, organisationId], onDelete: Restrict)
+
+  @@index([organisationId, email, purpose])
+  @@index([expiresAt])
+  @@index([issuerMembershipId])
+  @@index([targetMembershipId])
+}
+
+model AuditEntry {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  actorMembershipId String @db.Uuid
+  action String @db.VarChar(64)
+  targetId String @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+  actor Membership @relation(fields: [actorMembershipId, organisationId], references: [id, organisationId], onDelete: Restrict)
+
+  @@index([organisationId, createdAt])
+  @@index([actorMembershipId])
 }
