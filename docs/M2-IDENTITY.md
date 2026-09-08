@@ -27,8 +27,9 @@ Future file, socket and job boundaries will be tested as those resources arrive.
 - Safe audit categories and identifiers without credentials or request payloads.
 - Composite database foreign keys bind sessions, grant issuers/targets and audit
   actors to their organisation. Serializable transactions retry PostgreSQL write
-  conflicts up to three times; external calls and password derivation stay outside
-  transactions.
+  conflicts up to three times with bounded jitter between attempts; external calls,
+  retry delays and password derivation stay outside transactions. See ADR 019 for
+  the concurrent authoring regression.
 
 ## Recovery scope
 

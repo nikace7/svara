@@ -1,8 +1,36 @@
 # Media storage and inspection
 
-Private media storage, inspection and durable worker processing are implemented.
-The worker reconciles uploads, commits inspection results and cleans expired or
-deleted files. HTTP upload/serving handlers and the studio media library remain pending.
+Private media storage, inspection, durable worker processing and the staff library
+are implemented. The API streams authenticated multipart uploads and serves only
+READY files; the worker inspects uploads and cleans expired or deleted files.
+
+## Staff library and HTTP boundary
+
+`/studio/media` provides filename search, type/status filters, pagination, processing
+updates, image/video previews and confirmed removal. Owners/administrators upload or
+remove; operators/viewers inspect existing media. The page uses the shared light
+studio palette with a restrained purple upload panel. Browser image optimization is
+disabled for private previews so requests carry the current staff cookie directly.
+
+`POST /api/v1/media` accepts one multipart form: a `metadata` JSON field first, then
+one `file` part. Metadata supplies a safe display filename, supported MIME and exact
+byte length; the multipart filename never becomes a storage path. Staff admission,
+exact Host/Origin and CSRF checks run before parsing. Only this endpoint permits
+multipart; other staff mutations still require JSON. Compressed bodies are rejected.
+
+Busboy streams with bounded buffers and field/file/part limits. A whole-body counter
+caps multipart overhead at 64 KiB beyond the maximum file size. The receiving stream's
+end is held until the entire form validates, so extra trailing parts cannot publish
+an upload. Disconnects and a 120-second deadline cancel receipt. The domain rechecks
+authority before committing QUARANTINED. A successful response is HTTP 202 with
+processing metadata, and the existing worker discovers the row without requiring an
+API-side Redis enqueue acknowledgement. See the [Busboy API](https://github.com/mscdex/busboy#api).
+
+Content and thumbnail routes resolve current staff access and organisation before
+opening files. They support HEAD, one bounded/open/suffix byte range, ETag and If-Range.
+Invalid ranges return 416 with the object size; an outdated If-Range yields the full
+object. Responses are no-store, nosniff and same-origin resources, with encoded display
+filenames. No static directory, storage key or quarantined content is exposed.
 
 ## Admission and storage
 

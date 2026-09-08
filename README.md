@@ -22,11 +22,11 @@ locally; an explicit local recovery command revokes sessions and preserves roles
 See [identity scope](docs/M2-IDENTITY.md), [free provider account setup](docs/FREE-DEMO-SETUP.md)
 and [progress and verification](docs/PROGRESS.md).
 
-**M3 bot drafts and knowledge are implemented:** scoped search, bilingual editing,
+**M3 bot drafts, knowledge and media are implemented:** scoped search, bilingual editing,
 revision conflicts, read-only roles, archive/restore, FAQ/reference approval and
-release inclusion. Media now has a tested private-storage and inspection foundation;
-its queue, HTTP handlers and studio library are still pending. Presentations and
-immutable publication follow.
+release inclusion. The media library supports streaming uploads, durable inspection,
+private image/video previews and confirmed removal. Presentations and immutable
+publication follow.
 See [authoring scope](docs/M3-AUTHORING.md).
 
 ## Architecture
@@ -45,8 +45,9 @@ flowchart LR
 
 Apps compose shared packages. Browser code imports only contracts, UI and audio;
 server domain code owns database/provider work. PostgreSQL is durable truth. Redis
-will coordinate jobs, tickets and leases. The current worker runs dependency checks
-and a heartbeat; Socket.IO and business jobs arrive later.
+coordinates media jobs and readiness; the worker reconciles database state, inspects
+uploads and cleans eligible files. Socket.IO, runtime tickets and device jobs arrive
+with later milestones.
 
 The demo pipeline is Azure Speech F0 STT → approved release knowledge → Gemini
 free-tier generation → Azure Speech F0 TTS. Provider adapters and live validation
@@ -77,6 +78,7 @@ pnpm demo:up
 ```
 
 Open [Svara](http://localhost:4320), the
+[media library](http://localhost:4320/studio/media),
 [voice lab](http://localhost:4320/studio/voice-lab),
 [component gallery](http://localhost:4320/studio/design-system), or
 [API reference](http://localhost:4320/api/docs).
@@ -116,6 +118,17 @@ Native media integration tests additionally need FFmpeg/ffprobe and an explicit
 development inspection setting. See [media inspection setup](docs/MEDIA-INSPECTION.md).
 Compose includes the Linux ffprobe sandbox. The worker watcher compiles inspection
 children as well as its main process, so new jobs use the current emitted code.
+
+## Explore the media library
+
+1. Sign in as an owner or administrator and open **Media**. Choose a JPEG/PNG image
+   or an H.264/AAC MP4 within the displayed limits, then select **Upload file**.
+2. Wait for inspection. Ready images and videos can be previewed or downloaded;
+   rejected files show an explanation. Operators and viewers can inspect the library.
+3. Use search/type/status filters or confirm **Remove** to request cleanup.
+
+Files remain private to the organisation. See [media processing](docs/MEDIA-INSPECTION.md)
+for the upload, sandbox, range serving and cleanup boundaries.
 
 ## Explore the voice lab
 

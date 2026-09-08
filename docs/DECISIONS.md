@@ -215,3 +215,18 @@ Landlock/seccomp helper for ffprobe, with narrow runtime-loader permissions and
 bounded processes, output and resources. Missing sandbox support fails closed.
 Native development is an explicit configuration choice rejected in production.
 See `MEDIA-INSPECTION.md` for current implementation boundaries and tests.
+
+## ADR 019 — Space serialization retries under concurrent staff activity
+
+The full media browser gate observed an exhausted P2034 retry during bot creation.
+A PostgreSQL regression reproduced failed requests when twelve independent bot
+creates used one staff session. Immediate retries repeatedly collided with the
+same competing transactions.
+
+Retain three retries and the exact conflict classification from ADR 017. Add
+exponential delay with independent jitter: 50–99 ms, 100–199 ms and 200–399 ms.
+Delay occurs after rollback and outside the transaction. Each attempt still
+resolves current staff authority and rechecks revisions; there is no access cache
+or change to session expiry. The regression verifies all twelve bots and audits
+exist exactly once, plus denial after session revocation. Other errors still
+propagate, and an exhausted retry budget remains an error.
