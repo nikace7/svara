@@ -15,8 +15,10 @@ microphone capture and PCM speaker checks. Live recognition/generation/synthesis
 and their bilingual quality gate remain pending provider setup. The professional
 light theme uses white surfaces and a subtle lavender gradient.
 
-**M2 is in progress:** the tested identity domain supports scoped sessions, roles,
-invitations and recovery. HTTP authentication and staff screens are still pending.
+**M2 staff flows are implemented:** register/sign in, scoped cookie sessions,
+organisation settings, team invitations, recovery links, role changes and workspace
+switching work through the browser and API. Safe demo staff seeds and the explicit
+local recovery command remain in progress.
 See [identity scope](docs/M2-IDENTITY.md), [free provider account setup](docs/FREE-DEMO-SETUP.md)
 and [progress and verification](docs/PROGRESS.md).
 
@@ -77,10 +79,11 @@ overwrites existing files. Compose builds the apps, runs migration and seed init
 jobs, and waits for health checks. Only `127.0.0.1:4320` is exposed.
 Stop with `pnpm demo:down`; named data volumes are retained.
 
-**No sign-in exists in M0.** Studio/gallery access requires local fixture mode and
-a loopback Host; production mode returns 404. The seed creates only the fictional
-Himal and Riverside organisations. Staff accounts and generated credentials arrive
-in M2; there is no default password.
+The studio requires sign-in. Choose **Create a workspace** at `/login` to create
+your own organisation and owner account. The seed currently creates only the
+fictional Himal and Riverside organisations; it does not assign staff or a default
+password. The voice lab and component gallery additionally require local fixture
+mode, including after sign-in. Free provider account instructions are linked above.
 
 ## Native development
 

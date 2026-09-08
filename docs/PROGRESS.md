@@ -6,7 +6,7 @@ Updated 2026-09-08. Evidence is local unless explicitly marked otherwise.
 | ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
 | M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.       |
 | M1 — Bilingual voice feasibility         | Partial     | Local fixture lab and audio/protocol checks pass. Live adapters and bilingual provider smoke tests remain pending. |
-| M2 — Identity and tenant boundaries      | In progress | Domain/database sessions, policies and adversarial tests implemented; HTTP and staff screens pending.              |
+| M2 — Identity and tenant boundaries      | In progress | Staff domain, HTTP, Redis limits and browser flows verified; safe local staff seed/recovery tooling remains.       |
 | M3 — Authoring and immutable publication | Not started | Drafts, media, knowledge and releases pending.                                                                     |
 | M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                   |
 | M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                                |
@@ -33,8 +33,8 @@ unchanged. Missing provider accounts do not block independent product developmen
 
 The first increment completed the M0 foundation. The second implements M1's local
 audio and fixture paths, while retaining an explicitly pending live gate. Later
-milestones retain their status above. M2 domain work is now underway; HTTP/browser
-authentication and live voice are not claimed.
+milestones retain their status above. M2 now includes real HTTP/browser staff
+authentication. Live voice remains pending account setup and provider adapters.
 
 ## M0 delivered
 
@@ -150,3 +150,45 @@ Final screenshots reviewed: `artifacts/screenshots/light-studio-desktop.png` and
 `feat/light-theme-identity` preserve each test/implementation checkpoint. The
 original supplied blueprint files are unchanged. No provider call, account
 creation, remote push or hosted deployment was performed.
+
+## M2 HTTP and staff browser increment — 2026-09-08
+
+- Connected the domain to Nest staff endpoints, strict validated DTOs, safe errors,
+  host-only cookies, exact Host/Origin and CSRF checks, generated OpenAPI and Redis
+  quotas. Admission fails closed when Redis cannot answer.
+- Added light-theme registration/login, activation/recovery, staff-only studio,
+  organisation settings, member management, invitations, role-aware controls,
+  workspace switching and logout. Local gallery/lab restrictions remain in addition
+  to staff authentication; the fixture stream revalidates sessions during output.
+- Closed two regressions with failing tests and separate implementation commits:
+  background session polling must not extend idle expiry, and stale forms must
+  retain their original CSRF authority after another tab changes the active cookie.
+- Kept provider setup in fixture mode. The free account guide is ready; no Azure,
+  Gemini or OpenAI call or account creation occurred.
+
+Verification includes real PostgreSQL/Redis/API tests in the built Linux image,
+browser journeys against Compose and a network-disabled production guard check.
+The browser suite retains the audio cleanup, accessible dialog and responsive
+layout checks from earlier increments. Selected unit coverage does not represent
+coverage of all React or database code; those layers use integration/browser tests.
+
+| Check                   | Result                                                                                                      |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `pnpm check`            | Passed formatting, lint, types, contract drift and all production builds                                    |
+| Unit suite              | 92 tests across 17 files passed; selected modules retain 98.02% line / 93.60% branch coverage               |
+| Linux integration suite | 30 tests across 6 files passed against guarded PostgreSQL and Redis                                         |
+| Browser suite           | All 21 journeys passed; latest build passed 20 together, with the quota-denied journey passing after expiry |
+| Production guard        | Studio redirects to sign-in; experimental pages remain denied in a network-disabled container               |
+| Dependency audit        | No known vulnerabilities at verification time                                                               |
+| Compose                 | All six long-running services healthy after rebuilding staff authentication                                 |
+
+Reviewed screenshots: `artifacts/screenshots/m2-login-1440.png`,
+`artifacts/screenshots/m2-login-360.png` and `artifacts/screenshots/m2-settings-mobile.png`.
+
+An extra repeated browser run reached the real 30/IP credential quota and displayed
+Retry-After. The quota stayed enabled; the denied journey was rerun after expiry.
+No rate-limit keys or application data were reset to make tests pass.
+
+Remaining M2 work: locally generated fictional staff seeds and explicit offline
+recovery with local-database guards. Owner registration already creates a usable
+workspace. M3–M8 and live M1 provider validation remain on the active project goal.
