@@ -351,6 +351,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["media_list"];
+        put?: never;
+        post: operations["media_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["media_get"];
+        put?: never;
+        post?: never;
+        delete: operations["media_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/{id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["media_content"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/{id}/thumbnail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["media_thumbnail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1617,6 +1681,287 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    media_list: {
+        parameters: {
+            query?: {
+                pageSize?: number;
+                page?: number;
+                kind?: "ALL" | "IMAGE" | "VIDEO";
+                state?: "ALL" | "UPLOADING" | "RECEIVING" | "QUARANTINED" | "INSPECTING" | "READY" | "REJECTED" | "DELETING";
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            items: {
+                                /** Format: uuid */
+                                id: string;
+                                filename: string;
+                                /** @enum {string} */
+                                mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                /** @enum {string} */
+                                state: "UPLOADING" | "RECEIVING" | "QUARANTINED" | "INSPECTING" | "READY" | "REJECTED" | "DELETING";
+                                revision: number;
+                                uploadedBytes: number;
+                                byteLength: number | null;
+                                sha256: string | null;
+                                width: number | null;
+                                height: number | null;
+                                durationSeconds: number | null;
+                                hasThumbnail: boolean;
+                                /** @enum {string|null} */
+                                rejection: "UPLOAD_INTERRUPTED" | "UPLOAD_LENGTH_MISMATCH" | "UNSUPPORTED_FORMAT" | "INVALID_MEDIA" | "IMAGE_TOO_LARGE" | "VIDEO_LIMITS" | "UNSUPPORTED_CODEC" | "INSPECTION_TIMEOUT" | "INSPECTION_UNAVAILABLE" | "INTEGRITY_MISMATCH" | "UPLOAD_EXPIRED" | null;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            }[];
+                            total: number;
+                            page: number;
+                            pageSize: number;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    media_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** @description First part: JSON with filename (up to 160 characters), mimeType (image/jpeg, image/png or video/mp4) and exact byteLength. Images up to 10 MiB, videos up to 50 MiB. */
+                    metadata: string;
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Private upload received; inspection is pending. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            filename: string;
+                            /** @enum {string} */
+                            mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                            /** @enum {string} */
+                            state: "UPLOADING" | "RECEIVING" | "QUARANTINED" | "INSPECTING" | "READY" | "REJECTED" | "DELETING";
+                            revision: number;
+                            uploadedBytes: number;
+                            byteLength: number | null;
+                            sha256: string | null;
+                            width: number | null;
+                            height: number | null;
+                            durationSeconds: number | null;
+                            hasThumbnail: boolean;
+                            /** @enum {string|null} */
+                            rejection: "UPLOAD_INTERRUPTED" | "UPLOAD_LENGTH_MISMATCH" | "UNSUPPORTED_FORMAT" | "INVALID_MEDIA" | "IMAGE_TOO_LARGE" | "VIDEO_LIMITS" | "UNSUPPORTED_CODEC" | "INSPECTION_TIMEOUT" | "INSPECTION_UNAVAILABLE" | "INTEGRITY_MISMATCH" | "UPLOAD_EXPIRED" | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description Uploaded byte count differs from metadata. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Organisation media budget or request quota reached. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    media_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            filename: string;
+                            /** @enum {string} */
+                            mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                            /** @enum {string} */
+                            state: "UPLOADING" | "RECEIVING" | "QUARANTINED" | "INSPECTING" | "READY" | "REJECTED" | "DELETING";
+                            revision: number;
+                            uploadedBytes: number;
+                            byteLength: number | null;
+                            sha256: string | null;
+                            width: number | null;
+                            height: number | null;
+                            durationSeconds: number | null;
+                            hasThumbnail: boolean;
+                            /** @enum {string|null} */
+                            rejection: "UPLOAD_INTERRUPTED" | "UPLOAD_LENGTH_MISMATCH" | "UNSUPPORTED_FORMAT" | "INVALID_MEDIA" | "IMAGE_TOO_LARGE" | "VIDEO_LIMITS" | "UNSUPPORTED_CODEC" | "INSPECTION_TIMEOUT" | "INSPECTION_UNAVAILABLE" | "INTEGRITY_MISMATCH" | "UPLOAD_EXPIRED" | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    media_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** @enum {boolean} */
+                            ok: true;
+                        };
+                    };
+                };
+            };
+            /** @description Revision changed or processing is busy. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Deletion requires expectedRevision. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    media_content: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": string;
+                    "image/jpeg": string;
+                    "video/mp4": string;
+                };
+            };
+            /** @description One byte range of the ready object. */
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": string;
+                    "image/jpeg": string;
+                    "video/mp4": string;
+                };
+            };
+            /** @description Media is not ready. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid or unsatisfiable range; Content-Range reports the object size. */
+            416: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    media_thumbnail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": string;
+                };
             };
         };
     };

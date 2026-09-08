@@ -5,6 +5,8 @@ import {
   createStaffLimiter,
   IdentityService,
   KnowledgeService,
+  MediaService,
+  MediaStorage,
 } from '@svara/domain';
 import { createApplication } from './app.js';
 
@@ -25,6 +27,11 @@ const app = await createApplication({
   },
   authoring: new BotService(identity),
   knowledge: new KnowledgeService(identity),
+  media: new MediaService(
+    identity,
+    dependencies.database,
+    await MediaStorage.open(config.MEDIA_ROOT),
+  ),
   ...(config.APP_ENV === 'local' && config.PROVIDER_MODE === 'fixture'
     ? { feasibilityOrigin: config.APP_ORIGIN }
     : {}),
