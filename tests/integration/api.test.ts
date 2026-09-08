@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import { createApplication, createOpenApiDocument } from '../../apps/api/src/app.js';
+import { createApplication, createOpenApiDocument } from '../../apps/api/dist/app.js';
 
 describe('HTTP foundation contract', () => {
   let healthy = true;

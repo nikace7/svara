@@ -1,5 +1,5 @@
 import { loadWorkspaceEnvironment, parseServerConfig } from '@svara/config/server';
-import { createDependencies } from '@svara/domain';
+import { createDependencies, createStaffLimiter, IdentityService } from '@svara/domain';
 import { createApplication } from './app.js';
 
 loadWorkspaceEnvironment();
@@ -9,6 +9,13 @@ const app = await createApplication({
   providerMode: config.PROVIDER_MODE,
   localDocs: config.APP_ENV === 'local',
   probe: () => dependencies.ready(true),
+  trustedProxyHops: config.TRUST_PROXY_HOPS === 1 ? 1 : 0,
+  identity: {
+    service: new IdentityService(dependencies.database, config.AUTH_TOKEN_PEPPER),
+    origin: config.APP_ORIGIN,
+    pepper: config.AUTH_TOKEN_PEPPER,
+    consumeLimit: createStaffLimiter(dependencies.redis, config.AUTH_TOKEN_PEPPER),
+  },
   ...(config.APP_ENV === 'local' && config.PROVIDER_MODE === 'fixture'
     ? { feasibilityOrigin: config.APP_ORIGIN }
     : {}),
