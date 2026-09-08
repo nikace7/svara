@@ -9,9 +9,12 @@ Svara is an independent implementation using synthetic organisations and content
 component gallery, NestJS health API, worker heartbeat, PostgreSQL schema, safe
 setup/seed, generated contracts and Docker stack run together.
 
-Voice, authentication, authoring and device operations are subsequent milestones.
-This is a working foundation, not yet a complete voice assistant. No live provider
-credentials are needed or used. See [progress and verification](docs/PROGRESS.md).
+**M1's local fixture lab is implemented.** The bilingual lab includes scripted
+English/Nepali subtitles, typed fallback, interruption, measured fixture timings,
+microphone capture and PCM speaker checks. Live recognition/generation/synthesis
+and their bilingual quality gate remain pending provider setup. Authentication,
+authoring and device operations are subsequent milestones. No live credentials
+are needed or used. See [progress and verification](docs/PROGRESS.md).
 
 ## Architecture
 
@@ -59,6 +62,7 @@ pnpm demo:up
 ```
 
 Open [Svara](http://localhost:4320), the
+[voice lab](http://localhost:4320/studio/voice-lab),
 [component gallery](http://localhost:4320/studio/design-system), or
 [API reference](http://localhost:4320/api/docs).
 
@@ -89,6 +93,22 @@ Use `http://localhost:4320`. Native web uses port 3001, API 4100, worker 4101,
 PostgreSQL 5434 and Redis 6381. Port 3001 avoids an unrelated service on this machine;
 containers use web port 3000 internally. Ctrl+C stops the coordinated app watchers;
 `pnpm infra:down` stops infrastructure while retaining data.
+
+## Explore the voice lab
+
+1. Choose English or Nepali and run a scripted scenario. The admissions facts are
+   synthetic; the missing-fee scenario demonstrates an unsupported question.
+2. Select the long answer and press Interrupt. Partial subtitles remain labelled;
+   changing language or choosing End & clear cancels and clears the current turn.
+3. Test microphone capture separately. Frames remain in the browser; this is not
+   recognition. Stop is available during permission prompts and capture ends after
+   30 seconds. Navigation and language changes release the microphone.
+4. Test the speaker with a generated 440 Hz tone. This uses the actual PCM worklet
+   queue. English/Nepali speech clips are not bundled, so fixture answers stay
+   explicitly text-only. Typed questions receive a fixture notice, not generated facts.
+
+See [M1 design, evidence and limits](docs/M1-VOICE.md). Restart `pnpm dev` after editing
+worklet source so the compiled public worklet modules are refreshed.
 
 ## Verification
 

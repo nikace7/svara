@@ -1,6 +1,7 @@
 # M1 — Bilingual voice feasibility
 
-Started 2026-09-08 on `feat/m1-voice-feasibility`.
+Implemented the local increment on 2026-09-08 on `feat/m1-voice-feasibility`.
+The live provider gate remains pending; M1 is not marked complete.
 
 ## Deliverable and boundaries
 
@@ -30,9 +31,43 @@ local fixture settings, loopback Host and exact Origin, and absent in production
 
 ## Acceptance evidence
 
-Pending implementation. Tests will cover 44.1/48 kHz conversion, chunk boundaries,
-anti-alias filtering, PCM byte order, sequence gaps, queue bounds, interruption,
-late callbacks, both scripts, provider failures and browser resource disposal.
+- 81 unit tests pass; selected foundation/audio/fixture modules have 97.77% line
+  and 93.30% branch coverage. React/worklet/HTTP integration is checked separately.
+- 11 integration tests pass in the built Linux container, including four-stream
+  admission, 429/Retry-After and recovered capacity after client disconnection.
+- 16 Playwright tests pass against the rebuilt Compose stack, covering both
+  scripts, readable speech/quota failures, typed fallback and stale-output rejection.
+- Chromium's synthetic microphone produces real 3,200-byte worklet batches with
+  no HTTP upload. Language change, End and navigation release all observed tracks
+  and AudioContexts. Unit tests cover delayed permission and unsupported APIs.
+- A generated 440 Hz tone exercises the actual 24 kHz PCM playback worklet.
+  Completion comes from the processor. This is not a bilingual audio recording.
+- 44.1/48 kHz tests verify continuous filter/phase state across 128-frame input
+  blocks and suppress a 12 kHz alias source before 16 kHz output. Little-endian
+  PCM clipping, two-second queue bounds, sequence errors, ordered synthesis and
+  grapheme-safe segmentation are tested deterministically.
+- Build, typecheck, lint, contract drift and dependency audit pass. Production
+  mode denies the lab. Desktop/mobile evidence is in ignored `artifacts/screenshots`.
+
+## Known limits and next steps
+
+The browser lab currently uses fixture mode only. Provider interfaces define the
+future server boundary, but Azure/OpenAI SDK adapters and real speech transport
+are not connected. No account/region/voice compatibility or live latency has been
+measured. Do not interpret positive fixture results as completion of the live gate.
+
+No licensed speech clip is available. Fixture text and the test-tone algorithm are
+original synthetic project content; no third-party audio was downloaded. Future
+speech fixtures need explicit provenance and licence or an authorized generation run.
+
+Automated browser tests use Chromium with a synthetic device. Real hardware echo,
+hands-free barge-in, other browser engines and actual Nepali pronunciation still
+need observation. Capture supports context rates from 16 to 192 kHz; playback
+supports output contexts from 24 to 192 kHz. Tested common rates are 44.1/48 kHz.
+
+The copied worklet assets refresh at web startup/build; restart native development
+after editing worklet source. No transcript or microphone data is persisted. M2
+must replace the local preview gate before staff or visitor use is hosted.
 
 ## Primary references
 

@@ -2,17 +2,17 @@
 
 Updated 2026-09-08. Evidence is local unless explicitly marked otherwise.
 
-| Milestone                                | State       | Evidence / remaining work                                                                                    |
-| ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------ |
-| M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass. |
-| M1 — Bilingual voice feasibility         | Not started | Fixture audio pipeline and live bilingual smoke tests pending.                                               |
-| M2 — Identity and tenant boundaries      | Not started | Authentication, policies and adversarial access tests pending.                                               |
-| M3 — Authoring and immutable publication | Not started | Drafts, media, knowledge and releases pending.                                                               |
-| M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                             |
-| M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                          |
-| M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                      |
-| M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                          |
-| M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                      |
+| Milestone                                | State       | Evidence / remaining work                                                                                          |
+| ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
+| M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.       |
+| M1 — Bilingual voice feasibility         | Partial     | Local fixture lab and audio/protocol checks pass. Live adapters and bilingual provider smoke tests remain pending. |
+| M2 — Identity and tenant boundaries      | Not started | Authentication, policies and adversarial access tests pending.                                                     |
+| M3 — Authoring and immutable publication | Not started | Drafts, media, knowledge and releases pending.                                                                     |
+| M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                   |
+| M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                                |
+| M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                            |
+| M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                |
+| M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                            |
 
 ## Initial inspection
 
@@ -24,8 +24,9 @@ Updated 2026-09-08. Evidence is local unless explicitly marked otherwise.
 
 ## Scope of this build increment
 
-Complete the M0 foundation and its acceptance gate. Later milestones retain their
-explicit status above. Authentication and live voice are not claimed by M0.
+The first increment completed the M0 foundation. The second implements M1's local
+audio and fixture paths, while retaining an explicitly pending live gate. Later
+milestones retain their status above. Authentication and live voice are not claimed.
 
 ## M0 delivered
 
@@ -65,9 +66,43 @@ The Windows startup check exposed a worker watch launcher that did not launch th
 process under coordinated development. Using Node's watch mode with the tsx import
 hook restored startup and dependency-triggered restart; both were observed.
 
-## Next increment
+## M1 local increment — 2026-09-08
 
-M1 begins with deterministic audio/protocol fixtures, capture/resampling/playback,
-cancellation and a local feasibility page. English and Nepali live smoke results
-remain pending until the required provider credentials are supplied. M2 adds staff
-identity and tenant enforcement before any hosted studio access.
+Implemented `/studio/voice-lab`: explicit English/Nepali scenarios, typed fixture
+notice, Unicode subtitles, interruption, stage timings and readable failure states.
+Microphone PCM remains local; a generated tone checks actual worklet playback.
+No speech recording is bundled, so scripted answers are labelled text-only.
+
+The shared audio core handles streaming low-pass resampling, PCM byte order and
+3,200-byte input batches, output order/capacity, generation invalidation and Unicode
+sentence segmentation. Provider interfaces and original synthetic scenario data
+are server-only. An input-, concurrency- and deadline-bounded local HTTP stream
+honors backpressure and disconnect cancellation.
+
+| Check                                             | Result                                                                                                                                                             |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm check`                                      | Passed format, lint, types, coverage, contract drift and production builds                                                                                         |
+| Unit suite                                        | 81 tests across 14 files passed                                                                                                                                    |
+| Selected foundation/audio/fixture module coverage | 97.77% lines / 93.30% branches; excludes React rendering, worklet glue and HTTP glue, which are exercised through integration/browser tests                        |
+| Integration suite                                 | 11 tests passed in the rebuilt Linux container, including admission capacity and disconnect recovery                                                               |
+| Browser suite                                     | All 16 tests passed against rebuilt production containers                                                                                                          |
+| Real browser audio processing                     | Chromium synthetic input produces 3,200-byte worklet frames; no POST uploads; language changes, End and navigation close tracks and contexts                       |
+| Speaker processing                                | 24 kHz PCM tone played through the worklet queue; completion reported by the processor                                                                             |
+| Error paths                                       | Denied/unsupported microphone, late permission grant, interrupted/stale streams, quota/speech errors, malformed/oversized input, cross-origin/host denial verified |
+| Production denial                                 | Studio, gallery and voice lab return 404 in production mode; API route is absent when local access is disabled                                                     |
+| Dependency audit                                  | No known vulnerabilities; no new external dependency was needed                                                                                                    |
+| Fresh production walkthrough                      | No browser console errors; desktop Nepali and mobile screenshots reviewed                                                                                          |
+
+Screenshots: `artifacts/screenshots/m1-voice-lab-desktop.png` and
+`artifacts/screenshots/m1-voice-lab-mobile.png` (ignored local evidence).
+No real microphone recording, provider request, remote CI run, push or public deployment
+was performed. Full Compose services are healthy at `http://localhost:4320`.
+
+## Remaining M1 gate and next independent increment
+
+Azure key/region and OpenAI key are absent; `ALLOW_LIVE_EVAL` is false. The live
+SDK adapters, region/voice availability and actual English/Nepali STT → generation
+→ TTS smoke results are still pending. M1 is therefore not marked complete.
+Hands-free interruption and speaker feedback need the intended physical setup.
+See `docs/M1-VOICE.md` for the precise scope. M2 can independently add staff identity
+and tenant enforcement before any hosted studio access.
