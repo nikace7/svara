@@ -11,6 +11,7 @@ test('uploads an image, shows real inspection outcomes, previews and removes med
   const name = `स्वागत-${randomUUID().slice(0, 8)}.png`;
   await page.goto('/studio/media');
   await expect(page.getByRole('heading', { name: 'Media library', exact: true })).toBeVisible();
+  await expect(page.locator('.breadcrumb strong')).toHaveText('Media library');
   await page.getByLabel('Choose media').setInputFiles({
     name,
     mimeType: 'image/png',
@@ -19,6 +20,15 @@ test('uploads an image, shows real inspection outcomes, previews and removes med
   await page.getByRole('button', { name: 'Upload file', exact: true }).click();
   const card = page.getByRole('listitem').filter({ hasText: name });
   await expect(card.getByText('Ready', { exact: true })).toBeVisible({ timeout: 20000 });
+  const title = card.getByRole('heading', { name, exact: true });
+  await title.scrollIntoViewIfNeeded();
+  expect(
+    await title.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)
+        ?.textContent;
+    }),
+  ).toBe(name);
   await card.getByRole('button', { name: `Preview ${name}` }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByRole('img', { name, exact: true })).toBeVisible();
@@ -31,7 +41,10 @@ test('uploads an image, shows real inspection outcomes, previews and removes med
     .toBe(32);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await dialog.getByRole('button', { name: 'Close preview' }).click();
+  await expect(card.getByRole('button', { name: `Preview ${name}` })).toBeFocused();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.getByRole('button', { name: 'Refresh library' }).focus();
+  await expect(page.getByRole('link', { name: 'Skip to content' })).not.toBeInViewport();
   await page.screenshot({ path: 'artifacts/screenshots/m3-media-library.png', fullPage: true });
   const bad = `Invalid-${randomUUID().slice(0, 8)}.png`;
   await page
@@ -79,9 +92,11 @@ test('previews a real video through scoped range requests and fits a mobile scre
     .poll(() => video.evaluate((element) => (element as HTMLVideoElement).readyState))
     .toBeGreaterThanOrEqual(2);
   await page.getByRole('dialog').getByRole('button', { name: 'Close preview' }).click();
+  await expect(card.getByRole('button', { name: `Preview ${name}` })).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.getByRole('button', { name: 'Refresh library' }).focus();
   await page.screenshot({ path: 'artifacts/screenshots/m3-media-mobile.png', fullPage: true });
 });
