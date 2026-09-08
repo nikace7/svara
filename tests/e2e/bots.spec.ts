@@ -133,7 +133,11 @@ test('viewers can read drafts but cannot create or save them', async ({
   const token = new URLSearchParams(new URL((await invite.json()).data.url).hash.slice(1)).get(
     'token',
   );
-  const viewer = await browser.newContext({ baseURL: baseURL! });
+  // A second actor must not inherit the worker's owner session.
+  const viewer = await browser.newContext({
+    baseURL: baseURL!,
+    storageState: { cookies: [], origins: [] },
+  });
   try {
     expect(
       (
