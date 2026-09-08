@@ -4,7 +4,7 @@
 | -------------------------- | ---------------------------------------------------------------------------------- |
 | `GET /api/v1/health/live`  | Process liveness without dependency queries                                        |
 | `GET /api/v1/health/ready` | Database, Redis, writable media and worker heartbeat; 200 ready or 503 unavailable |
-| `GET /api/openapi.json`    | Generated health and staff API contract                                            |
+| `GET /api/openapi.json`    | Generated health, staff and bot draft API contract                                 |
 | `GET /api/docs`            | Swagger UI in local mode                                                           |
 | `GET /gateway-health`      | Caddy liveness                                                                     |
 
@@ -65,6 +65,23 @@ HttpOnly, SameSite=Lax and Secure on HTTPS, with no Domain attribute. Tokens nev
 appear in authentication JSON. Use the generated OpenAPI document for body and
 response schemas; see `M2-IDENTITY.md` for quotas and authority details. Authentication
 HTTP tests load the compiled API so Nest's DTO decorator metadata is exercised.
+
+## Bot drafts
+
+| Route                           | Behavior                                                                                  |
+| ------------------------------- | ----------------------------------------------------------------------------------------- |
+| `GET /api/v1/bots`              | Current organisation's paginated list; search, page, pageSize and includeArchived filters |
+| `POST /api/v1/bots`             | Owner/administrator creates an incomplete draft                                           |
+| `GET /api/v1/bots/:id`          | Scoped draft read for staff                                                               |
+| `PATCH /api/v1/bots/:id`        | Owner/administrator saves identity and draft with expectedRevision                        |
+| `POST /api/v1/bots/:id/archive` | Revision-checked archive or restore using archived boolean                                |
+
+These routes share staff cookies, Host/Origin, CSRF and Redis admission controls.
+Bot bodies are bounded at 64 KiB to accommodate full bilingual Unicode drafts.
+Missing revisions return 428; stale saves return 409 with `REVISION_CONFLICT` and
+`currentRevision`; archived saves return 409 `ARCHIVED`. Foreign IDs return 404.
+See `M3-AUTHORING.md` for transaction and editor behavior. The explicit reversible
+archive endpoint currently replaces the blueprint's draft DELETE operation.
 
 ## Temporary M1 experiment
 
