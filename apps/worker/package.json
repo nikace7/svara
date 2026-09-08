@@ -12,6 +12,8 @@
   "dependencies": {
     "@svara/config": "workspace:*",
     "@svara/contracts": "workspace:*",
-    "@svara/domain": "workspace:*"
+    "@svara/domain": "workspace:*",
+    "bullmq": "6.3.4",
+    "sharp": "0.35.4"
   }
 }
