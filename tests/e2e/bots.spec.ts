@@ -148,6 +148,7 @@ test('viewers can read drafts but cannot create or save them', async ({
       data: { email, password },
     });
     expect(login.status()).toBe(200);
+    expect((await context.request.get('/api/v1/auth/session')).status()).toBe(200);
     const csrf = (await login.json()).data.csrfToken;
     const page = await viewer.newPage();
     await page.goto('/studio/bots');
