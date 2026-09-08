@@ -175,6 +175,18 @@ export class IdentityService {
     });
   }
 
+  private async requireRecoveryScope(tx: Transaction, issuer: Member, target: Member) {
+    // A tenant owner cannot reset credentials that also unlock a different tenant.
+    // An authenticated owner may recover their own account.
+    if (
+      issuer.userId !== target.userId &&
+      (await tx.membership.count({
+        where: { userId: target.userId, organisationId: { not: issuer.organisationId } },
+      })) > 0
+    )
+      throw new IdentityError('CONFLICT');
+  }
+
   async register(value: unknown) {
     const data = input(registerInputSchema, value);
     const passwordHash = await hashPassword(data.password);
@@ -353,6 +365,7 @@ export class IdentityService {
       });
       if (!target) throw new IdentityError('NOT_FOUND');
       requirePermission(member.role, 'manage_access');
+      await this.requireRecoveryScope(tx, member, target);
       await tx.staffGrant.deleteMany({
         where: { purpose: 'RECOVERY', target: { userId: target.userId }, consumedAt: null },
       });
@@ -465,6 +478,7 @@ export class IdentityService {
       const grant = await this.consumeGrant(tx, data.token, 'RECOVERY');
       if (!grant.target?.enabled || grant.target.user.disabled)
         throw new IdentityError('INVALID_LINK');
+      await this.requireRecoveryScope(tx, grant.issuer, grant.target);
       await tx.user.update({ where: { id: grant.target.userId }, data: { passwordHash } });
       await this.revokeUser(tx, grant.target.userId);
       await tx.staffGrant.deleteMany({
