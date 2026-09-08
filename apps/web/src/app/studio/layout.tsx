@@ -1,13 +1,16 @@
 import type { ReactNode } from 'react';
-import { requireLocalPreview } from '../../lib/local-preview';
+import { requireStaffSession } from '../../lib/staff-session';
+import { SessionProvider } from '../../components/session-provider';
 import { StudioShell } from '../../components/studio-shell';
 import { QueryProvider } from '../../components/query-provider';
 
 export default async function StudioLayout({ children }: { children: ReactNode }) {
-  await requireLocalPreview();
+  const session = await requireStaffSession();
   return (
-    <QueryProvider>
-      <StudioShell>{children}</StudioShell>
-    </QueryProvider>
+    <SessionProvider initial={session}>
+      <QueryProvider>
+        <StudioShell>{children}</StudioShell>
+      </QueryProvider>
+    </SessionProvider>
   );
 }

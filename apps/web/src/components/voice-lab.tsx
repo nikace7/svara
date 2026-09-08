@@ -7,6 +7,7 @@ import { GenerationOwner, LabAudio } from '@svara/audio';
 import type { CaptureMeter } from '@svara/audio';
 import type { FixtureScenarioId, Locale } from '@svara/contracts';
 import { readVoiceStream } from '../lib/voice-stream';
+import { staffResponse } from '../lib/staff-api';
 
 type Phase = 'Ready' | 'Answering' | 'Completed' | 'Interrupted' | 'Failed';
 const scenarios: { id: FixtureScenarioId; label: string }[] = [
@@ -102,7 +103,7 @@ export function VoiceLab() {
     const start = performance.now();
     let receivedAnswer = false;
     try {
-      const response = await fetch('/api/v1/feasibility/turn', {
+      const response = await staffResponse('/feasibility/turn', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         cache: 'no-store',

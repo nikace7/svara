@@ -2,7 +2,7 @@ import 'server-only';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
-/** Temporary M0 gate. Replace with authenticated staff access in M2. */
+/** Restricts experimental tools to local fixture mode; the studio layout also requires staff. */
 export async function requireLocalPreview(): Promise<void> {
   const host = (await headers()).get('host') ?? '';
   let localHost = false;
