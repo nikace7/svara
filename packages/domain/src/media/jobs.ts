@@ -141,7 +141,8 @@ export class MediaJobs {
       leaseExpiresAt: { gt: this.now() },
     };
   }
-  private async verify(claim: Claim, output: InspectedMedia): Promise<InspectedMedia> {
+  /** Shared output checks for normal jobs and guarded local fixture provisioning. */
+  async verifyInspection(claim: InspectionClaim, output: InspectedMedia): Promise<InspectedMedia> {
     const key = `${claim.id}.${claim.leaseToken}`;
     const video = claim.declaredMime === 'video/mp4';
     if (
@@ -244,7 +245,7 @@ export class MediaJobs {
     const inspectionSignal = signal ? AbortSignal.any([signal, deadline]) : deadline;
     let output: InspectedMedia;
     try {
-      output = await this.verify(claimed, await this.inspect(claimed, inspectionSignal));
+      output = await this.verifyInspection(claimed, await this.inspect(claimed, inspectionSignal));
       if (inspectionSignal.aborted) throw new MediaError('INSPECTION_TIMEOUT');
     } catch (error) {
       return this.failed(

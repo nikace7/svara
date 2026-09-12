@@ -14,7 +14,7 @@
     "infra:down": "docker compose --env-file .env.compose -f infra/compose.yaml -f infra/compose.native.yaml down",
     "db:generate": "pnpm --filter @svara/database generate",
     "db:migrate": "tsx scripts/database.ts migrate",
-    "db:seed": "pnpm --filter @svara/contracts build && tsx scripts/database.ts seed",
+    "db:seed": "pnpm build:packages && pnpm --filter @svara/worker build && tsx scripts/database.ts seed",
     "staff:recover": "pnpm --filter @svara/contracts build && tsx scripts/recover-staff.ts",
     "db:test:prepare": "tsx scripts/database.ts test",
     "build:packages": "pnpm --filter=./packages/** -r --if-present build",

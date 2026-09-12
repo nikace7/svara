@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Button, StatusBadge } from '@svara/ui';
 import type { components } from '@svara/contracts';
+import { StudioLink } from './draft-navigation';
 
 type HealthResponse = components['schemas']['HealthResponse'];
 
@@ -70,13 +71,13 @@ export function WorkspaceOverview() {
         <div>
           <strong>Your studio is taking shape.</strong> <span>Staff access is ready</span>
           <p>
-            The foundation is ready. Explore the bilingual fixture lab while live voice, content
-            publishing and device pairing are developed.
+            Author bilingual guides, review their knowledge and publish a fixed version. Live voice
+            and device pairing are the next parts of the studio.
           </p>
         </div>
-        <a href="/studio/voice-lab" className="button button--secondary">
-          Open voice lab
-        </a>
+        <StudioLink href="/studio/bots" className="button button--secondary">
+          Open bots
+        </StudioLink>
       </div>
       <div className="overview-grid">
         <section className="panel runtime-panel" aria-labelledby="runtime-title">
@@ -177,12 +178,17 @@ export function WorkspaceOverview() {
                 state: 'Staff flows ready',
               },
               {
-                title: 'Publish, pair & deploy',
-                text: 'Approved knowledge, immutable releases and acknowledged devices.',
+                title: 'Authoring & publication',
+                text: 'Bilingual knowledge, inspected media, presentations and immutable releases.',
+                state: 'Authoring ready',
+              },
+              {
+                title: 'Pair & deploy',
+                text: 'Paired browser kiosks, dual displays and acknowledged release updates.',
                 state: 'Planned',
               },
             ].map((step, index) => (
-              <li key={step.title} className={index === 1 ? 'step-current' : ''}>
+              <li key={step.title} className={index === 4 ? 'step-current' : ''}>
                 <span className="step-number mono">0{index + 1}</span>
                 <div>
                   <h3>{step.title}</h3>

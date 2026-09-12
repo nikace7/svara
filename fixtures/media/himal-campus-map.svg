@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640">
+  <rect width="960" height="640" rx="28" fill="#faf9fd"/>
+  <g font-family="sans-serif" fill="#25273b">
+    <text x="48" y="62" font-size="27" font-weight="600">Himal Campus</text>
+    <text x="48" y="91" font-size="15" fill="#656779">FICTIONAL DEMO MAP · NOT TO SCALE</text>
+    <rect x="48" y="127" width="864" height="434" rx="18" fill="#fff" stroke="#dfd9ed" stroke-width="2"/>
+    <path d="M110 519V336H434V234H800" fill="none" stroke="#b9a8df" stroke-width="28" stroke-linejoin="round"/>
+    <path d="M110 519V336H434V234H800" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="7 8"/>
+    <rect x="160" y="177" width="212" height="110" rx="13" fill="#f0eafa" stroke="#cabbe5"/>
+    <text x="180" y="213" font-size="15" fill="#655185">ROOM 12</text><text x="180" y="247" font-size="22">Admissions</text>
+    <rect x="515" y="155" width="185" height="115" rx="13" fill="#edf5f0" stroke="#bfd8c9"/>
+    <text x="535" y="192" font-size="15" fill="#446c55">ROOM 21</text><text x="535" y="228" font-size="22">Library</text>
+    <rect x="709" y="324" width="162" height="143" rx="13" fill="#f0eafa" stroke="#cabbe5"/>
+    <text x="729" y="362" font-size="15" fill="#655185">ROOM 30</text><text x="729" y="396" font-size="19">Presentations</text>
+    <rect x="183" y="399" width="221" height="117" rx="13" fill="#fff5e7" stroke="#e2cdb0"/>
+    <text x="204" y="443" font-size="22">Reception</text><text x="204" y="474" font-size="14" fill="#785d37">Visitor information</text>
+    <rect x="482" y="330" width="160" height="184" rx="35" fill="#f0f5f1" stroke="#d5e2d9"/>
+    <circle cx="520" cy="373" r="15" fill="#d2e1d5"/><circle cx="601" cy="478" r="18" fill="#d2e1d5"/>
+    <text x="504" y="422" font-size="17" fill="#536c59">Courtyard</text>
+    <circle cx="110" cy="519" r="13" fill="#6850b8" stroke="#fff" stroke-width="3"/>
+    <text x="48" y="601" font-size="16" fill="#6850b8">START · Step-free entrance beside reception</text>
+    <text x="708" y="601" font-size="13" fill="#656779">Original Svara demo artwork</text>
+  </g>
+</svg>
