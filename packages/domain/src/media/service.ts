@@ -23,7 +23,7 @@ function parse<T>(schema: Schema<T>, value: unknown): T {
   if (!parsed.success) throw new IdentityError('INVALID_INPUT');
   return parsed.data;
 }
-function detail(asset: Asset): MediaDetail {
+export function mediaDetail(asset: Asset): MediaDetail {
   return mediaDetailSchema.parse({
     id: asset.id,
     filename: asset.filename,
@@ -91,7 +91,7 @@ export class MediaService {
         },
       });
       await this.audit(tx, member.organisationId, member.id, 'media.reserved', asset.id);
-      return detail(asset);
+      return mediaDetail(asset);
     });
   }
   async get(token: string, id: string): Promise<MediaDetail> {
@@ -99,7 +99,7 @@ export class MediaService {
     return this.identity.asStaff(
       token,
       'inspect',
-      async (tx, { member }) => detail(await this.load(tx, member.organisationId, id)),
+      async (tx, { member }) => mediaDetail(await this.load(tx, member.organisationId, id)),
       false,
     );
   }
@@ -126,7 +126,7 @@ export class MediaService {
           skip: (query.page - 1) * query.pageSize,
         });
         return {
-          items: items.map(detail),
+          items: items.map(mediaDetail),
           total: await tx.mediaAsset.count({ where }),
           page: query.page,
           pageSize: query.pageSize,
@@ -181,7 +181,7 @@ export class MediaService {
           },
         });
         await this.audit(tx, member.organisationId, member.id, 'media.uploaded', id);
-        return detail(updated);
+        return mediaDetail(updated);
       });
     } catch (error) {
       const reason: MediaRejection =
@@ -234,6 +234,8 @@ export class MediaService {
       const asset = await this.load(tx, member.organisationId, id);
       if (asset.revision !== input.expectedRevision)
         throw new AuthoringError('REVISION_CONFLICT', asset.revision);
+      if (await tx.slide.count({ where: { mediaId: id, organisationId: member.organisationId } }))
+        throw new MediaError('MEDIA_IN_USE');
       if (asset.state === 'RECEIVING' || asset.state === 'INSPECTING' || asset.state === 'DELETING')
         throw new MediaError('MEDIA_BUSY');
       await tx.mediaAsset.update({
