@@ -170,3 +170,9 @@ The GitHub Actions workflow is ready for a future remote; it has not been run on
 GitHub or published. See [contributing](CONTRIBUTING.md),
 [operations](docs/OPERATIONS.md), [API contracts](docs/API.md), and
 [dependency decisions](docs/DEPENDENCIES.md).
+
+The next authoring increment connects the [immutable release domain](docs/RELEASES.md)
+to staff API routes and studio readiness/history controls. Release capture and
+retrieval already have database integration tests; the Voice lab still uses fixture
+scenarios. [Provider setup instructions](docs/FREE-DEMO-SETUP.md) let you prepare your
+own accounts while continuing to use the demo without keys.
