@@ -2,17 +2,17 @@
 
 Updated 2026-09-12. Evidence is local unless explicitly marked otherwise.
 
-| Milestone                                | State       | Evidence / remaining work                                                                                                    |
-| ---------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.                 |
-| M1 — Bilingual voice feasibility         | Partial     | Local fixture lab and audio/protocol checks pass. Live adapters and bilingual provider smoke tests remain pending.           |
-| M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                                    |
-| M3 — Authoring and immutable publication | In progress | Bot drafts, bilingual knowledge, media and presentation editing implemented; immutable releases and query inspection remain. |
-| M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                             |
-| M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                                          |
-| M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                                      |
-| M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                          |
-| M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                                      |
+| Milestone                                | State       | Evidence / remaining work                                                                                             |
+| ---------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------- |
+| M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.          |
+| M1 — Bilingual voice feasibility         | Partial     | Local fixture lab and audio/protocol checks pass. Live adapters and bilingual provider smoke tests remain pending.    |
+| M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                             |
+| M3 — Authoring and immutable publication | In progress | Draft editing, immutable publication and query inspection verified; reusable synthetic demonstration content remains. |
+| M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                      |
+| M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                                   |
+| M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                               |
+| M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                   |
+| M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                               |
 
 ## Initial inspection
 
@@ -37,6 +37,8 @@ milestones retain their status above. M2 includes real HTTP/browser staff
 authentication and safe local provisioning. M3 includes bot drafts, knowledge and
 the media library with durable inspection/cleanup and authenticated streaming,
 plus ordered presentation drafts with protected media references and screen previews.
+Staff release readiness, preview/publication, history and frozen bilingual query
+inspection are also implemented and verified.
 Live voice remains pending account setup and provider adapters.
 
 ## M0 delivered
@@ -561,3 +563,62 @@ current Voice lab still uses fixture scenarios. Runtime preview admission, devic
 deployment, public sharing and retention cleanup are not provided by this domain
 checkpoint. No provider account was created, key used, live API called or remote
 push performed. The complete project goal remains active.
+
+## M3 release API and studio — 2026-09-12
+
+Implemented protected staff routes for readiness, preview/publication, history,
+snapshot detail and pinned knowledge inspection. Shared strict contracts generate
+the OpenAPI request/response shapes. Capture requires the expected root revision and
+an idempotency header; query uses POST to keep text out of URLs and rejects NUL.
+HTTP regressions cover current authority, tenants, CSRF, Host/Origin, stale revisions,
+unready drafts, duplicate keys, preview expiry and bounded inputs.
+
+The Releases workspace now links readiness issues to draft editors and provides
+confirmation dialogs, ten-row history pages, kind filters and bilingual immutable
+inspection. Lost-response retries retain the exact key and revision even when the
+dialog is closed and reopened. A stale capture requires an explicit draft recheck.
+Snapshot content includes approval state, original configuration, ordered slides and
+retained media checksums. Primary/secondary previews support landscape and portrait;
+private video stays muted, and failed media requests can be reloaded.
+
+Knowledge inspection validates returned release ID, hash and locale, clears results
+when selecting another snapshot, and cancels requests on locale changes/unmount.
+Zero matches show the saved fallback as reference text. Expired previews deny new
+queries while keeping their content readable. No model answer or provider call is
+made by these controls. Retry keys currently remain in memory only; after leaving
+or reloading the page, inspect history before starting another capture.
+
+Verification at implementation commit `864db46`:
+
+- `pnpm check` passed formatting, lint, types, **133 unit tests**, generated-contract
+  drift checks and all production builds. Configured-subset coverage remains
+  **96.67% lines / 90.67% branches**; this is not whole-application coverage.
+- All **112 integration tests** passed inside the rebuilt Linux image. The four new
+  release HTTP tests also passed on native infrastructure during their RED/GREEN
+  implementation. No test database reset or destructive migration was required.
+- All **36 browser journeys** passed in the final run, including four release flows,
+  lost-response recovery, frozen bilingual retrieval, mismatched response rejection,
+  expiry feedback, viewer/archive restrictions, 11-version paging, retained media
+  after presentation deletion, muted playback, axe and mobile overflow checks.
+- The new media journey initially used an exact label selector that included the
+  required-field marker. Selecting the textbox by accessible role/name fixed that
+  test. The final suite passed with the real credential limiter enabled after its
+  cooldown; no shared quotas were reset.
+- The final common image built successfully. The production preview guard and
+  restricted media sandbox passed; migration/seed completed and all six long-running
+  Compose services are healthy. Only the loopback gateway is exposed.
+- Gitleaks found no secrets in the staged implementation and the implementation
+  history from `7021fc1` through `864db46`. Subsequent checkpoint changes are docs.
+
+Desktop/mobile and portrait screenshots were reviewed in ignored
+`artifacts/screenshots/m3-releases.png`, `m3-releases-mobile.png` and
+`m3-release-portrait.png`. The interface uses white surfaces, restrained lavender
+gradients and readable contrast. No dependencies were added in this increment.
+
+Next: reusable synthetic demonstration bots/content/media, then paired devices and
+dual displays. M1 live provider adapters, conversation admission, public sharing,
+scheduling, analytics and retention remain on the active project objective. The
+Voice lab still uses synthetic scenarios; authored release search does not yet run
+a voice conversation. Azure/Gemini account setup remains documented in
+`FREE-DEMO-SETUP.md`. No account was created, key loaded, provider called or remote
+push performed.

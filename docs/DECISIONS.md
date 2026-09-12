@@ -307,3 +307,23 @@ Constraint failures and unrelated raw-query errors propagate without retries. A
 focused PostgreSQL regression raises SQLSTATE 40001 and 23514 to verify that
 distinction; the release regression also runs concurrent requests through two
 separate authenticated sessions.
+
+## ADR 024 — Inspect releases through a protected staff workspace
+
+Expose publication, preview, validation, history and query inspection using the
+existing staff cookie, CSRF, Host/Origin and tenant boundaries. Knowledge inspection
+uses POST to keep question text out of URLs. Strict shared schemas generate request
+and response documentation and reject NUL search input before the database driver.
+
+Pin a capture confirmation to its displayed root revision and one idempotency key.
+Keep that pair on uncertain responses, including dialog close/reopen, and block a
+second capture until staff retry the unresolved request. Do not substitute a newer
+revision after a conflict. The in-memory attempt does not survive navigation/reload;
+history is the recovery path after leaving the page.
+
+Cache immutable snapshots by membership and release ID. Before displaying query
+passages, validate the response release ID, hash and locale against the selected
+snapshot. Cancel outstanding queries when language or release changes. Present zero
+matches with the saved fallback as reference text, and keep expired preview content
+readable while denying new queries. This inspector neither generates an AI answer
+nor establishes device deployment or conversation admission.

@@ -1,8 +1,38 @@
 # Immutable releases
 
-The database and domain layer are implemented. Staff HTTP routes, studio release
-history/readiness controls, query inspection and runtime admission are the next
-increment. The current Voice lab still uses synthetic scenarios.
+The database, domain layer, protected staff HTTP routes and studio release workspace
+are implemented. Staff can validate a draft, save previews, publish numbered versions
+and inspect frozen bilingual content. Runtime admission remains a later increment.
+The current Voice lab still uses synthetic scenarios.
+
+## Staff workflow
+
+Open a bot's Releases section. Recheck draft reads its current revision and readiness;
+issue links open the affected identity, knowledge entry or presentation. Owners and
+administrators can save a ready preview or publish a ready version. Viewers and
+operators can inspect snapshots and query knowledge. Archived bots retain history
+and inspection but have no capture controls.
+
+Each confirmation creates one UUID retry key and pins the displayed root revision.
+A network failure or server error retains both. Retry request, including after closing
+and reopening that dialog, retrieves the original result. A definite rejection asks
+staff to close and recheck instead of silently adopting a newer revision. A retry
+attempt is held only while the release page remains mounted; after leaving/reloading,
+inspect history before initiating another capture with a new key.
+
+History has server-side kind filters and ten-row pagination. Snapshot inspection
+shows the original bot/configuration, knowledge approval state, ordered slides and
+media manifest. Content language and landscape/portrait preview controls do not edit
+the snapshot. Both display targets are shown and videos stay muted. Reload preview
+media retries a failed private content request without changing the selected release.
+
+Knowledge inspection sends a CSRF-protected POST so question text is not placed in
+the URL. It accepts at most 500 characters and rejects NUL before PostgreSQL search.
+The client validates release ID, hash and locale before displaying passages, cancels
+queries on locale changes/unmount, and clears results when switching releases. Empty
+matches show the frozen fallback as reference text; no model answer is generated.
+Expired previews retain content inspection and explain how to create a new preview.
+Query inputs/results are not persisted in browser storage.
 
 ## Capture and publication
 

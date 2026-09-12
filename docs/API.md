@@ -153,6 +153,31 @@ Successful slide writes return the complete ordered presentation and new root bo
 revision. Deleting media referenced by slides returns 409 `MEDIA_IN_USE`.
 See `M3-AUTHORING.md` and generated OpenAPI for exact request/response contracts.
 
+## Immutable releases
+
+| Route                                        | Behavior                                                                                |
+| -------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `POST /api/v1/bots/:botId/releases/validate` | Check the expected draft revision; return preview/publication readiness and issue paths |
+| `GET /api/v1/bots/:botId/releases`           | List scoped history using kind, page and pageSize                                       |
+| `POST /api/v1/bots/:botId/releases`          | Publish an immutable numbered version; 201                                              |
+| `POST /api/v1/bots/:botId/preview`           | Save a temporary staff snapshot; 201                                                    |
+| `GET /api/v1/releases/:id`                   | Read the complete immutable snapshot, including historical previews                     |
+| `POST /api/v1/releases/:id/knowledge/query`  | Inspect pinned knowledge using locale and query; 200                                    |
+
+All routes use staff cookies and enforce Host and organisation scope. POST requests
+require Origin, CSRF and JSON, including read-only validation/query operations.
+All staff roles may inspect; only owners/administrators may capture. Capture and
+validation bodies require `expectedRevision`; capture additionally requires an
+`Idempotency-Key` header of 16–128 ASCII letters, digits, underscores or hyphens.
+Publication retries return the original version and 201 while the key is retained.
+
+The strict 16 KiB JSON limit applies. Search accepts `en` or `ne` and up to 500
+characters, with blank/NUL inputs rejected. Missing revisions/keys return 428;
+stale revisions, archived captures and conflicting keys return 409. Unready releases
+return 422 `RELEASE_NOT_READY` with actionable `fieldErrors`. Expired previews return
+410 `PREVIEW_EXPIRED` for new queries; their GET history remains available. Foreign
+IDs return 404. See `RELEASES.md` and generated OpenAPI for retention and response shapes.
+
 ## Temporary M1 experiment
 
 `POST /api/v1/feasibility/turn` is registered only when the API is explicitly local
