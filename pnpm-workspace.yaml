@@ -10,6 +10,8 @@ strictPeerDependencies: true
 overrides:
   deepmerge-ts: 8.0.0
   mysql2: 3.23.1
+  '@redocly/openapi-core>js-yaml': 4.3.2
+  '@nestjs/platform-express>multer': 2.3.0
 onlyBuiltDependencies:
   - '@nestjs/core'
   - '@prisma/engines'
