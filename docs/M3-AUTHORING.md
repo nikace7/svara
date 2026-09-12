@@ -2,8 +2,9 @@
 
 M3 is in progress. Persisted bot drafts and bilingual knowledge now have a protected
 API and studio editors. The media library includes authenticated streaming uploads,
-durable inspection, private previews and removal. Presentations and immutable
-releases remain pending.
+durable inspection, private previews and removal. Presentations now support ordered
+bilingual slides, primary/secondary targeting and protected media references.
+Immutable releases remain pending.
 Draft tool choices are configuration; they do not execute tools.
 
 ## Draft architecture
@@ -58,6 +59,10 @@ provider or establishes the factual accuracy of the submitted text.
 - `/studio/bots/:id/knowledge`: entry creation, search, review/type filters and paging.
 - `/studio/bots/:id/knowledge/:entryId`: bilingual FAQ/reference editor, translation
   completeness, explicit approval, release inclusion and confirmed deletion.
+- `/studio/bots/:id/presentation`: multiple named presentations, selection for the
+  bot, slide outline, primary/secondary canvas previews and bilingual properties.
+  Reorder by dragging or using Up/Down, then explicitly save the complete order.
+  Media selection searches and pages through READY files; private videos stay muted.
 - Explicit Save, unsaved indicators, archive/restore and role-aware read-only fields.
 - Language switching retains local edits. Conflicting saves preserve local text;
   loading the saved version requires an explicit discard dialog.
@@ -70,11 +75,45 @@ provider or establishes the factual accuracy of the submitted text.
 The staff media library and its authenticated streaming API are implemented; see
 `MEDIA-INSPECTION.md` for the current processing boundary.
 
-1. Presentations, ordered slides, screen targets and media references.
-2. Release readiness checks, immutable preview/published snapshots, idempotent
+1. Release readiness checks, immutable preview/published snapshots, idempotent
    publication and release-local search projections.
-3. Knowledge query inspection against a pinned release, synthetic bot/content/media
+2. Knowledge query inspection against a pinned release, synthetic bot/content/media
    examples and the complete authoring browser gate.
 
 The existing Voice lab continues to use explicitly labelled synthetic scenarios.
 It does not yet preview an authored bot or a persisted release.
+
+## Presentation drafts
+
+`PresentationService` uses the same transactional staff authority as other authoring
+services. Each bot supports up to 20 presentations of 50 slides. The first created
+presentation is selected automatically; creating subsequent presentations preserves
+the selection. Selection can be changed or cleared explicitly and is protected by a
+composite foreign key that includes both bot and organisation IDs.
+
+Slides carry titles up to 160 characters and text up to 2,000 characters per language,
+an optional media ID, a PRIMARY/SECONDARY/BOTH target and a duration of 1–600 seconds.
+Drafts may be incomplete. Shared readiness checks require both titles and, when any
+body text is supplied, both body translations. These checks describe translation
+completeness; release publication validation is still to be implemented.
+
+Every child mutation increments the presentation and root bot revisions. Existing
+slide edits and deletion compare the slide revision; appending or reordering compares
+the presentation revision; bot selection compares the bot revision. Reordering must
+include every current slide ID exactly once. Deletion compacts positions. Moved slides
+also advance their revisions. Mutation audits contain action and resource IDs rather
+than bilingual text. The creation audit identifies the new slide.
+
+Slide references include the asset's organisation and fixed READY state. The database
+rejects foreign or unready attachments and prevents an attached asset from changing
+to DELETING. The media API returns 409 `MEDIA_IN_USE` until all draft slide references
+are removed. The attach-versus-delete race is covered using actual inspected images;
+one operation wins, and referenced files remain readable. Future immutable releases
+must add their own reference protection before release references can exist.
+
+The editor owns an explicit saved snapshot and keeps local edits across locale changes,
+navigation prompts and conflicts. It never adopts a newer revision to force a stale
+save. Save or explicitly discard before switching slides or presentations. Reload
+requires confirmation. Archive and inspect-only roles disable authoring controls.
+Canvas previews show unsaved text immediately; saving persists it. Long preview text
+can be scrolled, and the complete text remains available in the properties fields.

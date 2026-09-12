@@ -230,3 +230,39 @@ resolves current staff authority and rechecks revisions; there is no access cach
 or change to session expiry. The regression verifies all twelve bots and audits
 exist exactly once, plus denial after session revocation. Other errors still
 propagate, and an exhausted retry budget remains an error.
+
+## ADR 020 — Scoped presentation ordering and READY media references
+
+Presentations and slides belong to a bot and organisation through composite foreign
+keys. BotDraft selection includes the bot ID as well as organisation ID, so another
+bot's presentation cannot be selected even inside the same organisation. Child edits
+advance both presentation and root bot revisions for later consistent release assembly.
+
+Use a deferred unique constraint on `(presentationId, position)` while applying a
+complete reorder. The API requires the exact current ID set and revision before any
+position changes. The transaction commits only a unique, bounded order; deleting a
+slide compacts it and advances the revisions of moved slides. PostgreSQL's
+[constraint timing](https://www.postgresql.org/docs/17/sql-set-constraints.html)
+supports checking this uniqueness at transaction completion.
+
+Make an optional slide media reference include `(mediaId, organisationId, mediaState)`.
+A check constraint requires both media fields to be null or the state to be explicitly
+READY. The referenced asset key includes its state, with RESTRICT on update and delete.
+This protects files at the database boundary: attaching an unready or foreign asset
+fails, and a referenced READY asset cannot enter DELETING while a worker could remove
+its bytes. Application checks return actionable errors; concurrent direct writes remain
+subject to the same constraints. Release snapshots must extend this protection later.
+
+## ADR 021 — Extend the measured session contention retry budget
+
+The presentation integration gate repeatedly reproduced a P2034 failure in the existing
+twelve-request same-session authoring test. The three retries from ADR 019 still exhausted
+under local database latency because every mutation updates the same session activity row.
+
+Allow five retries, keeping the existing exponential backoff with independent jitter,
+exact conflict classification and full transaction rerun. Delays range from 50–99 ms
+through 800–1,599 ms, with total retry sleep bounded below 3.1 seconds. This changes no
+authority, idle expiry or revision rules. The operation can still fail once the budget
+is exhausted; unrelated errors are never retried. A deterministic regression injects
+five conflicts, proves one bot and audit commit, checks failure after six attempts and
+revokes the session during a retry to verify authority is resolved again.

@@ -131,6 +131,28 @@ IDs return 404 before opening a file. Missing/stale deletion revisions return
 not permitted. A byte mismatch returns 422 `UPLOAD_LENGTH_MISMATCH`. Media quota
 errors preserve actionable `MEDIA_QUOTA` feedback.
 
+## Presentation drafts
+
+| Route                                     | Behavior                                                         |
+| ----------------------------------------- | ---------------------------------------------------------------- |
+| `GET /api/v1/presentations?botId=<id>`    | Scoped summaries, current bot revision and selected presentation |
+| `POST /api/v1/presentations`              | Create a named presentation for a bot                            |
+| `GET /api/v1/presentations/:id`           | Bilingual slides in order with safe media metadata               |
+| `PATCH, DELETE /api/v1/presentations/:id` | Rename or remove with the presentation revision                  |
+| `POST /api/v1/presentations/:id/slides`   | Append a slide with the presentation revision                    |
+| `PATCH, DELETE /api/v1/slides/:id`        | Edit or remove using the slide revision                          |
+| `PUT /api/v1/presentations/:id/order`     | Complete current slide ID set and presentation revision          |
+| `PUT /api/v1/bots/:botId/presentation`    | Set a presentation ID or null using the bot revision             |
+
+All routes enforce staff cookie, Host and tenant scope; mutations require Origin,
+CSRF, JSON and owner/administrator authority. Foreign IDs return 404. Missing or
+stale revisions return 428/409. Partial or foreign reorder sets return 409
+`INVALID_SLIDE_ORDER`; limits return 422 `PRESENTATION_LIMIT` or `SLIDE_LIMIT`.
+Requests retain the 16 KiB JSON limit, including full-length English/Nepali slides.
+Successful slide writes return the complete ordered presentation and new root bot
+revision. Deleting media referenced by slides returns 409 `MEDIA_IN_USE`.
+See `M3-AUTHORING.md` and generated OpenAPI for exact request/response contracts.
+
 ## Temporary M1 experiment
 
 `POST /api/v1/feasibility/turn` is registered only when the API is explicitly local
