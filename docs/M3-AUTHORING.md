@@ -64,6 +64,10 @@ provider or establishes the factual accuracy of the submitted text.
   bot, slide outline, primary/secondary canvas previews and bilingual properties.
   Reorder by dragging or using Up/Down, then explicitly save the complete order.
   Media selection searches and pages through READY files; private videos stay muted.
+- `/studio/bots/:id/releases`: readiness issues linked to draft editors, preview and
+  publication confirmation, idempotent retries, paginated history and immutable
+  snapshot inspection. Query frozen English/Nepali knowledge without provider calls;
+  view saved slides on both screens in landscape or portrait.
 - Explicit Save, unsaved indicators, archive/restore and role-aware read-only fields.
 - Language switching retains local edits. Conflicting saves preserve local text;
   loading the saved version requires an explicit discard dialog.
@@ -76,10 +80,11 @@ provider or establishes the factual accuracy of the submitted text.
 The staff media library and its authenticated streaming API are implemented; see
 `MEDIA-INSPECTION.md` for the current processing boundary.
 
-1. Staff API and studio integration for release readiness, immutable preview/published
-   captures, idempotent publication and history. Their domain/database layer is implemented.
-2. Knowledge query inspection against a pinned release, synthetic bot/content/media
-   examples and the complete authoring browser gate.
+Staff release API and studio readiness, capture, history and pinned knowledge
+inspection are implemented; see `RELEASES.md`. The remaining local demonstration
+work is reusable synthetic bot/content/media examples. The complete 36-journey
+browser gate passed, including retained release media after source draft deletion
+and publication retry recovery; see `PROGRESS.md` for the measured checkpoint.
 
 The existing Voice lab continues to use explicitly labelled synthetic scenarios.
 It does not yet preview an authored bot or a persisted release.
