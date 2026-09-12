@@ -1,6 +1,19 @@
 import { z } from 'zod';
 import { mediaDeleteSchema, mediaDetailSchema, mediaPageSchema } from './media.js';
 import {
+  presentationCreateSchema,
+  presentationSaveSchema,
+  presentationDeleteSchema,
+  presentationDetailSchema,
+  presentationListSchema,
+  presentationSelectionSchema,
+  presentationSelectionResultSchema,
+  slideCreateSchema,
+  slideSaveSchema,
+  slideDeleteSchema,
+  slideOrderSchema,
+} from './presentations.js';
+import {
   botArchiveSchema,
   botCreateSchema,
   botDetailSchema,
@@ -47,4 +60,21 @@ export const mediaApiSchemas = {
   removed: z.toJSONSchema(z.object({ data: z.object({ ok: z.literal(true) }) }), {
     target: 'openapi-3.0',
   }),
+};
+
+export const presentationApiSchemas = {
+  create: z.toJSONSchema(presentationCreateSchema, { target: 'openapi-3.0', io: 'input' }),
+  save: z.toJSONSchema(presentationSaveSchema, { target: 'openapi-3.0', io: 'input' }),
+  remove: z.toJSONSchema(presentationDeleteSchema, { target: 'openapi-3.0', io: 'input' }),
+  selection: z.toJSONSchema(presentationSelectionSchema, { target: 'openapi-3.0', io: 'input' }),
+  slideCreate: z.toJSONSchema(slideCreateSchema, { target: 'openapi-3.0', io: 'input' }),
+  slideSave: z.toJSONSchema(slideSaveSchema, { target: 'openapi-3.0', io: 'input' }),
+  slideRemove: z.toJSONSchema(slideDeleteSchema, { target: 'openapi-3.0', io: 'input' }),
+  order: z.toJSONSchema(slideOrderSchema, { target: 'openapi-3.0', io: 'input' }),
+  detail: z.toJSONSchema(z.object({ data: presentationDetailSchema }), { target: 'openapi-3.0' }),
+  list: z.toJSONSchema(z.object({ data: presentationListSchema }), { target: 'openapi-3.0' }),
+  selected: z.toJSONSchema(z.object({ data: presentationSelectionResultSchema }), {
+    target: 'openapi-3.0',
+  }),
+  removed: knowledgeApiSchemas.removed,
 };
