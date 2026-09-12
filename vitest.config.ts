@@ -24,6 +24,7 @@ export default defineConfig({
         'apps/api/src/local-access.ts',
         'apps/web/src/lib/voice-stream.ts',
         'packages/contracts/src/media.ts',
+        'packages/contracts/src/presentations.ts',
         'packages/domain/src/media/storage.ts',
         'packages/domain/src/media/range.ts',
         'apps/worker/src/media/policy.ts',

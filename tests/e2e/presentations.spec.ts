@@ -6,7 +6,10 @@ import { test, expect } from './fixtures.js';
 
 async function createPresentation(page: Page, name: string) {
   await page.getByRole('button', { name: 'New presentation', exact: true }).click();
-  await page.getByRole('dialog').getByLabel('Presentation name', { exact: true }).fill(name);
+  await page
+    .getByRole('dialog')
+    .getByRole('textbox', { name: 'Presentation name', exact: true })
+    .fill(name);
   await page.getByRole('dialog').getByRole('button', { name: 'Create presentation' }).click();
   await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
 }
@@ -62,6 +65,13 @@ test('builds bilingual slides, previews ready media and persists complete orderi
   const outline = page.getByRole('list', { name: 'Slide outline' });
   await expect(outline.getByRole('button').first()).toContainText('Admissions');
   await expect(outline.getByRole('button').nth(1)).toContainText('Welcome to campus');
+  await outline.getByRole('button').nth(1).click();
+  await expect(page.getByLabel('Duration (seconds)', { exact: true })).toHaveValue('12');
+  await expect(page.getByLabel('Show on', { exact: true })).toHaveValue('SECONDARY');
+  await page.getByRole('tab', { name: 'Nepali', exact: true }).click();
+  await expect(page.getByLabel('Slide text', { exact: true })).toHaveValue(
+    'स्वागत कक्षबाट सुरु गर्नुहोस्।',
+  );
 
   const filename = `Slide-${randomUUID().slice(0, 8)}.png`;
   await page.getByRole('link', { name: 'Media', exact: true }).click();
@@ -116,6 +126,17 @@ test('builds bilingual slides, previews ready media and persists complete orderi
     .click();
   await expect(page.getByRole('heading', { name: 'Campus welcome', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Use for this bot', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Rename', exact: true }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('textbox', { name: 'Presentation name', exact: true })
+    .fill('Campus tour');
+  await page.getByRole('dialog').getByRole('button', { name: 'Save name', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Campus tour', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Remove slide', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Remove slide', exact: true }).click();
+  await expect(outline.getByRole('button')).toHaveCount(1);
+  await expect(outline.getByRole('button').first()).toContainText('Welcome to campus');
 });
 
 test('preserves unsaved and conflicting slide text on mobile until an explicit reload', async ({
@@ -162,7 +183,7 @@ test('preserves unsaved and conflicting slide text on mobile until an explicit r
   });
   expect(updated.status()).toBe(200);
   await page.getByRole('button', { name: 'Save slide', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText(/changed|newer|another/i);
+  await expect(page.getByRole('alert').filter({ hasText: /changed|newer|another/i })).toBeVisible();
   await expect(page.getByLabel('Slide title', { exact: true })).toHaveValue('My unsaved title');
   await page.getByRole('button', { name: 'Reload saved version', exact: true }).click();
   await page
@@ -178,4 +199,119 @@ test('preserves unsaved and conflicting slide text on mobile until an explicit r
     path: 'artifacts/screenshots/m3-presentation-mobile.png',
     fullPage: true,
   });
+});
+
+test('viewers inspect muted video presentations and archived bots reject editor actions', async ({
+  page,
+  context,
+  browser,
+  baseURL,
+}) => {
+  test.setTimeout(90000);
+  const session = (await (await context.request.get('/api/v1/auth/session')).json()).data;
+  const headers = { Origin: baseURL!, 'X-CSRF-Token': session.csrfToken };
+  const createdBot = await context.request.post('/api/v1/bots', {
+    headers,
+    data: { name: `Presentation access ${randomUUID().slice(0, 8)}` },
+  });
+  expect(createdBot.status()).toBe(201);
+  const bot = (await createdBot.json()).data;
+  await page.goto(`/studio/bots/${bot.id}/presentation`);
+  await expect(page.getByRole('heading', { name: 'Presentation', exact: true })).toBeVisible();
+  const filename = `Slide-video-${randomUUID().slice(0, 8)}.mp4`;
+  await page.goto('/studio/media');
+  await page.getByLabel('Choose media').setInputFiles({
+    name: filename,
+    mimeType: 'video/mp4',
+    buffer: await readFile('apps/worker/assets/inspection-probe.mp4'),
+  });
+  await page.getByRole('button', { name: 'Upload file', exact: true }).click();
+  await expect(
+    page.getByRole('listitem').filter({ hasText: filename }).getByText('Ready', { exact: true }),
+  ).toBeVisible({ timeout: 20000 });
+  await page.goto(`/studio/bots/${bot.id}/presentation`);
+  await createPresentation(page, 'Video welcome');
+  await page.getByRole('button', { name: 'Add slide', exact: true }).click();
+  await page.getByLabel('Slide title', { exact: true }).fill('A look around campus');
+  await page.getByRole('button', { name: 'Choose media', exact: true }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: `Use ${filename}`, exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Save slide', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Slide saved' })).toBeVisible();
+  const email = `slide-viewer-${randomUUID()}@example.test`;
+  const password = `Viewer password ${randomUUID()}`;
+  const invitation = await context.request.post('/api/v1/members/invitations', {
+    headers,
+    data: { email, role: 'VIEWER' },
+  });
+  expect(invitation.status()).toBe(201);
+  const token = new URLSearchParams(new URL((await invitation.json()).data.url).hash.slice(1)).get(
+    'token',
+  );
+  const viewer = await browser.newContext({
+    baseURL: baseURL!,
+    storageState: { cookies: [], origins: [] },
+  });
+  try {
+    expect(
+      (
+        await viewer.request.post('/api/v1/auth/activate', {
+          headers: { Origin: baseURL! },
+          data: { token, password, displayName: 'Slide Viewer' },
+        })
+      ).status(),
+    ).toBe(200);
+    expect(
+      (
+        await viewer.request.post('/api/v1/auth/login', {
+          headers: { Origin: baseURL! },
+          data: { email, password },
+        })
+      ).status(),
+    ).toBe(200);
+    const guest = await viewer.newPage();
+    await guest.goto(`/studio/bots/${bot.id}/presentation`);
+    await expect(guest.getByText(/You have view access/)).toBeVisible();
+    await expect(guest.getByLabel('Slide title', { exact: true })).toBeDisabled();
+    for (const name of [
+      'New presentation',
+      'Save slide',
+      'Remove slide',
+      'Add slide',
+      'Choose media',
+      'Rename',
+      'Remove presentation',
+    ]) {
+      await expect(guest.getByRole('button', { name, exact: true })).toHaveCount(0);
+    }
+    const video = guest.getByRole('region', { name: 'Primary screen preview' }).locator('video');
+    await expect
+      .poll(() => video.evaluate((element) => (element as HTMLVideoElement).videoWidth))
+      .toBe(32);
+    expect(await video.evaluate((element) => (element as HTMLVideoElement).muted)).toBe(true);
+    await video.evaluate((element) => {
+      (element as HTMLVideoElement).muted = false;
+    });
+    await expect
+      .poll(() => video.evaluate((element) => (element as HTMLVideoElement).muted))
+      .toBe(true);
+    expect((await new AxeBuilder({ page: guest }).analyze()).violations).toEqual([]);
+  } finally {
+    await viewer.close();
+  }
+  const currentBot = (await (await context.request.get(`/api/v1/bots/${bot.id}`)).json()).data;
+  expect(
+    (
+      await context.request.post(`/api/v1/bots/${bot.id}/archive`, {
+        headers,
+        data: { expectedRevision: currentBot.revision, archived: true },
+      })
+    ).status(),
+  ).toBe(200);
+  await page.reload();
+  await expect(page.getByText(/This bot is archived/)).toBeVisible();
+  await expect(page.getByLabel('Slide title', { exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save slide', exact: true })).toHaveCount(0);
 });
