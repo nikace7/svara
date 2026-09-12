@@ -22,11 +22,12 @@ locally; an explicit local recovery command revokes sessions and preserves roles
 See [identity scope](docs/M2-IDENTITY.md), [free provider account setup](docs/FREE-DEMO-SETUP.md)
 and [progress and verification](docs/PROGRESS.md).
 
-**M3 bot drafts, knowledge and media are implemented:** scoped search, bilingual editing,
+**M3 bot drafts, knowledge, media and presentations are implemented:** scoped search, bilingual editing,
 revision conflicts, read-only roles, archive/restore, FAQ/reference approval and
 release inclusion. The media library supports streaming uploads, durable inspection,
-private image/video previews and confirmed removal. Presentations and immutable
-publication follow.
+private image/video previews and confirmed removal. Presentation authoring adds ordered
+bilingual slides, screen targets, ready media attachments and real draft previews.
+Immutable preview and publication follow.
 See [authoring scope](docs/M3-AUTHORING.md).
 
 ## Architecture
