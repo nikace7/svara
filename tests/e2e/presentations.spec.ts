@@ -4,6 +4,12 @@ import { AxeBuilder } from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures.js';
 
+function slideField(page: Page, name: 'Slide title' | 'Slide text', language = 'English') {
+  return page
+    .getByRole('tabpanel', { name: language, exact: true })
+    .getByRole('textbox', { name, exact: true });
+}
+
 async function createPresentation(page: Page, name: string) {
   await page.getByRole('button', { name: 'New presentation', exact: true }).click();
   await page
@@ -33,11 +39,11 @@ test('builds bilingual slides, previews ready media and persists complete orderi
   await createPresentation(page, 'Campus welcome');
   await expect(page.getByText('Selected for this bot', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Add slide', exact: true }).click();
-  await page.getByLabel('Slide title', { exact: true }).fill('Welcome to campus');
-  await page.getByLabel('Slide text', { exact: true }).fill('Start your visit at reception.');
+  await slideField(page, 'Slide title').fill('Welcome to campus');
+  await slideField(page, 'Slide text').fill('Start your visit at reception.');
   await page.getByRole('tab', { name: 'Nepali', exact: true }).click();
-  await page.getByLabel('Slide title', { exact: true }).fill('स्वागत छ');
-  await page.getByLabel('Slide text', { exact: true }).fill('स्वागत कक्षबाट सुरु गर्नुहोस्।');
+  await slideField(page, 'Slide title', 'Nepali').fill('स्वागत छ');
+  await slideField(page, 'Slide text', 'Nepali').fill('स्वागत कक्षबाट सुरु गर्नुहोस्।');
   await page.getByLabel('Show on', { exact: true }).selectOption('SECONDARY');
   await page.getByLabel('Duration (seconds)', { exact: true }).fill('12');
   await page.getByRole('button', { name: 'Save slide', exact: true }).click();
@@ -55,7 +61,7 @@ test('builds bilingual slides, previews ready media and persists complete orderi
   ).toBeVisible();
   await page.getByRole('button', { name: 'Add slide', exact: true }).click();
   await page.getByRole('tab', { name: 'English', exact: true }).click();
-  await page.getByLabel('Slide title', { exact: true }).fill('Admissions');
+  await slideField(page, 'Slide title').fill('Admissions');
   await page.getByRole('button', { name: 'Save slide', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Slide saved' })).toBeVisible();
   await page.getByRole('button', { name: 'Move slide up', exact: true }).click();
@@ -69,7 +75,7 @@ test('builds bilingual slides, previews ready media and persists complete orderi
   await expect(page.getByLabel('Duration (seconds)', { exact: true })).toHaveValue('12');
   await expect(page.getByLabel('Show on', { exact: true })).toHaveValue('SECONDARY');
   await page.getByRole('tab', { name: 'Nepali', exact: true }).click();
-  await expect(page.getByLabel('Slide text', { exact: true })).toHaveValue(
+  await expect(slideField(page, 'Slide text', 'Nepali')).toHaveValue(
     'स्वागत कक्षबाट सुरु गर्नुहोस्।',
   );
 
@@ -175,12 +181,12 @@ test('preserves unsaved and conflicting slide text on mobile until an explicit r
   await expect(page.getByRole('heading', { name: 'Presentation', exact: true })).toBeVisible();
   await createPresentation(page, 'Draft welcome');
   await page.getByRole('button', { name: 'Add slide', exact: true }).click();
-  await page.getByLabel('Slide title', { exact: true }).fill('My unsaved title');
+  await slideField(page, 'Slide title').fill('My unsaved title');
   await expect(page.getByRole('button', { name: 'Add slide', exact: true })).toBeDisabled();
   await page.getByRole('link', { name: 'Knowledge', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Leave this draft?' })).toBeVisible();
   await page.getByRole('button', { name: 'Keep editing', exact: true }).click();
-  await expect(page.getByLabel('Slide title', { exact: true })).toHaveValue('My unsaved title');
+  await expect(slideField(page, 'Slide title')).toHaveValue('My unsaved title');
   const list = (await (await context.request.get(`/api/v1/presentations?botId=${bot.id}`)).json())
     .data;
   const deck = (
@@ -201,13 +207,13 @@ test('preserves unsaved and conflicting slide text on mobile until an explicit r
   expect(updated.status()).toBe(200);
   await page.getByRole('button', { name: 'Save slide', exact: true }).click();
   await expect(page.getByRole('alert').filter({ hasText: /changed|newer|another/i })).toBeVisible();
-  await expect(page.getByLabel('Slide title', { exact: true })).toHaveValue('My unsaved title');
+  await expect(slideField(page, 'Slide title')).toHaveValue('My unsaved title');
   await page.getByRole('button', { name: 'Reload saved version', exact: true }).click();
   await page
     .getByRole('dialog')
     .getByRole('button', { name: 'Discard edits and reload', exact: true })
     .click();
-  await expect(page.getByLabel('Slide title', { exact: true })).toHaveValue('Saved by a colleague');
+  await expect(slideField(page, 'Slide title')).toHaveValue('Saved by a colleague');
   await expect(
     page.getByRole('button', { name: 'Reload saved version', exact: true }),
   ).toBeFocused();
@@ -253,7 +259,7 @@ test('viewers inspect muted video presentations and archived bots reject editor 
   await page.goto(`/studio/bots/${bot.id}/presentation`);
   await createPresentation(page, 'Video welcome');
   await page.getByRole('button', { name: 'Add slide', exact: true }).click();
-  await page.getByLabel('Slide title', { exact: true }).fill('A look around campus');
+  await slideField(page, 'Slide title').fill('A look around campus');
   await page.getByRole('button', { name: 'Choose media', exact: true }).click();
   await page
     .getByRole('dialog')
@@ -295,7 +301,7 @@ test('viewers inspect muted video presentations and archived bots reject editor 
     const guest = await viewer.newPage();
     await guest.goto(`/studio/bots/${bot.id}/presentation`);
     await expect(guest.getByText(/You have view access/)).toBeVisible();
-    await expect(guest.getByLabel('Slide title', { exact: true })).toBeDisabled();
+    await expect(slideField(guest, 'Slide title')).toBeDisabled();
     for (const name of [
       'New presentation',
       'Save slide',
@@ -333,6 +339,6 @@ test('viewers inspect muted video presentations and archived bots reject editor 
   ).toBe(200);
   await page.reload();
   await expect(page.getByText(/This bot is archived/)).toBeVisible();
-  await expect(page.getByLabel('Slide title', { exact: true })).toBeDisabled();
+  await expect(slideField(page, 'Slide title')).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Save slide', exact: true })).toHaveCount(0);
 });
