@@ -33,6 +33,7 @@ model Bot {
   name String @db.VarChar(120)
   description String @default("") @db.VarChar(1000)
   revision Int @default(1)
+  nextReleaseVersion Int @default(1)
   archivedAt DateTime? @db.Timestamptz(3)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
@@ -40,6 +41,7 @@ model Bot {
   draft BotDraft?
   knowledge KnowledgeEntry[]
   presentations Presentation[]
+  releases BotRelease[]
 
   @@unique([id, organisationId])
   @@index([organisationId, archivedAt, createdAt])
@@ -175,6 +177,7 @@ model Membership {
 
   approvedKnowledge KnowledgeEntry[]
   uploadedMedia MediaAsset[]
+  idempotencyRecords IdempotencyRecord[]
 
   @@unique([organisationId, userId])
   @@unique([id, organisationId])
@@ -271,13 +274,96 @@ model MediaAsset {
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
   createdBy Membership @relation(fields: [createdByMembershipId, organisationId], references: [id, organisationId], onDelete: Restrict)
   slides Slide[]
+  releaseMedia ReleaseMedia[]
 
   @@unique([id, organisationId])
   @@unique([id, organisationId, state])
+  @@unique([id, organisationId, state, sha256, byteLength], map: "MediaAsset_release_identity_key")
   @@index([organisationId, createdAt])
   @@index([state, leaseExpiresAt])
   @@index([state, createdAt])
   @@index([createdByMembershipId])
+}
+
+enum ReleaseKind {
+  PREVIEW
+  PUBLISHED
+}
+
+model BotRelease {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  botId String @db.Uuid
+  kind ReleaseKind
+  version Int?
+  previewExpiresAt DateTime? @db.Timestamptz(3)
+  botRevision Int
+  providerMode String @db.VarChar(8)
+  snapshot Json
+  snapshotHash String @db.VarChar(64)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  bot Bot @relation(fields: [botId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  knowledge ReleaseKnowledge[]
+  media ReleaseMedia[]
+  idempotencyRecords IdempotencyRecord[]
+
+  @@unique([id, organisationId])
+  @@unique([id, organisationId, snapshotHash])
+  @@unique([botId, version])
+  @@index([organisationId, botId, createdAt])
+  @@index([kind, previewExpiresAt])
+}
+
+model ReleaseKnowledge {
+  releaseId String @db.Uuid
+  organisationId String @db.Uuid
+  snapshotHash String @db.VarChar(64)
+  entryId String @db.Uuid
+  locale String @db.VarChar(2)
+  type KnowledgeType
+  title String @db.VarChar(160)
+  question String @db.VarChar(500)
+  content String @db.VarChar(8000)
+  searchText String @default(dbgenerated())
+  normalizedQuestion String @default(dbgenerated())
+  searchVector Unsupported("tsvector")? @default(dbgenerated())
+  release BotRelease @relation(fields: [releaseId, organisationId, snapshotHash], references: [id, organisationId, snapshotHash], onDelete: Cascade, onUpdate: Restrict, map: "ReleaseKnowledge_release_fkey")
+
+  @@id([releaseId, entryId, locale])
+  @@index([organisationId, releaseId, locale])
+}
+
+model ReleaseMedia {
+  releaseId String @db.Uuid
+  organisationId String @db.Uuid
+  snapshotHash String @db.VarChar(64)
+  mediaId String @db.Uuid
+  mediaState MediaState @default(READY)
+  sha256 String @db.VarChar(64)
+  byteLength Int
+  release BotRelease @relation(fields: [releaseId, organisationId, snapshotHash], references: [id, organisationId, snapshotHash], onDelete: Cascade, onUpdate: Restrict, map: "ReleaseMedia_release_fkey")
+  media MediaAsset @relation(fields: [mediaId, organisationId, mediaState, sha256, byteLength], references: [id, organisationId, state, sha256, byteLength], onDelete: Restrict, onUpdate: Restrict, map: "ReleaseMedia_asset_fkey")
+
+  @@id([releaseId, mediaId])
+  @@index([mediaId, organisationId])
+}
+
+model IdempotencyRecord {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  actorMembershipId String @db.Uuid
+  operation String @db.VarChar(64)
+  keyHash String @db.VarChar(64)
+  requestHash String @db.VarChar(64)
+  releaseId String @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+  actor Membership @relation(fields: [actorMembershipId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict, map: "IdempotencyRecord_actor_fkey")
+  release BotRelease @relation(fields: [releaseId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict, map: "IdempotencyRecord_release_fkey")
+
+  @@unique([actorMembershipId, operation, keyHash], map: "IdempotencyRecord_actor_operation_key")
+  @@index([expiresAt])
+  @@index([releaseId, organisationId])
 }
 
 model AuditEntry {

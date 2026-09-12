@@ -234,7 +234,12 @@ export class MediaService {
       const asset = await this.load(tx, member.organisationId, id);
       if (asset.revision !== input.expectedRevision)
         throw new AuthoringError('REVISION_CONFLICT', asset.revision);
-      if (await tx.slide.count({ where: { mediaId: id, organisationId: member.organisationId } }))
+      if (
+        (await tx.slide.count({ where: { mediaId: id, organisationId: member.organisationId } })) ||
+        (await tx.releaseMedia.count({
+          where: { mediaId: id, organisationId: member.organisationId },
+        }))
+      )
         throw new MediaError('MEDIA_IN_USE');
       if (asset.state === 'RECEIVING' || asset.state === 'INSPECTING' || asset.state === 'DELETING')
         throw new MediaError('MEDIA_BUSY');

@@ -122,7 +122,7 @@ class SafeExceptionFilter implements ExceptionFilter {
         MEDIA_NOT_READY: [409, 'This file is not ready for playback.'],
         MEDIA_IN_USE: [
           409,
-          'This file is used by a presentation. Remove it from the slides first.',
+          'This file is used by a slide or saved release and cannot be removed while referenced.',
         ],
         MEDIA_QUOTA: [
           429,

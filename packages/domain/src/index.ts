@@ -11,6 +11,8 @@ export { BotService } from './authoring/bots.js';
 export { AuthoringError } from './authoring/errors.js';
 export { KnowledgeService } from './authoring/knowledge.js';
 export { PresentationService } from './authoring/presentations.js';
+export { ReleaseService, releaseSnapshotHash } from './authoring/releases.js';
+export { ReleaseError } from './authoring/release-errors.js';
 export { MediaService } from './media/service.js';
 export { MediaStorage } from './media/storage.js';
 export { MediaError } from './media/errors.js';
