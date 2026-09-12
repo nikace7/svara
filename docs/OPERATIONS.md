@@ -16,23 +16,26 @@ feasibility are M1; configuration validation alone does not establish live suppo
 Run one native or Compose stack at a time. The default Compose project is `svara`;
 volumes are `svara_postgres_data`, `svara_redis_data`, and `svara_media_data`.
 Native media uses `.local/media`; switching modes does not copy media between stores.
+Both modes share the development database, so keep an existing media-backed demo
+in its original mode unless its media files have also been transferred. Seed receipts
+preserve database references; reseeding does not replace files in a different store.
 Only the native override exposes PostgreSQL/Redis ports, both on loopback.
 
 ## Commands
 
-| Command                             | Behavior                                                                         |
-| ----------------------------------- | -------------------------------------------------------------------------------- |
-| `pnpm setup:local`                  | Generate missing local settings; preserve existing files                         |
-| `pnpm infra:up` / `pnpm infra:down` | Start/stop native infrastructure; retain volumes                                 |
-| `pnpm db:generate`                  | Generate ignored Prisma 7 client; no database needed                             |
-| `pnpm db:migrate`                   | Apply committed migrations only to local `svara_dev`                             |
-| `pnpm db:seed`                      | Verify Svara marker; add fictional organisations and generated staff credentials |
-| `pnpm staff:recover --email ...`    | Explicit local password recovery; revoke sessions and grants, preserve access    |
-| `pnpm db:test:prepare`              | Apply migrations only to local `svara_test`                                      |
-| `pnpm dev`                          | Compile prerequisites and start coordinated app/package watchers                 |
-| `pnpm demo:up` / `pnpm demo:down`   | Build/start or stop the full stack; retain volumes                               |
-| `pnpm test:integration:container`   | Run guarded migrations and real PostgreSQL/API tests in the demo                 |
-| `pnpm test:container`               | Test production preview denial without network access                            |
+| Command                             | Behavior                                                                             |
+| ----------------------------------- | ------------------------------------------------------------------------------------ |
+| `pnpm setup:local`                  | Generate missing local settings; preserve existing files                             |
+| `pnpm infra:up` / `pnpm infra:down` | Start/stop native infrastructure; retain volumes                                     |
+| `pnpm db:generate`                  | Generate ignored Prisma 7 client; no database needed                                 |
+| `pnpm db:migrate`                   | Apply committed migrations only to local `svara_dev`                                 |
+| `pnpm db:seed`                      | Build the inspector; verify local target; add staff and inspected authoring examples |
+| `pnpm staff:recover --email ...`    | Explicit local password recovery; revoke sessions and grants, preserve access        |
+| `pnpm db:test:prepare`              | Apply migrations only to local `svara_test`                                          |
+| `pnpm dev`                          | Compile prerequisites and start coordinated app/package watchers                     |
+| `pnpm demo:up` / `pnpm demo:down`   | Build/start or stop the full stack; retain volumes                                   |
+| `pnpm test:integration:container`   | Run guarded migrations and real PostgreSQL/API tests in the demo                     |
+| `pnpm test:container`               | Test production preview denial without network access                                |
 
 Database guards validate protocol, host, exact database name, environment and absence
 of URL options. The migration creates a Svara marker; seed checks it before writing.

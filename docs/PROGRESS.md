@@ -2,17 +2,17 @@
 
 Updated 2026-09-12. Evidence is local unless explicitly marked otherwise.
 
-| Milestone                                | State       | Evidence / remaining work                                                                                             |
-| ---------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------- |
-| M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.          |
-| M1 — Bilingual voice feasibility         | Partial     | Local fixture lab and audio/protocol checks pass. Live adapters and bilingual provider smoke tests remain pending.    |
-| M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                             |
-| M3 — Authoring and immutable publication | In progress | Draft editing, immutable publication and query inspection verified; reusable synthetic demonstration content remains. |
-| M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                      |
-| M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                                   |
-| M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                               |
-| M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                   |
-| M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                               |
+| Milestone                                | State       | Evidence / remaining work                                                                                          |
+| ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
+| M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.       |
+| M1 — Bilingual voice feasibility         | Partial     | Local fixture lab and audio/protocol checks pass. Live adapters and bilingual provider smoke tests remain pending. |
+| M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                          |
+| M3 — Authoring and immutable publication | Complete    | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.             |
+| M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                   |
+| M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                                |
+| M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                            |
+| M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                |
+| M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                            |
 
 ## Initial inspection
 
@@ -26,7 +26,7 @@ Updated 2026-09-12. Evidence is local unless explicitly marked otherwise.
 
 Complete all milestones step by step with Conventional Commits. The current user
 request changes the visual direction to a professional light background with a
-subtle purple gradient and asks for free demo APIs. The remaining M3–M8 scope is
+subtle purple gradient and asks for free demo APIs. The remaining M4–M8 scope is
 unchanged. Missing provider accounts do not block independent product development.
 
 ## Scope of this build increment
@@ -38,7 +38,8 @@ authentication and safe local provisioning. M3 includes bot drafts, knowledge an
 the media library with durable inspection/cleanup and authenticated streaming,
 plus ordered presentation drafts with protected media references and screen previews.
 Staff release readiness, preview/publication, history and frozen bilingual query
-inspection are also implemented and verified.
+inspection are also implemented and verified. Additive demo content now includes
+three fictional guides and a complete published campus release with inspected media.
 Live voice remains pending account setup and provider adapters.
 
 ## M0 delivered
@@ -622,3 +623,58 @@ Voice lab still uses synthetic scenarios; authored release search does not yet r
 a voice conversation. Azure/Gemini account setup remains documented in
 `FREE-DEMO-SETUP.md`. No account was created, key loaded, provider called or remote
 push performed.
+
+## M3 reusable demo content — 2026-09-12
+
+Implementation commit `3b5f4b2` completes reusable authoring examples. Himal has
+Campus Admissions Guide and Campus Event Host, 12 approved bilingual FAQs, four
+approved notes, one unapproved/unselected fee draft and five presentations. Riverside
+has its own unrelated exhibition guide. All facts are synthetic. Original map artwork
+passes real image inspection and private media delivery.
+
+Admissions version 1 captures 13 selected entries, two slides and the retained map.
+Its current revision 2 deliberately lacks a Nepali greeting, while the published
+snapshot remains complete. English/Nepali inspection retrieves the room 12 passage;
+the unsupported tuition-fee query returns no approved passage and shows the saved
+fallback. This is release inspection, not a generated voice conversation. Nepali
+copy still needs independent human review in the later bilingual evaluation gate.
+
+Local bundle receipts and per-organisation locks make repeated setup additive.
+Tests cover changed content/access, archived roots, deleted children, foreign IDs,
+concurrent seeds, corrupt image output and a lost commit acknowledgement. Seeded
+publication shares the normal capture primitive and creates no staff session.
+ADRs 022–025 and `DEMO-CONTENT.md` explain these boundaries.
+
+Verified at this checkpoint:
+
+- `pnpm check` passed formatting, lint, types, **133 unit tests**, generated-contract
+  drift checks and all production builds. Configured-subset coverage is still
+  **96.67% lines / 90.67% branches**, not whole-application coverage. Subsequent
+  overview copy/link and seed command changes passed targeted lint/types and builds.
+- The full native integration run passed **118 tests in 23 files**. After adding the
+  lost-acknowledgement regression, all **seven seed integration tests** passed on both
+  native infrastructure and Linux. The latest test file was mounted read-only into
+  the current Linux image; its runtime implementation was unchanged.
+- The full browser run passed **36 of 37 journeys**. The remaining existing identity
+  journey reached the real shared 300-request/minute limit when reloading members;
+  the UI offered Retry members after nine seconds. That complete journey passed on
+  a targeted retry after cooldown. All 37 journeys are covered across these runs;
+  this is not a claim of one uninterrupted 37-test pass. No quotas were reset.
+- The seeded owner journey passed Nepali retrieval, private map decoding, screen
+  targeting, unsupported-query fallback, cross-tenant denial, axe and mobile overflow
+  checks. Desktop/mobile screenshots in `artifacts/screenshots/m3-seeded-campus.png`
+  and `m3-seeded-campus-mobile.png` were reviewed.
+- The common image built successfully. Compose migration/seed completed and all six
+  long-running services are healthy. Initial seeding added three guides; a second
+  seed run added zero. Only the loopback gateway is exposed.
+- Review found that fresh native seeding needs the emitted image child. `db:seed`
+  now compiles shared packages and the worker first. CI seeds authoring examples
+  only during Compose startup, avoiding references to a different media store.
+- Gitleaks found no secrets in staged implementation or the three implementation/test
+  commits after `5b5e5e1` through `3b5f4b2`. The remaining checkpoint changes are docs.
+
+M3's immutable bilingual publication gate is complete. Next is M4 pairing, scoped
+runtime grants, two displays and atomic release application. M1 live speech still
+awaits provider accounts/adapters; setup instructions remain in `FREE-DEMO-SETUP.md`.
+No account, key, provider call, remote push or public deployment was used. The full
+project objective remains active, with M4–M8 and live validation still outstanding.

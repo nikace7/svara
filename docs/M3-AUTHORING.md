@@ -75,16 +75,19 @@ provider or establishes the factual accuracy of the submitted text.
   and close use the browser's unsaved-changes warning. No draft text is stored in
   localStorage or sent to speech/generation providers.
 
-## Remaining M3 work
+## M3 completion and runtime boundary
 
 The staff media library and its authenticated streaming API are implemented; see
 `MEDIA-INSPECTION.md` for the current processing boundary.
 
 Staff release API and studio readiness, capture, history and pinned knowledge
-inspection are implemented; see `RELEASES.md`. The remaining local demonstration
-work is reusable synthetic bot/content/media examples. The complete 36-journey
-browser gate passed, including retained release media after source draft deletion
-and publication retry recovery; see `PROGRESS.md` for the measured checkpoint.
+inspection are implemented; see `RELEASES.md`. Setup now installs three fictional
+guides, bilingual knowledge, presentations, inspected original map artwork and one
+immutable published example. A later draft deliberately lacks its Nepali greeting.
+Repeated setup preserves edits and completed seed bundles; see `DEMO-CONTENT.md`.
+The M3 gate is complete: publication reproduces its snapshot, subsequent draft edits
+cannot mutate it, duplicate retries return one version and retained media cannot be
+removed. See `PROGRESS.md` for the measured test and browser checkpoint.
 
 The existing Voice lab continues to use explicitly labelled synthetic scenarios.
 It does not yet preview an authored bot or a persisted release.
