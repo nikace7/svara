@@ -2,7 +2,13 @@
 
 import { StudioLink } from './draft-navigation';
 
-export function BotSections({ id, active }: { id: string; active: 'identity' | 'knowledge' }) {
+export function BotSections({
+  id,
+  active,
+}: {
+  id: string;
+  active: 'identity' | 'knowledge' | 'presentation';
+}) {
   return (
     <nav className="bot-sections" aria-label="Bot sections">
       <StudioLink
@@ -17,9 +23,12 @@ export function BotSections({ id, active }: { id: string; active: 'identity' | '
       >
         Knowledge
       </StudioLink>
-      <span aria-disabled="true" title="Presentation editing is being built">
+      <StudioLink
+        href={`/studio/bots/${id}/presentation`}
+        aria-current={active === 'presentation' ? 'page' : undefined}
+      >
         Presentation
-      </span>
+      </StudioLink>
       <span aria-disabled="true" title="Release publishing is being built">
         Releases
       </span>
