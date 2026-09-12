@@ -7,7 +7,7 @@ export function BotSections({
   active,
 }: {
   id: string;
-  active: 'identity' | 'knowledge' | 'presentation';
+  active: 'identity' | 'knowledge' | 'presentation' | 'releases';
 }) {
   return (
     <nav className="bot-sections" aria-label="Bot sections">
@@ -29,9 +29,12 @@ export function BotSections({
       >
         Presentation
       </StudioLink>
-      <span aria-disabled="true" title="Release publishing is being built">
+      <StudioLink
+        href={`/studio/bots/${id}/releases`}
+        aria-current={active === 'releases' ? 'page' : undefined}
+      >
         Releases
-      </span>
+      </StudioLink>
     </nav>
   );
 }

@@ -13,6 +13,7 @@ import './bots.css';
 import './knowledge.css';
 import './media.css';
 import './presentations.css';
+import './releases.css';
 
 export const metadata: Metadata = {
   title: { default: 'Svara — Voice & Device Studio', template: '%s · Svara' },

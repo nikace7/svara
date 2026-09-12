@@ -10,7 +10,15 @@ import { errorMessage } from '../lib/staff-api';
 import { useStaffRequest, useStaffSession } from './session-provider';
 import { StudioLink } from './draft-navigation';
 
-function MediaContent({ media }: { media: MediaDetail }) {
+type PreviewMedia = Pick<MediaDetail, 'id' | 'filename' | 'mimeType' | 'width' | 'height'>;
+type PreviewSlide = Pick<
+  SlideDetail,
+  'revision' | 'target' | 'title' | 'body' | 'durationSeconds'
+> & {
+  media: PreviewMedia | null;
+};
+
+function MediaContent({ media }: { media: PreviewMedia }) {
   const [failed, setFailed] = useState(false);
   if (failed) return <p role="alert">Media could not load. Reload the saved version to retry.</p>;
   const src = `/api/v1/media/${media.id}/content`;
@@ -44,7 +52,7 @@ export function SlidePreview({
   locale,
   screen,
 }: {
-  slide: SlideDetail | null;
+  slide: PreviewSlide | null;
   locale: 'en' | 'ne';
   screen: 'PRIMARY' | 'SECONDARY';
 }) {
