@@ -1,4 +1,12 @@
 import { z } from 'zod';
+import {
+  releaseCreateSchema,
+  releaseReadinessSchema,
+  releasePageSchema,
+  releaseDetailSchema,
+  releaseSearchSchema,
+  releaseSearchResultSchema,
+} from './releases.js';
 import { mediaDeleteSchema, mediaDetailSchema, mediaPageSchema } from './media.js';
 import {
   presentationCreateSchema,
@@ -77,4 +85,13 @@ export const presentationApiSchemas = {
     target: 'openapi-3.0',
   }),
   removed: knowledgeApiSchemas.removed,
+};
+
+export const releaseApiSchemas = {
+  create: z.toJSONSchema(releaseCreateSchema, { target: 'openapi-3.0', io: 'input' }),
+  query: z.toJSONSchema(releaseSearchSchema, { target: 'openapi-3.0', io: 'input' }),
+  readiness: z.toJSONSchema(z.object({ data: releaseReadinessSchema }), { target: 'openapi-3.0' }),
+  page: z.toJSONSchema(z.object({ data: releasePageSchema }), { target: 'openapi-3.0' }),
+  detail: z.toJSONSchema(z.object({ data: releaseDetailSchema }), { target: 'openapi-3.0' }),
+  search: z.toJSONSchema(z.object({ data: releaseSearchResultSchema }), { target: 'openapi-3.0' }),
 };

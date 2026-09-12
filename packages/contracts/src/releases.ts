@@ -221,7 +221,12 @@ export function normalizeKnowledgeText(value: string): string {
 }
 export const releaseSearchSchema = z.strictObject({
   locale: z.enum(['en', 'ne']),
-  query: z.string().max(500).transform(normalizeKnowledgeText).pipe(z.string().min(1)),
+  query: z
+    .string()
+    .max(500)
+    .refine((value) => !value.includes('\u0000'), 'NUL characters are not supported.')
+    .transform(normalizeKnowledgeText)
+    .pipe(z.string().min(1)),
 });
 export const releasePassageSchema = z.strictObject({
   entryId: z.uuid(),
