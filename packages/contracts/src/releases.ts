@@ -231,12 +231,26 @@ export const releasePassageSchema = z.strictObject({
   score: z.number().finite().nonnegative(),
   truncated: z.boolean(),
 });
-export const releaseSearchResultSchema = z.strictObject({
-  releaseId: z.uuid(),
-  snapshotHash: hash,
-  locale: z.enum(['en', 'ne']),
-  passages: z.array(releasePassageSchema).max(RELEASE_LIMITS.passages),
-});
+export function releasePassageCharacters(passage: {
+  title: string;
+  question: string;
+  text: string;
+}): number {
+  return Array.from([passage.title, passage.question, passage.text].join('\n')).length;
+}
+export const releaseSearchResultSchema = z
+  .strictObject({
+    releaseId: z.uuid(),
+    snapshotHash: hash,
+    locale: z.enum(['en', 'ne']),
+    passages: z.array(releasePassageSchema).max(RELEASE_LIMITS.passages),
+  })
+  .refine(
+    (value) =>
+      value.passages.reduce((sum, passage) => sum + releasePassageCharacters(passage), 0) <=
+      RELEASE_LIMITS.passageCharacters,
+    'Passages must fit the combined 6000-character Unicode budget.',
+  );
 export type ReleaseSnapshot = z.infer<typeof releaseSnapshotSchema>;
 export type ReleaseMedia = z.infer<typeof releaseMediaSchema>;
 export type ReleaseDetail = z.infer<typeof releaseDetailSchema>;

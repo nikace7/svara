@@ -1,5 +1,9 @@
 import type { Prisma } from '@svara/database';
-import { RELEASE_LIMITS, releaseSearchResultSchema } from '@svara/contracts';
+import {
+  RELEASE_LIMITS,
+  releasePassageCharacters,
+  releaseSearchResultSchema,
+} from '@svara/contracts';
 import type { ReleaseSearchResult } from '@svara/contracts';
 
 type Ranked = { entryId: string; title: string; question: string; content: string; score: number };
@@ -17,7 +21,7 @@ export async function searchRelease(
     SELECT "entryId", "title", "question", "content",
       (CASE WHEN "normalizedQuestion" = ${query} THEN 3.0
         WHEN strpos("searchText", ${query}) > 0 THEN 2.0 ELSE 0.0 END
-        + CASE WHEN ${locale} = 'en' THEN coalesce(ts_rank_cd("searchVector", plainto_tsquery('english', ${query})), 0) ELSE 0 END
+        + CASE WHEN ${locale} = 'en' THEN coalesce(ts_rank_cd("searchVector", plainto_tsquery('english', ${query}), 32), 0) ELSE 0 END
         + greatest(similarity("searchText", ${query}), similarity("normalizedQuestion", ${query})))::float8 AS score
     FROM "ReleaseKnowledge"
     WHERE "organisationId" = ${organisationId}::uuid AND "releaseId" = ${releaseId}::uuid
@@ -30,7 +34,7 @@ export async function searchRelease(
   let remaining: number = RELEASE_LIMITS.passageCharacters;
   const passages: ReleaseSearchResult['passages'] = [];
   for (const row of rows) {
-    const headerCharacters = Array.from(`${row.title}\n${row.question}\n`).length;
+    const headerCharacters = releasePassageCharacters({ ...row, text: '' });
     if (remaining <= headerCharacters) break;
     const content = Array.from(row.content);
     const text = content.slice(0, remaining - headerCharacters).join('');
@@ -42,7 +46,7 @@ export async function searchRelease(
       score: row.score,
       truncated: text.length < row.content.length,
     });
-    remaining -= headerCharacters + Array.from(text).length;
+    remaining -= releasePassageCharacters({ ...row, text });
   }
   return releaseSearchResultSchema.parse({ releaseId, snapshotHash, locale, passages });
 }
