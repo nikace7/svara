@@ -327,3 +327,32 @@ snapshot. Cancel outstanding queries when language or release changes. Present z
 matches with the saved fallback as reference text, and keep expired preview content
 readable while denying new queries. This inspector neither generates an AI answer
 nor establishes device deployment or conversation admission.
+
+## ADR 025 — Additive local examples share inspection and release capture
+
+Provision fictional authoring bundles only through the existing guarded local CLI.
+Validate the database target and application marker first. A new bundle requires an
+enabled owner/administrator in its own organisation; lock that authority while
+provisioning. Seed approvals reference this local author, while audits explicitly
+identify LOCAL provisioning rather than a staff session or a real policy review.
+
+Use one Read Committed transaction with a per-organisation advisory lock and a
+versioned ApplicationMetadata receipt. A waiting seed sees the first committed
+receipt and does nothing. Content, publication, locale projections, media references
+and receipt commit together. Refuse existing bot IDs without a receipt. Preserve
+completed bundles after edits, archival, child deletion or changed owner access.
+Future seed versions need a new explicit migration/provisioning design; deleting a
+receipt is not a supported reset mechanism.
+
+Run original image fixtures through the real inspector and shared checksum/output
+validation before creating READY metadata. Check media quotas. Share the existing
+transactional release capture primitive so seeded releases have the same readiness,
+snapshot hash, version allocation and matching projections as staff publication.
+The guarded seed establishes local authority; normal publication keeps its existing
+serializable staff authority and idempotency boundary. No HTTP seed route is exposed.
+
+Filesystem cleanup checks committed media references after the transaction. A lost
+commit acknowledgement must not delete retained output. If that database read also
+fails, leave generated files for orphan reconciliation. Native seeding compiles the
+image child first. CI defers demo seeding to Compose so inspected files are written
+to the same volume used by the API and browser walkthrough.

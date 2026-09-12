@@ -27,8 +27,10 @@ revision conflicts, read-only roles, archive/restore, FAQ/reference approval and
 release inclusion. The media library supports streaming uploads, durable inspection,
 private image/video previews and confirmed removal. Presentation authoring adds ordered
 bilingual slides, screen targets, ready media attachments and real draft previews.
-Immutable preview and publication follow.
-See [authoring scope](docs/M3-AUTHORING.md).
+Immutable previews, numbered publication, retry recovery and frozen bilingual
+knowledge inspection are implemented. Setup adds three fictional guides, inspected
+map artwork and a published campus example while preserving existing edits.
+See [authoring scope](docs/M3-AUTHORING.md) and [demo walkthrough](docs/DEMO-CONTENT.md).
 
 ## Architecture
 
@@ -90,12 +92,18 @@ jobs, and waits for health checks. Only `127.0.0.1:4320` is exposed.
 Stop with `pnpm demo:down`; named data volumes are retained.
 
 The studio requires sign-in. Choose **Create a workspace** at `/login` to create
-your own organisation and owner account. The seed currently creates only the
-fictional Himal and Riverside organisations, with five staff accounts covering all
-roles. Read the generated passwords in `.local/setup/demo-staff.json`; native and
+your own organisation and owner account. The seed creates the fictional Himal and
+Riverside organisations, five staff accounts and reusable authoring examples.
+Read the generated passwords in `.local/setup/demo-staff.json`; native and
 Compose modes share this ignored file. No default password is committed. The voice
 lab and component gallery additionally require local fixture
 mode, including after sign-in. Free provider account instructions are linked above.
+
+Sign in as the seeded Himal owner to inspect **Campus Admissions Guide → Releases
+→ Version 1**. Its current draft deliberately has a missing Nepali greeting to
+demonstrate readiness checks; the published version remains complete. An unapproved,
+unselected fee draft demonstrates safe fallback. Repeating setup in the same launch
+mode preserves edits, archive state and deleted content in completed bundles.
 
 ## Native development
 
@@ -115,10 +123,16 @@ PostgreSQL 5434 and Redis 6381. Port 3001 avoids an unrelated service on this ma
 containers use web port 3000 internally. Ctrl+C stops the coordinated app watchers;
 `pnpm infra:down` stops infrastructure while retaining data.
 
-Native media integration tests additionally need FFmpeg/ffprobe and an explicit
-development inspection setting. See [media inspection setup](docs/MEDIA-INSPECTION.md).
+Before starting the native worker, install FFmpeg/ffprobe and configure the explicit
+development inspection setting described in [media inspection setup](docs/MEDIA-INSPECTION.md).
+The seed command compiles its image inspector before importing the PNG example.
 Compose includes the Linux ffprobe sandbox. The worker watcher compiles inspection
 children as well as its main process, so new jobs use the current emitted code.
+
+Compose and native modes share the development database but use different media
+stores. Switching modes does not transfer files, and reseeding preserves existing
+references. Keep the existing demo in its original mode unless its media files have
+also been transferred. See [local storage](docs/OPERATIONS.md#configuration).
 
 ## Explore the media library
 
