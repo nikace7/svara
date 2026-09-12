@@ -13,6 +13,7 @@ describe('device boundary contracts', () => {
     for (const value of [
       { name: '' },
       { name: 'x'.repeat(121) },
+      { name: 'Lobby\0device' },
       { name: 'Lobby', organisationId: '10000000-0000-4000-8000-000000000001' },
       { name: 'Lobby', capabilities: { microphone: 'true' } },
     ])
@@ -50,5 +51,6 @@ describe('device boundary contracts', () => {
     expect(deviceListSchema.parse({})).toMatchObject({ limit: 25, search: '' });
     expect(deviceListSchema.safeParse({ limit: 101 }).success).toBe(false);
     expect(deviceListSchema.safeParse({ cursor: 'unbounded query' }).success).toBe(false);
+    expect(deviceListSchema.safeParse({ search: 'Lobby\0device' }).success).toBe(false);
   });
 });
