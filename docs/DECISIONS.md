@@ -266,3 +266,44 @@ authority, idle expiry or revision rules. The operation can still fail once the 
 is exhausted; unrelated errors are never retried. A deterministic regression injects
 five conflicts, proves one bot and audit commit, checks failure after six attempts and
 revokes the session during a retry to verify authority is resolved again.
+
+## ADR 022 — Immutable release captures with matching projections
+
+Capture one root draft revision under serializable staff authority and a bot row
+lock. Allocate published versions from a separate counter; previews use null
+versions and a 30-minute admission deadline. Neither changes the draft revision or
+its modification time. Snapshot object keys are canonicalized for SHA-256, with
+array order and original bilingual text preserved. Publication always requires
+approved selected knowledge; staff previews may freeze selected DRAFT content for
+testing and retain that status explicitly.
+
+Keep safe idempotency results as release references, scoped by membership and
+operation, with hashed keys/requests and a 24-hour lifetime. Replays recheck current
+authority but do not reread the changed draft. Separate sessions sharing a key
+return the same capture; different requests sharing a key conflict.
+
+Generate immutable, snapshot-matching per-locale knowledge projections and media
+references in the same transaction. Deferred completeness checks prevent partial
+assembly. Media foreign keys include READY state, SHA-256 and length; draft deletion
+cannot remove files retained by a release. Preserve history with restrictive bot
+and idempotency relations. Future runtime/history references and retention jobs
+extend this boundary; they are not implemented by the capture service.
+
+Search only the pinned projection, using English full-text search and bilingual
+trigrams/exact matching. Normalize full-text rank below exact-match tiers. Charge
+all returned passage text, including title/question/newlines, against one 6,000
+Unicode-code-point budget. See `RELEASES.md` for limits and outstanding integration.
+
+## ADR 023 — Recognize raw SQL write conflicts without broad retries
+
+The multi-session preview regression exposed a PostgreSQL row-lock serialization
+failure wrapped as Prisma P2010. The installed pg adapter places the exact
+`DriverAdapterError` / `TransactionWriteConflict` in `meta.driverAdapterError`,
+rather than the older top-level `meta.code` shape. Recognize this verified wrapper
+in addition to the existing P2034 and direct commit-conflict forms.
+
+Keep the five-retry budget, jitter and fresh authority checks from ADR 021.
+Constraint failures and unrelated raw-query errors propagate without retries. A
+focused PostgreSQL regression raises SQLSTATE 40001 and 23514 to verify that
+distinction; the release regression also runs concurrent requests through two
+separate authenticated sessions.

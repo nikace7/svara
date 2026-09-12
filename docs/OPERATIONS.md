@@ -129,3 +129,14 @@ The playback core accepts at most two seconds of 24 kHz PCM. The lab tone is onl
 Do not infer real speech quality or hands-free interruption from the tone/meter.
 No provider keys are configured, no live adapters have been connected, and no
 billable evaluation ran. The remaining live gate is tracked in `docs/M1-VOICE.md`.
+
+## Repeating browser checks
+
+The browser tests keep real credential quotas enabled: 30 requests per client
+address and 10 per account in a ten-minute window. A complete run uses synthetic
+accounts and several role-specific sign-ins. Immediately repeating the whole suite
+can return HTTP 429 during otherwise valid login/register journeys. Honor the
+response's `Retry-After` and let the window expire before rerunning those checks.
+Keep the limiter enabled; do not clear shared Redis data to make a test pass.
+Target an affected journey while iterating, then run the complete gate once after
+the cooldown. Test fixtures never call live speech or generation providers.

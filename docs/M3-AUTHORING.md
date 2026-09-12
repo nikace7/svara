@@ -4,7 +4,8 @@ M3 is in progress. Persisted bot drafts and bilingual knowledge now have a prote
 API and studio editors. The media library includes authenticated streaming uploads,
 durable inspection, private previews and removal. Presentations now support ordered
 bilingual slides, primary/secondary targeting and protected media references.
-Immutable releases remain pending.
+Immutable release capture, readiness and retrieval now exist in the domain/database
+layer; their staff API and studio controls remain pending. See `RELEASES.md`.
 Draft tool choices are configuration; they do not execute tools.
 
 ## Draft architecture
@@ -43,8 +44,8 @@ Entry changes require `expectedRevision` and increment both the entry revision a
 the parent bot revision in the same transaction. Saving text clears approval;
 changing release inclusion preserves it. Approval records the reviewing membership
 and time. Archived bots reject entry mutations. Deletion removes the draft entry
-while retaining its audit record; immutable release preservation will be added
-with release snapshots. Audit data contains IDs and actions rather than entry text.
+while retaining its audit record. Existing releases retain their own immutable
+content and retrieval projections. Audit data contains IDs and actions rather than entry text.
 
 Titles are bounded at 160 characters, questions at 500 per language, and content
 at 8,000 per language. Reference notes cannot carry FAQ questions. Listing supports
@@ -75,8 +76,8 @@ provider or establishes the factual accuracy of the submitted text.
 The staff media library and its authenticated streaming API are implemented; see
 `MEDIA-INSPECTION.md` for the current processing boundary.
 
-1. Release readiness checks, immutable preview/published snapshots, idempotent
-   publication and release-local search projections.
+1. Staff API and studio integration for release readiness, immutable preview/published
+   captures, idempotent publication and history. Their domain/database layer is implemented.
 2. Knowledge query inspection against a pinned release, synthetic bot/content/media
    examples and the complete authoring browser gate.
 
@@ -95,7 +96,7 @@ Slides carry titles up to 160 characters and text up to 2,000 characters per lan
 an optional media ID, a PRIMARY/SECONDARY/BOTH target and a duration of 1–600 seconds.
 Drafts may be incomplete. Shared readiness checks require both titles and, when any
 body text is supplied, both body translations. These checks describe translation
-completeness; release publication validation is still to be implemented.
+completeness and are also enforced during release capture.
 
 Every child mutation increments the presentation and root bot revisions. Existing
 slide edits and deletion compare the slide revision; appending or reordering compares
@@ -106,10 +107,10 @@ than bilingual text. The creation audit identifies the new slide.
 
 Slide references include the asset's organisation and fixed READY state. The database
 rejects foreign or unready attachments and prevents an attached asset from changing
-to DELETING. The media API returns 409 `MEDIA_IN_USE` until all draft slide references
-are removed. The attach-versus-delete race is covered using actual inspected images;
-one operation wins, and referenced files remain readable. Future immutable releases
-must add their own reference protection before release references can exist.
+to DELETING. The media API returns 409 `MEDIA_IN_USE` while any slide or saved release
+references the asset. The attach-versus-delete race is covered using actual inspected
+images; one operation wins, and referenced files remain readable. Release references
+also protect the SHA-256 and byte length after draft slides are removed.
 
 The editor owns an explicit saved snapshot and keeps local edits across locale changes,
 navigation prompts and conflicts. It never adopts a newer revision to force a stale

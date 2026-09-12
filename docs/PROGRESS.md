@@ -504,3 +504,60 @@ Next: immutable preview/published releases, release readiness, idempotent public
 release media references and release-local knowledge query inspection. M1 live voice
 and M3–M8 remain on the active project objective. Account setup instructions remain
 available in `FREE-DEMO-SETUP.md`; fixture mode supports continued local development.
+
+## M3 immutable release domain — 2026-09-12
+
+The release database and domain layer now capture immutable preview/published
+snapshots from one expected root draft revision. Published numbering uses a locked
+bot row and a separate counter. Capture includes selected bilingual knowledge,
+ordered slides and deduplicated READY media checksums/lengths. Canonical hashing
+survives JSONB key ordering. Published knowledge must be approved; staff previews
+may freeze selected DRAFT content with its actual status. Provider mode is recorded
+explicitly, and fixture releases need no external account.
+
+Hashed idempotency keys are scoped by membership and operation for 24 hours.
+Concurrent retries return one original result; changed payloads conflict. Preview
+retrieval expires after 30 minutes while historical inspection remains available.
+Migration 010 protects immutable rows, complete matching locale projections and
+media references, including after source draft deletion. Release-local retrieval
+supports English full text and bilingual exact/trigram matching, stable IDs, five
+passages and a combined 6,000-code-point text budget. ADRs 022–023 and `RELEASES.md`
+record the implementation and its remaining runtime/retention boundaries.
+
+Regression tests exposed and fixed three gaps: an unenforced aggregate response
+budget, repetition overpowering exact FAQ ranking, and raw SQL serialization errors
+escaping the retry handler. The installed Prisma adapter wraps raw write conflicts
+inside P2010 metadata. The fix recognizes that exact driver-conflict form, preserves
+bounded retries and fresh authority, and leaves constraint failures non-retryable.
+A test fixture also needed its validated snapshot type rather than nullable Prisma
+read JSON when constructing an intentionally incomplete row.
+
+The full browser gate exposed a duplicate-label selector during language switching.
+Base UI briefly retains the outgoing inert panel; tests now select the named language
+panel and textbox role. All three presentation journeys then passed. An immediate
+whole-suite repeat reached the existing credential rate limit. The final browser
+run passed after the real cooldown; the limiter and shared Redis state were preserved.
+
+Verified at this checkpoint:
+
+- `pnpm check` passed formatting, lint, types, **133 unit tests**, generated API
+  contract checks and every production build. Configured-subset coverage remains
+  **96.67% lines / 90.67% branches**, not whole-application or release-service coverage.
+- All **108 native integration tests** passed. The **13 release/transaction tests**
+  also passed inside the rebuilt Linux image, including real inspected media,
+  separate sign-ins, cross-bot key collisions, expiry and direct database constraints.
+- All **32 browser journeys** passed against the rebuilt demo after the selector
+  correction and credential cooldown. The test-only change also passed targeted
+  lint, formatting and root test types.
+- The common production image built successfully. Migration/seed completed and all
+  six long-running Compose services became healthy; native database/Redis ports
+  were closed again when restoring the full demo.
+- Gitleaks scanned the **ten implementation/test commits** from `6d1c0e3` through
+  `74c69e0` with no detected leaks. Remaining checkpoint changes are documentation.
+
+Staff release HTTP routes, studio readiness/history controls, snapshot/query
+inspection and synthetic release examples remain the next M3 increment. The
+current Voice lab still uses fixture scenarios. Runtime preview admission, device
+deployment, public sharing and retention cleanup are not provided by this domain
+checkpoint. No provider account was created, key used, live API called or remote
+push performed. The complete project goal remains active.
