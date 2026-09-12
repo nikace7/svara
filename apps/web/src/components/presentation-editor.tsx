@@ -43,6 +43,7 @@ export function PresentationEditor({
   const [order, setOrder] = useState(initial.slides.map((slide) => slide.id));
   const [locale, setLocale] = useState<'en' | 'ne'>('en');
   const [previewLocale, setPreviewLocale] = useState<'en' | 'ne'>('en');
+  const [previewAttempt, setPreviewAttempt] = useState(0);
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -121,9 +122,10 @@ export function PresentationEditor({
   function confirmAction() {
     void perform(
       async () => {
-        if (confirm === 'reload')
+        if (confirm === 'reload') {
           accept(await send<PresentationDetail>(`/presentations/${snapshot.id}`));
-        else if (confirm === 'slide' && draft)
+          setPreviewAttempt((value) => value + 1);
+        } else if (confirm === 'slide' && draft)
           accept(
             await mutate(`/slides/${draft.id}`, 'DELETE', { expectedRevision: draft.revision }),
           );
@@ -369,8 +371,18 @@ export function PresentationEditor({
               </select>
             </div>
           </div>
-          <SlidePreview slide={draft} locale={previewLocale} screen="PRIMARY" />
-          <SlidePreview slide={draft} locale={previewLocale} screen="SECONDARY" />
+          <SlidePreview
+            key={`primary-${draft?.id}-${previewAttempt}`}
+            slide={draft}
+            locale={previewLocale}
+            screen="PRIMARY"
+          />
+          <SlidePreview
+            key={`secondary-${draft?.id}-${previewAttempt}`}
+            slide={draft}
+            locale={previewLocale}
+            screen="SECONDARY"
+          />
           <p className="small muted">
             Draft preview · Videos are muted. Scroll inside a preview to inspect longer text.
           </p>
