@@ -45,3 +45,18 @@ rerun migrations, integration tests and contract generation when updating them.
 CI runs the dependency audit and all GitHub Actions are pinned to resolved commit
 SHAs. Dependabot configuration is ready for a future GitHub remote; no remote or
 hosted update job has been created in this local-only initialization.
+
+## Presentation checkpoint — 2026-09-12
+
+The fresh audit reported five advisories through Redocly's js-yaml 4.3.1 and
+Nest's multer 2.2.0. Scoped overrides now pin those dependency edges to js-yaml
+4.3.2 and multer 2.3.0. The lockfile changes only these patched resolutions;
+the dependency audit again reports no known vulnerabilities. Full contract
+generation, lint, types, the unit gate and production builds pass after installation.
+
+Sources: [js-yaml advisory](https://github.com/nodeca/js-yaml/security/advisories/GHSA-2883-xcg3-v3hh)
+and [Multer 2.3.0 release](https://github.com/expressjs/multer/releases/tag/v2.3.0).
+Svara's media endpoint parses its bounded form directly with Busboy, without
+Nest's Multer interceptor. Keep the patched transitive package and re-evaluate the
+overrides when updating the parent dependencies. No additional package build scripts
+were enabled.
