@@ -140,6 +140,12 @@ describe('scoped presentation authoring on PostgreSQL', () => {
       expectedRevision: 1,
     });
     const id = first.slides[0]!.id;
+    expect(
+      await staff.db.auditEntry.findFirst({ where: { action: 'slide.created', targetId: id } }),
+    ).toMatchObject({
+      organisationId: staff.owner.identity.organisation.id,
+      actorMembershipId: staff.owner.identity.membership.id,
+    });
     expect(first.slides[0]).toMatchObject({
       position: 0,
       revision: 1,
