@@ -25,6 +25,7 @@ model Organisation {
   auditEntries AuditEntry[]
   bots Bot[]
   mediaAssets MediaAsset[]
+  devices Device[]
 }
 
 model Bot {
@@ -178,6 +179,7 @@ model Membership {
   approvedKnowledge KnowledgeEntry[]
   uploadedMedia MediaAsset[]
   idempotencyRecords IdempotencyRecord[]
+  issuedPairings PairingChallenge[]
 
   @@unique([organisationId, userId])
   @@unique([id, organisationId])
@@ -379,4 +381,109 @@ model AuditEntry {
 
   @@index([organisationId, createdAt])
   @@index([actorMembershipId])
+}
+
+model Device {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  name String @db.VarChar(120)
+  capabilities Json
+  enabled Boolean @default(true)
+  maintenanceMode Boolean @default(false)
+  revision Int @default(1)
+  lastSeenAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  challenges PairingChallenge[]
+  credentials DeviceCredential[]
+  grants DeviceGrant[]
+
+  @@unique([id, organisationId])
+  @@index([organisationId, id])
+}
+
+model PairingChallenge {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deviceId String @db.Uuid
+  organisationId String @db.Uuid
+  issuerMembershipId String @db.Uuid
+  codeHash String @db.VarChar(43)
+  attempts Int @default(0)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+  redeemedAt DateTime? @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  device Device @relation(fields: [deviceId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  issuer Membership @relation(fields: [issuerMembershipId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  credential DeviceCredential?
+
+  @@unique([id, deviceId, organisationId], map: "PairingChallenge_scope_key")
+  @@index([deviceId, organisationId])
+  @@index([expiresAt])
+  @@index([issuerMembershipId, organisationId])
+}
+
+model DeviceCredential {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deviceId String @db.Uuid
+  organisationId String @db.Uuid
+  challengeId String @unique @db.Uuid
+  tokenHash String @unique @db.VarChar(43)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  lastUsedAt DateTime? @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  device Device @relation(fields: [deviceId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  challenge PairingChallenge @relation(fields: [challengeId, deviceId, organisationId], references: [id, deviceId, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  tickets DeviceTicket[]
+
+  @@unique([id, deviceId, organisationId], map: "DeviceCredential_scope_key")
+  @@unique([challengeId, deviceId, organisationId], map: "DeviceCredential_challenge_scope_key")
+  @@index([deviceId, organisationId, revokedAt])
+}
+
+enum DeviceClientRole {
+  PRIMARY
+  DISPLAY
+}
+
+model DeviceTicket {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  credentialId String @db.Uuid
+  deviceId String @db.Uuid
+  organisationId String @db.Uuid
+  tokenHash String @unique @db.VarChar(43)
+  namespace String @db.VarChar(16)
+  role DeviceClientRole
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+  consumedAt DateTime? @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  credential DeviceCredential @relation(fields: [credentialId, deviceId, organisationId], references: [id, deviceId, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  grant DeviceGrant?
+
+  @@unique([id, credentialId, deviceId, organisationId, role, namespace], map: "DeviceTicket_scope_key")
+  @@index([credentialId, role, expiresAt])
+  @@index([deviceId, organisationId])
+  @@index([expiresAt])
+}
+
+model DeviceGrant {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId String @unique @db.Uuid
+  credentialId String @db.Uuid
+  deviceId String @db.Uuid
+  organisationId String @db.Uuid
+  namespace String @db.VarChar(16)
+  role DeviceClientRole
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  lastSeenAt DateTime @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  device Device @relation(fields: [deviceId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  ticket DeviceTicket @relation(fields: [ticketId, credentialId, deviceId, organisationId, role, namespace], references: [id, credentialId, deviceId, organisationId, role, namespace], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([ticketId, credentialId, deviceId, organisationId, role, namespace], map: "DeviceGrant_ticket_scope_key")
+  @@index([deviceId, organisationId, role, expiresAt])
+  @@index([expiresAt])
 }
