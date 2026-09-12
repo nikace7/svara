@@ -39,6 +39,7 @@ model Bot {
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
   draft BotDraft?
   knowledge KnowledgeEntry[]
+  presentations Presentation[]
 
   @@unique([id, organisationId])
   @@index([organisationId, archivedAt, createdAt])
@@ -48,9 +49,60 @@ model BotDraft {
   botId String @id @db.Uuid
   organisationId String @db.Uuid
   config Json
+  presentationId String? @db.Uuid
   bot Bot @relation(fields: [botId, organisationId], references: [id, organisationId], onDelete: Cascade)
+  presentation Presentation? @relation(fields: [presentationId, botId, organisationId], references: [id, botId, organisationId], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([botId, organisationId])
+  @@index([presentationId, botId, organisationId])
+}
+
+model Presentation {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  botId String @db.Uuid
+  name String @db.VarChar(120)
+  revision Int @default(1)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  bot Bot @relation(fields: [botId, organisationId], references: [id, organisationId], onDelete: Cascade)
+  selectedBy BotDraft[]
+  slides Slide[]
+
+  @@unique([id, organisationId])
+  @@unique([id, botId, organisationId])
+  @@index([organisationId, botId, createdAt])
+}
+
+enum SlideTarget {
+  PRIMARY
+  SECONDARY
+  BOTH
+}
+
+model Slide {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  presentationId String @db.Uuid
+  position Int
+  titleEn String @default("") @db.VarChar(160)
+  titleNe String @default("") @db.VarChar(160)
+  bodyEn String @default("") @db.VarChar(2000)
+  bodyNe String @default("") @db.VarChar(2000)
+  mediaId String? @db.Uuid
+  mediaState MediaState?
+  target SlideTarget @default(BOTH)
+  durationSeconds Int @default(10)
+  revision Int @default(1)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  presentation Presentation @relation(fields: [presentationId, organisationId], references: [id, organisationId], onDelete: Cascade)
+  media MediaAsset? @relation(fields: [mediaId, organisationId, mediaState], references: [id, organisationId, state], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([id, organisationId])
+  @@unique([presentationId, position])
+  @@index([organisationId, presentationId])
+  @@index([mediaId, organisationId, mediaState])
 }
 
 enum KnowledgeType {
@@ -218,8 +270,10 @@ model MediaAsset {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
   createdBy Membership @relation(fields: [createdByMembershipId, organisationId], references: [id, organisationId], onDelete: Restrict)
+  slides Slide[]
 
   @@unique([id, organisationId])
+  @@unique([id, organisationId, state])
   @@index([organisationId, createdAt])
   @@index([state, leaseExpiresAt])
   @@index([state, createdAt])

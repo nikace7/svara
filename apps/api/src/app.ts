@@ -112,6 +112,10 @@ class SafeExceptionFilter implements ExceptionFilter {
       const codes = {
         MEDIA_BUSY: [409, 'This file is being processed. Wait and refresh before trying again.'],
         MEDIA_NOT_READY: [409, 'This file is not ready for playback.'],
+        MEDIA_IN_USE: [
+          409,
+          'This file is used by a presentation. Remove it from the slides first.',
+        ],
         MEDIA_QUOTA: [
           429,
           'The media library limit has been reached. Remove unused files or wait for pending uploads.',
@@ -146,6 +150,20 @@ class SafeExceptionFilter implements ExceptionFilter {
             'This draft changed elsewhere. Your edits have not been saved. Load the latest version before trying again.',
         },
         ARCHIVED: { status: 409, message: 'Restore this bot before editing its draft.' },
+        INVALID_SLIDE_ORDER: {
+          status: 409,
+          message: 'The slide list changed. Reload it and include every current slide once.',
+        },
+        PRESENTATION_LIMIT: {
+          status: 422,
+          message:
+            'This bot has reached its limit of 20 presentations. Remove an unused presentation first.',
+        },
+        SLIDE_LIMIT: {
+          status: 422,
+          message:
+            'A presentation can contain up to 50 slides. Remove a slide before adding another.',
+        },
         INCOMPLETE_TRANSLATIONS: {
           status: 422,
           message: 'Complete both languages before approving this entry.',
