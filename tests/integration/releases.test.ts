@@ -205,6 +205,121 @@ describe('immutable release assembly on PostgreSQL', () => {
     ).rejects.toMatchObject({ code: 'PRECONDITION_REQUIRED' });
   });
 
+  it('scopes retry keys by actor and operation and expires them after 24 hours', async () => {
+    const bot = await readyBot();
+    const key = randomUUID();
+    const secondSession = await identity.login({
+      email: `owner-${staff.suffix}`,
+      password: staff.password,
+    });
+    const request = { expectedRevision: bot.revision };
+    const [first, retry] = await Promise.all([
+      releases.preview(staff.owner.token, bot.id, request, key),
+      releases.preview(secondSession.token, bot.id, request, key),
+    ]);
+    expect(retry).toEqual(first);
+    const published = await releases.publish(secondSession.token, bot.id, request, key);
+    expect(published).toMatchObject({ kind: 'PUBLISHED', version: 1 });
+    expect(published.id).not.toBe(first.id);
+    for (const invalid of [undefined, '', 'short', 'x'.repeat(129)])
+      await expect(
+        releases.publish(staff.owner.token, bot.id, request, invalid),
+      ).rejects.toMatchObject({
+        code: !invalid ? 'IDEMPOTENCY_REQUIRED' : 'IDEMPOTENCY_INVALID',
+      });
+    const other = await readyBot();
+    const sharedKey = randomUUID();
+    const competing = await Promise.allSettled([
+      releases.publish(staff.owner.token, bot.id, request, sharedKey),
+      releases.publish(
+        secondSession.token,
+        other.id,
+        { expectedRevision: other.revision },
+        sharedKey,
+      ),
+    ]);
+    expect(competing.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(competing.find((result) => result.status === 'rejected')).toMatchObject({
+      reason: { code: 'IDEMPOTENCY_CONFLICT' },
+    });
+    const invited = await identity.invite(staff.owner.token, {
+      email: `admin-${staff.suffix}`,
+      role: 'ADMINISTRATOR',
+    });
+    await identity.activate({
+      token: invited.token,
+      password: staff.password,
+      displayName: 'Release administrator',
+    });
+    const admin = await identity.login({
+      email: `admin-${staff.suffix}`,
+      password: staff.password,
+    });
+    expect((await releases.publish(admin.token, bot.id, request, key)).id).not.toBe(published.id);
+    const afterExpiry = new ReleaseService(identity, {
+      providerMode: 'fixture',
+      clock: () => new Date(Date.parse(published.createdAt) + 24 * 60 * 60 * 1000 + 1),
+    });
+    const later = await afterExpiry.publish(staff.owner.token, bot.id, request, key);
+    expect(later.id).not.toBe(published.id);
+    expect(later.snapshotHash).toBe(published.snapshotHash);
+    expect(await staff.db.idempotencyRecord.count({ where: { releaseId: published.id } })).toBe(0);
+    expect(await releases.get(staff.owner.token, published.id)).toEqual(published);
+  });
+
+  it('requires complete matching projections at commit and generates normalization from frozen text', async () => {
+    const bot = await readyBot();
+    await entry(bot.id);
+    const released = await releases.publish(
+      staff.owner.token,
+      bot.id,
+      { expectedRevision: await revision(bot.id) },
+      randomUUID(),
+    );
+    const stored = await staff.db.botRelease.findUniqueOrThrow({ where: { id: released.id } });
+    const missing = { ...stored, id: randomUUID(), version: 500 };
+    await expect(staff.db.botRelease.create({ data: missing })).rejects.toThrow();
+    expect(await staff.db.botRelease.count({ where: { id: missing.id } })).toBe(0);
+    const source = released.snapshot.knowledge[0]!;
+    const projection = {
+      releaseId: missing.id,
+      organisationId: stored.organisationId,
+      snapshotHash: stored.snapshotHash,
+      entryId: source.id,
+      locale: 'en',
+      type: source.type,
+      title: source.title,
+      question: source.question.en,
+      content: source.content.en,
+    };
+    await expect(
+      staff.db.$transaction(async (tx) => {
+        await tx.botRelease.create({ data: missing });
+        await tx.releaseKnowledge.create({
+          data: { ...projection, content: 'Not in the frozen snapshot.' },
+        });
+      }),
+    ).rejects.toThrow();
+    await expect(
+      staff.db.$transaction(async (tx) => {
+        await tx.botRelease.create({ data: missing });
+        await tx.releaseKnowledge.createMany({
+          data: (['en', 'ne'] as const).map((locale) => ({
+            ...projection,
+            locale,
+            question: source.question[locale],
+            content: source.content[locale],
+            normalizedQuestion: 'poisoned search text',
+          })),
+        });
+      }),
+    ).rejects.toThrow();
+    const normalized = await staff.db.$queryRaw<
+      { text: string }[]
+    >`SELECT svara_normalize_knowledge(${'  CAFÉ\u00a0भर्ना\uFEFF१२\n'}) AS text`;
+    expect(normalized[0]?.text).toBe('café भर्ना १२');
+  });
+
   it('publishes one consistent version under duplicate retries and freezes draft content and media', async () => {
     const bot = await readyBot();
     const approved = await entry(bot.id);
