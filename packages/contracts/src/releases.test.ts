@@ -7,6 +7,7 @@ import {
   releaseDetailSchema,
   releaseSnapshotSchema,
   releaseSearchSchema,
+  releaseSearchResultSchema,
   normalizeKnowledgeText,
 } from './releases.js';
 
@@ -38,6 +39,35 @@ function snapshot() {
 }
 
 describe('immutable release contracts', () => {
+  it('budgets title, question and text together in Unicode code points across passages', () => {
+    const passage = {
+      entryId: randomUUID(),
+      title: 'AB',
+      question: 'CD',
+      text: '😀'.repeat(5994),
+      score: 1,
+      truncated: true,
+    };
+    const result = {
+      releaseId: randomUUID(),
+      snapshotHash: 'a'.repeat(64),
+      locale: 'en',
+      passages: [passage],
+    };
+    expect(releaseSearchResultSchema.safeParse(result).success).toBe(true);
+    expect(
+      releaseSearchResultSchema.safeParse({
+        ...result,
+        passages: [{ ...passage, text: passage.text + 'क' }],
+      }).success,
+    ).toBe(false);
+    expect(
+      releaseSearchResultSchema.safeParse({
+        ...result,
+        passages: [passage, { ...passage, text: '' }],
+      }).success,
+    ).toBe(false);
+  });
   it('requires explicit revisions and bounds idempotency keys without accepting actor scope', () => {
     expect(releaseCreateSchema.parse({ expectedRevision: 4 })).toEqual({ expectedRevision: 4 });
     for (const value of [

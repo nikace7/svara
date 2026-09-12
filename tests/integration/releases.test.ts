@@ -124,6 +124,37 @@ describe('immutable release assembly on PostgreSQL', () => {
     return (await bots.get(staff.owner.token, botId)).revision;
   }
 
+  it('ranks an exact FAQ question above a repetitive long note', async () => {
+    const bot = await readyBot();
+    const faq = await entry(bot.id);
+    const note = await knowledge.create(staff.owner.token, bot.id, {
+      title: 'Admissions reception',
+      type: 'NOTE',
+    });
+    const saved = await knowledge.save(staff.owner.token, note.id, {
+      expectedRevision: note.revision,
+      title: note.title,
+      type: 'NOTE',
+      question: { en: '', ne: '' },
+      content: { en: 'Admissions reception. '.repeat(300), ne: 'भर्ना कक्ष। '.repeat(300) },
+    });
+    await knowledge.approve(staff.owner.token, saved.id, {
+      expectedRevision: saved.revision,
+      approved: true,
+    });
+    const release = await releases.publish(
+      staff.owner.token,
+      bot.id,
+      { expectedRevision: await revision(bot.id) },
+      randomUUID(),
+    );
+    const result = await releases.search(staff.owner.token, release.id, {
+      locale: 'en',
+      query: 'Where is admissions reception?',
+    });
+    expect(result.passages[0]?.entryId).toBe(faq.id);
+  });
+
   it('reports actionable readiness without writing releases and rejects stale validation', async () => {
     const blank = await bots.create(staff.owner.token, { name: 'Incomplete guide' });
     const readiness = await releases.validate(staff.owner.token, blank.id, {
