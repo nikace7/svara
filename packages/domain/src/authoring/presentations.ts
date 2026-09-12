@@ -144,7 +144,7 @@ export class PresentationService {
     id: string,
     expectedRevision: number,
     action: string,
-    run: (tx: Transaction, current: Stored) => Promise<void>,
+    run: (tx: Transaction, current: Stored) => Promise<string | void>,
     slide = false,
   ): Promise<PresentationDetail> {
     parse(resourceIdSchema, id);
@@ -156,13 +156,13 @@ export class PresentationService {
         ? current.slides.find((entry) => entry.id === id)!.revision
         : current.revision;
       check(current.bot, revision, expectedRevision);
-      await run(tx, current);
+      const targetId = await run(tx, current);
       await this.bumpBot(tx, current.botId, member.organisationId);
       await tx.presentation.update({
         where: { id_organisationId: { id: current.id, organisationId: member.organisationId } },
         data: { revision: { increment: 1 } },
       });
-      await this.audit(tx, member.organisationId, member.id, action, id);
+      await this.audit(tx, member.organisationId, member.id, action, targetId ?? id);
       return detail(await this.load(tx, member.organisationId, current.id));
     });
   }
@@ -282,7 +282,7 @@ export class PresentationService {
       if (current.slides.length >= PRESENTATION_LIMITS.slides)
         throw new AuthoringError('SLIDE_LIMIT');
       await this.readyMedia(tx, current.organisationId, input.mediaId);
-      await tx.slide.create({
+      const created = await tx.slide.create({
         data: {
           ...slideData(input),
           organisationId: current.organisationId,
@@ -290,6 +290,7 @@ export class PresentationService {
           position: current.slides.length,
         },
       });
+      return created.id;
     });
   }
   async saveSlide(token: string, id: string, value: unknown): Promise<PresentationDetail> {
