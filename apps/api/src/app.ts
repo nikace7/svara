@@ -41,6 +41,13 @@ import {
   KNOWLEDGE_SERVICE,
 } from './authoring/knowledge-controller.js';
 import type { KnowledgeHttpService } from './authoring/knowledge-controller.js';
+import {
+  PRESENTATION_SERVICE,
+  PresentationsController,
+  SlidesController,
+  BotPresentationController,
+} from './authoring/presentation-controller.js';
+import type { PresentationHttpService } from './authoring/presentation-controller.js';
 
 const OPTIONS = Symbol('application-options');
 export interface ApplicationOptions {
@@ -51,6 +58,7 @@ export interface ApplicationOptions {
   identity?: IdentityHttpOptions;
   authoring?: BotHttpService;
   knowledge?: KnowledgeHttpService;
+  presentations?: PresentationHttpService;
   media?: MediaHttpService;
   trustedProxyHops?: 0 | 1;
 }
@@ -297,6 +305,9 @@ export async function createApplication(
       BotKnowledgeController,
       KnowledgeController,
       MediaController,
+      PresentationsController,
+      SlidesController,
+      BotPresentationController,
     ],
     providers: [
       { provide: OPTIONS, useValue: options },
@@ -304,6 +315,7 @@ export async function createApplication(
       { provide: BOT_SERVICE, useValue: options.authoring ?? null },
       { provide: KNOWLEDGE_SERVICE, useValue: options.knowledge ?? null },
       { provide: MEDIA_SERVICE, useValue: options.media ?? null },
+      { provide: PRESENTATION_SERVICE, useValue: options.presentations ?? null },
       StaffGuard,
     ],
   })

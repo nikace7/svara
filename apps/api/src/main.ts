@@ -5,6 +5,7 @@ import {
   createStaffLimiter,
   IdentityService,
   KnowledgeService,
+  PresentationService,
   MediaService,
   MediaStorage,
 } from '@svara/domain';
@@ -27,6 +28,7 @@ const app = await createApplication({
   },
   authoring: new BotService(identity),
   knowledge: new KnowledgeService(identity),
+  presentations: new PresentationService(identity),
   media: new MediaService(
     identity,
     dependencies.database,

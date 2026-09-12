@@ -415,6 +415,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/presentations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["presentations_list"];
+        put?: never;
+        post: operations["presentations_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/presentations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["presentations_get"];
+        put?: never;
+        post?: never;
+        delete: operations["presentations_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["presentations_save"];
+        trace?: never;
+    };
+    "/api/v1/presentations/{id}/slides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["presentations_createSlide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/presentations/{id}/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["presentations_reorder"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/slides/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["slides_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["slides_save"];
+        trace?: never;
+    };
+    "/api/v1/bots/{botId}/presentation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["botpresentation_select"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1962,6 +2058,949 @@ export interface operations {
                 content: {
                     "image/png": string;
                 };
+            };
+        };
+    };
+    presentations_list: {
+        parameters: {
+            query: {
+                botId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            botId: string;
+                            botRevision: number;
+                            /** Format: date-time */
+                            botArchivedAt: string | null;
+                            /** Format: uuid */
+                            selectedPresentationId: string | null;
+                            items: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                botId: string;
+                                name: string;
+                                revision: number;
+                                /** Format: date-time */
+                                updatedAt: string;
+                                slideCount: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict, changed slide set or archived bot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Mutations require the current presentation expectedRevision. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    presentations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    botId: string;
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            name: string;
+                            revision: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            slideCount: number;
+                            botRevision: number;
+                            /** Format: date-time */
+                            botArchivedAt: string | null;
+                            selected: boolean;
+                            slides: {
+                                title: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                body: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                /** Format: uuid */
+                                mediaId: string | null;
+                                /** @enum {string} */
+                                target: "PRIMARY" | "SECONDARY" | "BOTH";
+                                durationSeconds: number;
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                presentationId: string;
+                                revision: number;
+                                position: number;
+                                media: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    filename: string;
+                                    /** @enum {string} */
+                                    mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                    /** @enum {string} */
+                                    state: "UPLOADING" | "RECEIVING" | "QUARANTINED" | "INSPECTING" | "READY" | "REJECTED" | "DELETING";
+                                    revision: number;
+                                    uploadedBytes: number;
+                                    byteLength: number | null;
+                                    sha256: string | null;
+                                    width: number | null;
+                                    height: number | null;
+                                    durationSeconds: number | null;
+                                    hasThumbnail: boolean;
+                                    /** @enum {string|null} */
+                                    rejection: "UPLOAD_INTERRUPTED" | "UPLOAD_LENGTH_MISMATCH" | "UNSUPPORTED_FORMAT" | "INVALID_MEDIA" | "IMAGE_TOO_LARGE" | "VIDEO_LIMITS" | "UNSUPPORTED_CODEC" | "INSPECTION_TIMEOUT" | "INSPECTION_UNAVAILABLE" | "INTEGRITY_MISMATCH" | "UPLOAD_EXPIRED" | null;
+                                    /** Format: date-time */
+                                    createdAt: string;
+                                    /** Format: date-time */
+                                    updatedAt: string;
+                                } | null;
+                                complete: {
+                                    en: boolean;
+                                    ne: boolean;
+                                };
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict, changed slide set or archived bot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bot presentation limit reached. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Mutations require the current presentation expectedRevision. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    presentations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            name: string;
+                            revision: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            slideCount: number;
+                            botRevision: number;
+                            /** Format: date-time */
+                            botArchivedAt: string | null;
+                            selected: boolean;
+                            slides: {
+                                title: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                body: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                /** Format: uuid */
+                                mediaId: string | null;
+                                /** @enum {string} */
+                                target: "PRIMARY" | "SECONDARY" | "BOTH";
+                                durationSeconds: number;
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                presentationId: string;
+                                revision: number;
+                                position: number;
+                                media: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    filename: string;
+                                    /** @enum {string} */
+                                    mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                    /** @enum {string} */
+                                    state: "UPLOADING" | "RECEIVING" | "QUARANTINED" | "INSPECTING" | "READY" | "REJECTED" | "DELETING";
+                                    revision: number;
+                                    uploadedBytes: number;
+                                    byteLength: number | null;
+                                    sha256: string | null;
+                                    width: number | null;
+                                    height: number | null;
+                                    durationSeconds: number | null;
+                                    hasThumbnail: boolean;
+                                    /** @enum {string|null} */
+                                    rejection: "UPLOAD_INTERRUPTED" | "UPLOAD_LENGTH_MISMATCH" | "UNSUPPORTED_FORMAT" | "INVALID_MEDIA" | "IMAGE_TOO_LARGE" | "VIDEO_LIMITS" | "UNSUPPORTED_CODEC" | "INSPECTION_TIMEOUT" | "INSPECTION_UNAVAILABLE" | "INTEGRITY_MISMATCH" | "UPLOAD_EXPIRED" | null;
+                                    /** Format: date-time */
+                                    createdAt: string;
+                                    /** Format: date-time */
+                                    updatedAt: string;
+                                } | null;
+                                complete: {
+                                    en: boolean;
+                                    ne: boolean;
+                                };
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict, changed slide set or archived bot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Mutations require the current presentation expectedRevision. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    presentations_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** @enum {boolean} */
+                            ok: true;
+                            botRevision: number;
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict, changed slide set or archived bot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Mutations require the current presentation expectedRevision. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    presentations_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            name: string;
+                            revision: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            slideCount: number;
+                            botRevision: number;
+                            /** Format: date-time */
+                            botArchivedAt: string | null;
+                            selected: boolean;
+                            slides: {
+                                title: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                body: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                /** Format: uuid */
+                                mediaId: string | null;
+                                /** @enum {string} */
+                                target: "PRIMARY" | "SECONDARY" | "BOTH";
+                                durationSeconds: number;
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                presentationId: string;
+                                revision: number;
+                                position: number;
+                                media: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    filename: string;
+                                    /** @enum {string} */
+                                    mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                    /** @enum {string} */
+                                    state: "UPLOADING" | "RECEIVING" | "QUARANTINED" | "INSPECTING" | "READY" | "REJECTED" | "DELETING";
+                                    revision: number;
+                                    uploadedBytes: number;
+                                    byteLength: number | null;
+                                    sha256: string | null;
+                                    width: number | null;
+                                    height: number | null;
+                                    durationSeconds: number | null;
+                                    hasThumbnail: boolean;
+                                    /** @enum {string|null} */
+                                    rejection: "UPLOAD_INTERRUPTED" | "UPLOAD_LENGTH_MISMATCH" | "UNSUPPORTED_FORMAT" | "INVALID_MEDIA" | "IMAGE_TOO_LARGE" | "VIDEO_LIMITS" | "UNSUPPORTED_CODEC" | "INSPECTION_TIMEOUT" | "INSPECTION_UNAVAILABLE" | "INTEGRITY_MISMATCH" | "UPLOAD_EXPIRED" | null;
+                                    /** Format: date-time */
+                                    createdAt: string;
+                                    /** Format: date-time */
+                                    updatedAt: string;
+                                } | null;
+                                complete: {
+                                    en: boolean;
+                                    ne: boolean;
+                                };
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict, changed slide set or archived bot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Mutations require the current presentation expectedRevision. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    presentations_createSlide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @default {
+                     *       "en": "",
+                     *       "ne": ""
+                     *     }
+                     */
+                    title?: {
+                        en: string;
+                        ne: string;
+                    };
+                    /**
+                     * @default {
+                     *       "en": "",
+                     *       "ne": ""
+                     *     }
+                     */
+                    body?: {
+                        en: string;
+                        ne: string;
+                    };
+                    /**
+                     * Format: uuid
+                     * @default null
+                     */
+                    mediaId?: string | null;
+                    /**
+                     * @default BOTH
+                     * @enum {string}
+                     */
+                    target?: "PRIMARY" | "SECONDARY" | "BOTH";
+                    /** @default 10 */
+                    durationSeconds?: number;
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            name: string;
+                            revision: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            slideCount: number;
+                            botRevision: number;
+                            /** Format: date-time */
+                            botArchivedAt: string | null;
+                            selected: boolean;
+                            slides: {
+                                title: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                body: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                /** Format: uuid */
+                                mediaId: string | null;
+                                /** @enum {string} */
+                                target: "PRIMARY" | "SECONDARY" | "BOTH";
+                                durationSeconds: number;
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                presentationId: string;
+                                revision: number;
+                                position: number;
+                                media: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    filename: string;
+                                    /** @enum {string} */
+                                    mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                    /** @enum {string} */
+                                    state: "UPLOADING" | "RECEIVING" | "QUARANTINED" | "INSPECTING" | "READY" | "REJECTED" | "DELETING";
+                                    revision: number;
+                                    uploadedBytes: number;
+                                    byteLength: number | null;
+                                    sha256: string | null;
+                                    width: number | null;
+                                    height: number | null;
+                                    durationSeconds: number | null;
+                                    hasThumbnail: boolean;
+                                    /** @enum {string|null} */
+                                    rejection: "UPLOAD_INTERRUPTED" | "UPLOAD_LENGTH_MISMATCH" | "UNSUPPORTED_FORMAT" | "INVALID_MEDIA" | "IMAGE_TOO_LARGE" | "VIDEO_LIMITS" | "UNSUPPORTED_CODEC" | "INSPECTION_TIMEOUT" | "INSPECTION_UNAVAILABLE" | "INTEGRITY_MISMATCH" | "UPLOAD_EXPIRED" | null;
+                                    /** Format: date-time */
+                                    createdAt: string;
+                                    /** Format: date-time */
+                                    updatedAt: string;
+                                } | null;
+                                complete: {
+                                    en: boolean;
+                                    ne: boolean;
+                                };
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict, changed slide set or archived bot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Presentation slide limit reached. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Mutations require the current presentation expectedRevision. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    presentations_reorder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Every current slide ID exactly once, in the desired order. */
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                    slideIds: string[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            name: string;
+                            revision: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            slideCount: number;
+                            botRevision: number;
+                            /** Format: date-time */
+                            botArchivedAt: string | null;
+                            selected: boolean;
+                            slides: {
+                                title: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                body: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                /** Format: uuid */
+                                mediaId: string | null;
+                                /** @enum {string} */
+                                target: "PRIMARY" | "SECONDARY" | "BOTH";
+                                durationSeconds: number;
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                presentationId: string;
+                                revision: number;
+                                position: number;
+                                media: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    filename: string;
+                                    /** @enum {string} */
+                                    mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                    /** @enum {string} */
+                                    state: "UPLOADING" | "RECEIVING" | "QUARANTINED" | "INSPECTING" | "READY" | "REJECTED" | "DELETING";
+                                    revision: number;
+                                    uploadedBytes: number;
+                                    byteLength: number | null;
+                                    sha256: string | null;
+                                    width: number | null;
+                                    height: number | null;
+                                    durationSeconds: number | null;
+                                    hasThumbnail: boolean;
+                                    /** @enum {string|null} */
+                                    rejection: "UPLOAD_INTERRUPTED" | "UPLOAD_LENGTH_MISMATCH" | "UNSUPPORTED_FORMAT" | "INVALID_MEDIA" | "IMAGE_TOO_LARGE" | "VIDEO_LIMITS" | "UNSUPPORTED_CODEC" | "INSPECTION_TIMEOUT" | "INSPECTION_UNAVAILABLE" | "INTEGRITY_MISMATCH" | "UPLOAD_EXPIRED" | null;
+                                    /** Format: date-time */
+                                    createdAt: string;
+                                    /** Format: date-time */
+                                    updatedAt: string;
+                                } | null;
+                                complete: {
+                                    en: boolean;
+                                    ne: boolean;
+                                };
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict, changed slide set or archived bot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Mutations require the current presentation expectedRevision. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    slides_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            name: string;
+                            revision: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            slideCount: number;
+                            botRevision: number;
+                            /** Format: date-time */
+                            botArchivedAt: string | null;
+                            selected: boolean;
+                            slides: {
+                                title: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                body: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                /** Format: uuid */
+                                mediaId: string | null;
+                                /** @enum {string} */
+                                target: "PRIMARY" | "SECONDARY" | "BOTH";
+                                durationSeconds: number;
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                presentationId: string;
+                                revision: number;
+                                position: number;
+                                media: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    filename: string;
+                                    /** @enum {string} */
+                                    mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                    /** @enum {string} */
+                                    state: "UPLOADING" | "RECEIVING" | "QUARANTINED" | "INSPECTING" | "READY" | "REJECTED" | "DELETING";
+                                    revision: number;
+                                    uploadedBytes: number;
+                                    byteLength: number | null;
+                                    sha256: string | null;
+                                    width: number | null;
+                                    height: number | null;
+                                    durationSeconds: number | null;
+                                    hasThumbnail: boolean;
+                                    /** @enum {string|null} */
+                                    rejection: "UPLOAD_INTERRUPTED" | "UPLOAD_LENGTH_MISMATCH" | "UNSUPPORTED_FORMAT" | "INVALID_MEDIA" | "IMAGE_TOO_LARGE" | "VIDEO_LIMITS" | "UNSUPPORTED_CODEC" | "INSPECTION_TIMEOUT" | "INSPECTION_UNAVAILABLE" | "INTEGRITY_MISMATCH" | "UPLOAD_EXPIRED" | null;
+                                    /** Format: date-time */
+                                    createdAt: string;
+                                    /** Format: date-time */
+                                    updatedAt: string;
+                                } | null;
+                                complete: {
+                                    en: boolean;
+                                    ne: boolean;
+                                };
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict, unready media or archived bot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Mutations require the slide expectedRevision. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    slides_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: {
+                        en: string;
+                        ne: string;
+                    };
+                    body: {
+                        en: string;
+                        ne: string;
+                    };
+                    /** Format: uuid */
+                    mediaId: string | null;
+                    /** @enum {string} */
+                    target: "PRIMARY" | "SECONDARY" | "BOTH";
+                    durationSeconds: number;
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            name: string;
+                            revision: number;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            slideCount: number;
+                            botRevision: number;
+                            /** Format: date-time */
+                            botArchivedAt: string | null;
+                            selected: boolean;
+                            slides: {
+                                title: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                body: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                /** Format: uuid */
+                                mediaId: string | null;
+                                /** @enum {string} */
+                                target: "PRIMARY" | "SECONDARY" | "BOTH";
+                                durationSeconds: number;
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                presentationId: string;
+                                revision: number;
+                                position: number;
+                                media: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    filename: string;
+                                    /** @enum {string} */
+                                    mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                    /** @enum {string} */
+                                    state: "UPLOADING" | "RECEIVING" | "QUARANTINED" | "INSPECTING" | "READY" | "REJECTED" | "DELETING";
+                                    revision: number;
+                                    uploadedBytes: number;
+                                    byteLength: number | null;
+                                    sha256: string | null;
+                                    width: number | null;
+                                    height: number | null;
+                                    durationSeconds: number | null;
+                                    hasThumbnail: boolean;
+                                    /** @enum {string|null} */
+                                    rejection: "UPLOAD_INTERRUPTED" | "UPLOAD_LENGTH_MISMATCH" | "UNSUPPORTED_FORMAT" | "INVALID_MEDIA" | "IMAGE_TOO_LARGE" | "VIDEO_LIMITS" | "UNSUPPORTED_CODEC" | "INSPECTION_TIMEOUT" | "INSPECTION_UNAVAILABLE" | "INTEGRITY_MISMATCH" | "UPLOAD_EXPIRED" | null;
+                                    /** Format: date-time */
+                                    createdAt: string;
+                                    /** Format: date-time */
+                                    updatedAt: string;
+                                } | null;
+                                complete: {
+                                    en: boolean;
+                                    ne: boolean;
+                                };
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Revision conflict, unready media or archived bot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Mutations require the slide expectedRevision. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    botpresentation_select: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                botId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    presentationId: string | null;
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            presentationId: string | null;
+                            botRevision: number;
+                        };
+                    };
+                };
+            };
+            /** @description Bot revision conflict or archived bot. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Selection requires the bot expectedRevision. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
