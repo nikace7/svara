@@ -25,7 +25,13 @@ import type { NextFunction, Request, Response } from 'express';
 import { mediaRejectionMessages } from '@svara/contracts';
 import type { ProviderMode } from '@svara/contracts';
 import type { Readiness } from '@svara/domain';
-import { AuthoringError, IdentityError, MediaError } from '@svara/domain';
+import { AuthoringError, IdentityError, MediaError, ReleaseError } from '@svara/domain';
+import {
+  RELEASE_SERVICE,
+  BotReleasesController,
+  ReleasesController,
+} from './authoring/release-controller.js';
+import type { ReleaseHttpService } from './authoring/release-controller.js';
 import { MEDIA_SERVICE, MediaController } from './media/controller.js';
 import type { MediaHttpService } from './media/controller.js';
 import { createFeasibilityHandler } from './feasibility.js';
@@ -59,6 +65,7 @@ export interface ApplicationOptions {
   authoring?: BotHttpService;
   knowledge?: KnowledgeHttpService;
   presentations?: PresentationHttpService;
+  releases?: ReleaseHttpService;
   media?: MediaHttpService;
   trustedProxyHops?: 0 | 1;
 }
@@ -116,6 +123,41 @@ class SafeExceptionFilter implements ExceptionFilter {
     const response = host.switchToHttp().getResponse<Response>();
     const parserType =
       exception instanceof Error && 'type' in exception ? exception.type : undefined;
+    if (exception instanceof ReleaseError) {
+      const [status, message] = {
+        RELEASE_NOT_READY: [
+          422,
+          'Complete the required fields and approvals before creating this release.',
+        ],
+        IDEMPOTENCY_REQUIRED: [428, 'Include an Idempotency-Key for this release request.'],
+        IDEMPOTENCY_INVALID: [
+          400,
+          'Use an Idempotency-Key of 16–128 letters, digits, underscores or hyphens.',
+        ],
+        IDEMPOTENCY_CONFLICT: [
+          409,
+          'This retry key belongs to another request. Review the saved draft before starting a new release.',
+        ],
+        PREVIEW_EXPIRED: [
+          410,
+          'This preview has expired. Create a new preview to inspect its knowledge.',
+        ],
+        RELEASE_LIMIT: [422, 'This bot has reached its published version limit.'],
+      }[exception.code] as [number, string];
+      const fields = new Map<string, string[]>();
+      for (const issue of exception.readiness?.issues ?? [])
+        fields.set(issue.path, [...(fields.get(issue.path) ?? []), issue.message]);
+      response.status(status).json({
+        error: {
+          code: exception.code,
+          message,
+          fieldErrors: Object.fromEntries(fields),
+          retryable: false,
+        },
+        requestId: response.getHeader('x-request-id'),
+      });
+      return;
+    }
     if (exception instanceof MediaError) {
       const codes = {
         MEDIA_BUSY: [409, 'This file is being processed. Wait and refresh before trying again.'],
@@ -308,6 +350,8 @@ export async function createApplication(
       PresentationsController,
       SlidesController,
       BotPresentationController,
+      BotReleasesController,
+      ReleasesController,
     ],
     providers: [
       { provide: OPTIONS, useValue: options },
@@ -316,6 +360,7 @@ export async function createApplication(
       { provide: KNOWLEDGE_SERVICE, useValue: options.knowledge ?? null },
       { provide: MEDIA_SERVICE, useValue: options.media ?? null },
       { provide: PRESENTATION_SERVICE, useValue: options.presentations ?? null },
+      { provide: RELEASE_SERVICE, useValue: options.releases ?? null },
       StaffGuard,
     ],
   })

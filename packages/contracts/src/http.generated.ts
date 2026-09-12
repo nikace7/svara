@@ -511,6 +511,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bots/{botId}/releases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["botreleases_list"];
+        put?: never;
+        post: operations["botreleases_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bots/{botId}/releases/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["botreleases_validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bots/{botId}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["botreleases_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/releases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["releases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/releases/{id}/knowledge/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["releases_search"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2997,6 +3077,949 @@ export interface operations {
             };
             /** @description Selection requires the bot expectedRevision. */
             428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    botreleases_list: {
+        parameters: {
+            query?: {
+                pageSize?: number;
+                page?: number;
+                kind?: "ALL" | "PREVIEW" | "PUBLISHED";
+            };
+            header?: never;
+            path: {
+                botId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            items: ({
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                botId: string;
+                                botRevision: number;
+                                /** @enum {string} */
+                                providerMode: "fixture" | "live";
+                                snapshotHash: string;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** @enum {string} */
+                                kind: "PUBLISHED";
+                                version: number;
+                                /** @enum {string|null} */
+                                previewExpiresAt: null;
+                            } | {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                botId: string;
+                                botRevision: number;
+                                /** @enum {string} */
+                                providerMode: "fixture" | "live";
+                                snapshotHash: string;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** @enum {string} */
+                                kind: "PREVIEW";
+                                /** @enum {string|null} */
+                                version: null;
+                                /** Format: date-time */
+                                previewExpiresAt: string;
+                            })[];
+                            total: number;
+                            page: number;
+                            pageSize: number;
+                        };
+                    };
+                };
+            };
+            /** @description Stale root revision, archived bot or idempotency key reused with another request. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Release is not ready. Field errors identify the selected content to correct. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Capture requires expectedRevision and Idempotency-Key. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    botreleases_publish: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Reuse for the same request after an uncertain response. Scoped by staff membership and operation for 24 hours. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                botId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Immutable published version, or the original version on an idempotent replay. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            botRevision: number;
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            snapshotHash: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            kind: "PUBLISHED";
+                            version: number;
+                            /** @enum {string|null} */
+                            previewExpiresAt: null;
+                            snapshot: {
+                                /** @enum {number} */
+                                schemaVersion: 1;
+                                /** @enum {string} */
+                                providerMode: "fixture" | "live";
+                                bot: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                    description: string;
+                                    revision: number;
+                                    config: {
+                                        persona: string;
+                                        greeting: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        fallback: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        /** @enum {string} */
+                                        voiceEn: "en-US-JennyNeural";
+                                        /** @enum {string} */
+                                        voiceNe: "ne-NP-HemkalaNeural" | "ne-NP-SagarNeural";
+                                        tools: ("lookup_knowledge" | "get_event_schedule" | "select_reference" | "show_slide")[];
+                                    };
+                                };
+                                knowledge: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    revision: number;
+                                    /** @enum {string} */
+                                    type: "FAQ" | "NOTE";
+                                    title: string;
+                                    content: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    question: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    /** @enum {string} */
+                                    status: "DRAFT" | "APPROVED";
+                                }[];
+                                presentation: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                    revision: number;
+                                    slides: {
+                                        title: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        body: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        /** Format: uuid */
+                                        mediaId: string | null;
+                                        /** @enum {string} */
+                                        target: "PRIMARY" | "SECONDARY" | "BOTH";
+                                        durationSeconds: number;
+                                        /** Format: uuid */
+                                        id: string;
+                                        revision: number;
+                                        position: number;
+                                    }[];
+                                } | null;
+                                media: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    filename: string;
+                                    /** @enum {string} */
+                                    mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                    sha256: string;
+                                    byteLength: number;
+                                    width: number;
+                                    height: number;
+                                    durationSeconds: number | null;
+                                }[];
+                            };
+                        } | {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            botRevision: number;
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            snapshotHash: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            kind: "PREVIEW";
+                            /** @enum {string|null} */
+                            version: null;
+                            /** Format: date-time */
+                            previewExpiresAt: string;
+                            snapshot: {
+                                /** @enum {number} */
+                                schemaVersion: 1;
+                                /** @enum {string} */
+                                providerMode: "fixture" | "live";
+                                bot: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                    description: string;
+                                    revision: number;
+                                    config: {
+                                        persona: string;
+                                        greeting: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        fallback: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        /** @enum {string} */
+                                        voiceEn: "en-US-JennyNeural";
+                                        /** @enum {string} */
+                                        voiceNe: "ne-NP-HemkalaNeural" | "ne-NP-SagarNeural";
+                                        tools: ("lookup_knowledge" | "get_event_schedule" | "select_reference" | "show_slide")[];
+                                    };
+                                };
+                                knowledge: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    revision: number;
+                                    /** @enum {string} */
+                                    type: "FAQ" | "NOTE";
+                                    title: string;
+                                    content: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    question: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    /** @enum {string} */
+                                    status: "DRAFT" | "APPROVED";
+                                }[];
+                                presentation: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                    revision: number;
+                                    slides: {
+                                        title: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        body: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        /** Format: uuid */
+                                        mediaId: string | null;
+                                        /** @enum {string} */
+                                        target: "PRIMARY" | "SECONDARY" | "BOTH";
+                                        durationSeconds: number;
+                                        /** Format: uuid */
+                                        id: string;
+                                        revision: number;
+                                        position: number;
+                                    }[];
+                                } | null;
+                                media: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    filename: string;
+                                    /** @enum {string} */
+                                    mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                    sha256: string;
+                                    byteLength: number;
+                                    width: number;
+                                    height: number;
+                                    durationSeconds: number | null;
+                                }[];
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Stale root revision, archived bot or idempotency key reused with another request. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Release is not ready. Field errors identify the selected content to correct. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Capture requires expectedRevision and Idempotency-Key. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    botreleases_validate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                botId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Check the saved root draft revision without creating a release or calling a provider. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            botId: string;
+                            botRevision: number;
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            canPreview: boolean;
+                            canPublish: boolean;
+                            issues: {
+                                /** @enum {string} */
+                                code: "MISSING_TRANSLATION" | "UNAPPROVED_KNOWLEDGE" | "INVALID_CONFIG" | "MEDIA_NOT_READY" | "EMPTY_PRESENTATION" | "TOOL_REQUIRES_PRESENTATION" | "RELEASE_LIMIT";
+                                path: string;
+                                message: string;
+                                /** @enum {string} */
+                                blocks: "ALL" | "PUBLISH";
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description Stale root revision, archived bot or idempotency key reused with another request. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Release is not ready. Field errors identify the selected content to correct. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Capture requires expectedRevision and Idempotency-Key. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    botreleases_preview: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Reuse for the same request after an uncertain response. Scoped by staff membership and operation for 24 hours. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                botId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Persist a staff-only snapshot with a 30-minute preview admission deadline. Selected draft knowledge is permitted. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            botRevision: number;
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            snapshotHash: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            kind: "PUBLISHED";
+                            version: number;
+                            /** @enum {string|null} */
+                            previewExpiresAt: null;
+                            snapshot: {
+                                /** @enum {number} */
+                                schemaVersion: 1;
+                                /** @enum {string} */
+                                providerMode: "fixture" | "live";
+                                bot: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                    description: string;
+                                    revision: number;
+                                    config: {
+                                        persona: string;
+                                        greeting: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        fallback: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        /** @enum {string} */
+                                        voiceEn: "en-US-JennyNeural";
+                                        /** @enum {string} */
+                                        voiceNe: "ne-NP-HemkalaNeural" | "ne-NP-SagarNeural";
+                                        tools: ("lookup_knowledge" | "get_event_schedule" | "select_reference" | "show_slide")[];
+                                    };
+                                };
+                                knowledge: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    revision: number;
+                                    /** @enum {string} */
+                                    type: "FAQ" | "NOTE";
+                                    title: string;
+                                    content: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    question: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    /** @enum {string} */
+                                    status: "DRAFT" | "APPROVED";
+                                }[];
+                                presentation: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                    revision: number;
+                                    slides: {
+                                        title: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        body: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        /** Format: uuid */
+                                        mediaId: string | null;
+                                        /** @enum {string} */
+                                        target: "PRIMARY" | "SECONDARY" | "BOTH";
+                                        durationSeconds: number;
+                                        /** Format: uuid */
+                                        id: string;
+                                        revision: number;
+                                        position: number;
+                                    }[];
+                                } | null;
+                                media: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    filename: string;
+                                    /** @enum {string} */
+                                    mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                    sha256: string;
+                                    byteLength: number;
+                                    width: number;
+                                    height: number;
+                                    durationSeconds: number | null;
+                                }[];
+                            };
+                        } | {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            botRevision: number;
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            snapshotHash: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            kind: "PREVIEW";
+                            /** @enum {string|null} */
+                            version: null;
+                            /** Format: date-time */
+                            previewExpiresAt: string;
+                            snapshot: {
+                                /** @enum {number} */
+                                schemaVersion: 1;
+                                /** @enum {string} */
+                                providerMode: "fixture" | "live";
+                                bot: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                    description: string;
+                                    revision: number;
+                                    config: {
+                                        persona: string;
+                                        greeting: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        fallback: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        /** @enum {string} */
+                                        voiceEn: "en-US-JennyNeural";
+                                        /** @enum {string} */
+                                        voiceNe: "ne-NP-HemkalaNeural" | "ne-NP-SagarNeural";
+                                        tools: ("lookup_knowledge" | "get_event_schedule" | "select_reference" | "show_slide")[];
+                                    };
+                                };
+                                knowledge: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    revision: number;
+                                    /** @enum {string} */
+                                    type: "FAQ" | "NOTE";
+                                    title: string;
+                                    content: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    question: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    /** @enum {string} */
+                                    status: "DRAFT" | "APPROVED";
+                                }[];
+                                presentation: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                    revision: number;
+                                    slides: {
+                                        title: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        body: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        /** Format: uuid */
+                                        mediaId: string | null;
+                                        /** @enum {string} */
+                                        target: "PRIMARY" | "SECONDARY" | "BOTH";
+                                        durationSeconds: number;
+                                        /** Format: uuid */
+                                        id: string;
+                                        revision: number;
+                                        position: number;
+                                    }[];
+                                } | null;
+                                media: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    filename: string;
+                                    /** @enum {string} */
+                                    mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                    sha256: string;
+                                    byteLength: number;
+                                    width: number;
+                                    height: number;
+                                    durationSeconds: number | null;
+                                }[];
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Stale root revision, archived bot or idempotency key reused with another request. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Release is not ready. Field errors identify the selected content to correct. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Capture requires expectedRevision and Idempotency-Key. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    releases_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Inspect a saved snapshot, including an expired preview. This does not admit a conversation. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            botRevision: number;
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            snapshotHash: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            kind: "PUBLISHED";
+                            version: number;
+                            /** @enum {string|null} */
+                            previewExpiresAt: null;
+                            snapshot: {
+                                /** @enum {number} */
+                                schemaVersion: 1;
+                                /** @enum {string} */
+                                providerMode: "fixture" | "live";
+                                bot: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                    description: string;
+                                    revision: number;
+                                    config: {
+                                        persona: string;
+                                        greeting: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        fallback: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        /** @enum {string} */
+                                        voiceEn: "en-US-JennyNeural";
+                                        /** @enum {string} */
+                                        voiceNe: "ne-NP-HemkalaNeural" | "ne-NP-SagarNeural";
+                                        tools: ("lookup_knowledge" | "get_event_schedule" | "select_reference" | "show_slide")[];
+                                    };
+                                };
+                                knowledge: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    revision: number;
+                                    /** @enum {string} */
+                                    type: "FAQ" | "NOTE";
+                                    title: string;
+                                    content: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    question: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    /** @enum {string} */
+                                    status: "DRAFT" | "APPROVED";
+                                }[];
+                                presentation: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                    revision: number;
+                                    slides: {
+                                        title: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        body: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        /** Format: uuid */
+                                        mediaId: string | null;
+                                        /** @enum {string} */
+                                        target: "PRIMARY" | "SECONDARY" | "BOTH";
+                                        durationSeconds: number;
+                                        /** Format: uuid */
+                                        id: string;
+                                        revision: number;
+                                        position: number;
+                                    }[];
+                                } | null;
+                                media: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    filename: string;
+                                    /** @enum {string} */
+                                    mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                    sha256: string;
+                                    byteLength: number;
+                                    width: number;
+                                    height: number;
+                                    durationSeconds: number | null;
+                                }[];
+                            };
+                        } | {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            botId: string;
+                            botRevision: number;
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            snapshotHash: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** @enum {string} */
+                            kind: "PREVIEW";
+                            /** @enum {string|null} */
+                            version: null;
+                            /** Format: date-time */
+                            previewExpiresAt: string;
+                            snapshot: {
+                                /** @enum {number} */
+                                schemaVersion: 1;
+                                /** @enum {string} */
+                                providerMode: "fixture" | "live";
+                                bot: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                    description: string;
+                                    revision: number;
+                                    config: {
+                                        persona: string;
+                                        greeting: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        fallback: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        /** @enum {string} */
+                                        voiceEn: "en-US-JennyNeural";
+                                        /** @enum {string} */
+                                        voiceNe: "ne-NP-HemkalaNeural" | "ne-NP-SagarNeural";
+                                        tools: ("lookup_knowledge" | "get_event_schedule" | "select_reference" | "show_slide")[];
+                                    };
+                                };
+                                knowledge: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    revision: number;
+                                    /** @enum {string} */
+                                    type: "FAQ" | "NOTE";
+                                    title: string;
+                                    content: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    question: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    /** @enum {string} */
+                                    status: "DRAFT" | "APPROVED";
+                                }[];
+                                presentation: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                    revision: number;
+                                    slides: {
+                                        title: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        body: {
+                                            en: string;
+                                            ne: string;
+                                        };
+                                        /** Format: uuid */
+                                        mediaId: string | null;
+                                        /** @enum {string} */
+                                        target: "PRIMARY" | "SECONDARY" | "BOTH";
+                                        durationSeconds: number;
+                                        /** Format: uuid */
+                                        id: string;
+                                        revision: number;
+                                        position: number;
+                                    }[];
+                                } | null;
+                                media: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    filename: string;
+                                    /** @enum {string} */
+                                    mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                    sha256: string;
+                                    byteLength: number;
+                                    width: number;
+                                    height: number;
+                                    durationSeconds: number | null;
+                                }[];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+    releases_search: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description English/Nepali query (1–500 characters, no NUL). Body transport keeps query text out of URLs. */
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    locale: "en" | "ne";
+                    query: string;
+                };
+            };
+        };
+        responses: {
+            /** @description At most five passages and 6000 combined Unicode code points from this pinned release. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            releaseId: string;
+                            snapshotHash: string;
+                            /** @enum {string} */
+                            locale: "en" | "ne";
+                            passages: {
+                                /** Format: uuid */
+                                entryId: string;
+                                title: string;
+                                question: string;
+                                text: string;
+                                score: number;
+                                truncated: boolean;
+                            }[];
+                        };
+                    };
+                };
+            };
+            /** @description The preview has expired for new query inspection. Historical snapshot reads remain available. */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };
