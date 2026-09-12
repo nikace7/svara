@@ -1,7 +1,46 @@
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { staffFixture } from './staff-fixture.js';
 import { IdentityService } from '../../packages/domain/src/identity/service.js';
 import { BotService } from '../../packages/domain/src/authoring/bots.js';
+
+it('allows five bounded serialization retries without duplicate writes or cached authority', async () => {
+  const staff = await staffFixture();
+  const identity = new IdentityService(staff.db, staff.pepper);
+  const bots = new BotService(identity);
+  const organisationId = staff.owner.identity.organisation.id;
+  const conflict = Object.assign(new Error('Simulated serialization failure'), { code: 'P2034' });
+  const transaction = vi.spyOn(staff.db, '$transaction');
+  try {
+    for (let attempt = 0; attempt < 5; attempt++) transaction.mockRejectedValueOnce(conflict);
+    await bots.create(staff.owner.token, { name: 'After contention' });
+    expect(transaction).toHaveBeenCalledTimes(6);
+    expect(await staff.db.bot.count({ where: { organisationId } })).toBe(1);
+    expect(
+      await staff.db.auditEntry.count({ where: { organisationId, action: 'bot.created' } }),
+    ).toBe(1);
+    transaction.mockClear();
+    for (let attempt = 0; attempt < 6; attempt++) transaction.mockRejectedValueOnce(conflict);
+    await expect(bots.create(staff.owner.token, { name: 'Beyond retry budget' })).rejects.toBe(
+      conflict,
+    );
+    expect(transaction).toHaveBeenCalledTimes(6);
+    transaction.mockClear();
+    transaction.mockImplementationOnce(async () => {
+      await identity.logout(staff.owner.token);
+      throw conflict;
+    });
+    await expect(
+      bots.create(staff.owner.token, { name: 'Revoked during contention' }),
+    ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
+    expect(transaction).toHaveBeenCalledTimes(2);
+    expect(await staff.db.bot.count({ where: { organisationId } })).toBe(1);
+  } finally {
+    transaction.mockRestore();
+    await staff.db.botDraft.deleteMany({ where: { organisationId } });
+    await staff.db.bot.deleteMany({ where: { organisationId } });
+    await staff.close();
+  }
+});
 
 it('completes a burst of independent authoring requests using the same staff session', async () => {
   const staff = await staffFixture();
