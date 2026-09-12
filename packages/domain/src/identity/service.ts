@@ -62,9 +62,7 @@ function isDatabaseError(error: unknown, code: string): boolean {
   return error instanceof Error && 'code' in error && error.code === code;
 }
 
-function isTransactionConflict(error: unknown): boolean {
-  if (isDatabaseError(error, 'P2034')) return true;
-  // The pg adapter can reject COMMIT before Prisma wraps the error as P2034.
+function isDriverConflict(error: unknown): boolean {
   return (
     error instanceof Error &&
     error.name === 'DriverAdapterError' &&
@@ -72,6 +70,21 @@ function isTransactionConflict(error: unknown): boolean {
     error.cause !== null &&
     'kind' in error.cause &&
     error.cause.kind === 'TransactionWriteConflict'
+  );
+}
+
+function isTransactionConflict(error: unknown): boolean {
+  if (isDatabaseError(error, 'P2034') || isDriverConflict(error)) return true;
+  // Raw SQL wraps the same pg driver conflict in P2010 metadata. Other raw
+  // failures (constraints, invalid SQL, connection errors) are not retryable.
+  return (
+    isDatabaseError(error, 'P2010') &&
+    error instanceof Error &&
+    'meta' in error &&
+    typeof error.meta === 'object' &&
+    error.meta !== null &&
+    'driverAdapterError' in error.meta &&
+    isDriverConflict(error.meta.driverAdapterError)
   );
 }
 
