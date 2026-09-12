@@ -277,7 +277,7 @@ describe('immutable release assembly on PostgreSQL', () => {
       randomUUID(),
     );
     const stored = await staff.db.botRelease.findUniqueOrThrow({ where: { id: released.id } });
-    const missing = { ...stored, id: randomUUID(), version: 500 };
+    const missing = { ...stored, id: randomUUID(), version: 500, snapshot: released.snapshot };
     await expect(staff.db.botRelease.create({ data: missing })).rejects.toThrow();
     expect(await staff.db.botRelease.count({ where: { id: missing.id } })).toBe(0);
     const source = released.snapshot.knowledge[0]!;
