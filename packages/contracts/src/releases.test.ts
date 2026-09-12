@@ -185,6 +185,7 @@ describe('immutable release contracts', () => {
       'भर्ना कक्ष',
     );
     for (const input of [
+      { locale: 'en', query: 'reception\u0000desk' },
       { locale: 'en', query: ' ' },
       { locale: 'fr', query: 'Hello' },
       { locale: 'en', query: 'x'.repeat(501) },
