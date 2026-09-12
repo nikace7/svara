@@ -114,6 +114,23 @@ test('builds bilingual slides, previews ready media and persists complete orderi
     fullPage: true,
   });
 
+  const contentRoute = `**/api/v1/media/${media.id}/content`;
+  await page.route(contentRoute, (route) => route.abort());
+  await page.reload();
+  await expect(preview.getByRole('alert')).toContainText('Media could not load');
+  await page.unroute(contentRoute);
+  await page.getByRole('button', { name: 'Reload saved version', exact: true }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Discard edits and reload', exact: true })
+    .click();
+  await expect(preview.getByRole('img')).toBeVisible();
+  await expect
+    .poll(() =>
+      preview.getByRole('img').evaluate((element) => (element as HTMLImageElement).naturalWidth),
+    )
+    .toBe(32);
+
   await createPresentation(page, 'Open house');
   await page.getByRole('button', { name: 'Use for this bot', exact: true }).click();
   await expect(page.getByText('Selected for this bot', { exact: true })).toBeVisible();
@@ -191,6 +208,10 @@ test('preserves unsaved and conflicting slide text on mobile until an explicit r
     .getByRole('button', { name: 'Discard edits and reload', exact: true })
     .click();
   await expect(page.getByLabel('Slide title', { exact: true })).toHaveValue('Saved by a colleague');
+  await expect(
+    page.getByRole('button', { name: 'Reload saved version', exact: true }),
+  ).toBeFocused();
+  await expect(page.getByRole('link', { name: 'Skip to content' })).not.toBeInViewport();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
