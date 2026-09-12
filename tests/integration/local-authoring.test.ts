@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -9,10 +9,13 @@ import { parseServerConfig } from '../../packages/config/src/server.js';
 import { seedLocalAuthoring } from '../../packages/domain/src/local/authoring.js';
 import type { LocalAuthoringBundle } from '../../packages/domain/src/local/authoring.js';
 import { ReleaseService } from '../../packages/domain/src/authoring/releases.js';
+import { IdentityService } from '../../packages/domain/src/identity/service.js';
+import type { Prisma } from '../../packages/database/src/index.js';
 import { MediaStorage } from '../../packages/domain/src/media/storage.js';
 import { MediaInspector } from '../../apps/worker/src/media/inspector.js';
 import { imageFixture } from '../../apps/worker/test/media-fixtures.js';
 import { staffFixture } from './staff-fixture.js';
+import { demoAuthoringBundles } from '../../fixtures/authoring.js';
 
 describe('additive local authoring seed', () => {
   let staff: Awaited<ReturnType<typeof staffFixture>>;
@@ -133,7 +136,9 @@ describe('additive local authoring seed', () => {
       email: (await staff.db.user.findUniqueOrThrow({ where: { id: bundle.actorUserId } })).email,
       password: staff.password,
     });
-    const releases = new ReleaseService(staff.service, { providerMode: 'fixture' });
+    const releases = new ReleaseService(new IdentityService(staff.db, staff.pepper), {
+      providerMode: 'fixture',
+    });
     const saved = releaseDetailSchema.parse(await releases.get(owner.token, bot.releases[0]!.id));
     expect(saved.snapshot.bot.config.greeting.ne).not.toBe('');
     expect(saved).toMatchObject({
@@ -150,7 +155,7 @@ describe('additive local authoring seed', () => {
     const media = await staff.db.mediaAsset.findFirstOrThrow({
       where: { organisationId: bundle.organisationId },
     });
-    expect(media).toMatchObject({ state: 'READY', width: 32, height: 24 });
+    expect(media).toMatchObject({ state: 'READY', width: 30, height: 20 });
     expect(await storage.checksum(media.storageKey!)).toEqual({
       sha256: media.sha256,
       byteLength: media.byteLength,
@@ -242,5 +247,99 @@ describe('additive local authoring seed', () => {
     ).toBeNull();
     expect(await readdir(root)).toEqual(files);
     expect(await run(bundle)).toBe(true);
+  });
+
+  it('installs the specified bilingual inventory and keeps the fee draft and other tenant outside the published answer', async () => {
+    const bundles = demoAuthoringBundles(await readFile('fixtures/media/himal-campus-map.png'));
+    const owners = [];
+    for (const bundle of bundles) {
+      const owner = await staff.service.register({
+        email: `inventory-${randomUUID()}-${staff.suffix}`,
+        password: staff.password,
+        displayName: 'Inventory Owner',
+        organisationName: 'Synthetic inventory',
+      });
+      owners.push(owner);
+      bundle.organisationId = owner.identity.organisation.id;
+      bundle.actorUserId = owner.identity.user.id;
+      for (const bot of bundle.bots) bot.id = randomUUID();
+      expect(await run(bundle)).toBe(true);
+      expect(await run(bundle)).toBe(false);
+    }
+    const himal = bundles[0]!;
+    const where = { organisationId: himal.organisationId };
+    expect(await staff.db.bot.count({ where })).toBe(2);
+    expect(
+      await staff.db.knowledgeEntry.count({ where: { ...where, type: 'FAQ', status: 'APPROVED' } }),
+    ).toBe(12);
+    expect(
+      await staff.db.knowledgeEntry.count({
+        where: { ...where, type: 'NOTE', status: 'APPROVED' },
+      }),
+    ).toBe(4);
+    expect(
+      await staff.db.knowledgeEntry.count({
+        where: { ...where, status: 'DRAFT', selected: false },
+      }),
+    ).toBe(1);
+    expect(await staff.db.presentation.count({ where })).toBe(5);
+    const release = await staff.db.botRelease.findFirstOrThrow({ where });
+    const service = new ReleaseService(new IdentityService(staff.db, staff.pepper), {
+      providerMode: 'fixture',
+    });
+    expect(
+      (
+        await service.search(owners[0]!.token, release.id, {
+          locale: 'ne',
+          query: 'भर्ना कार्यालय कहाँ छ?',
+        })
+      ).passages[0]?.text,
+    ).toContain('१२');
+    expect(
+      (await service.search(owners[0]!.token, release.id, { locale: 'en', query: 'tuition fee' }))
+        .passages,
+    ).toHaveLength(0);
+    await expect(service.get(owners[1]!.token, release.id)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    expect(await staff.db.mediaAsset.findFirst({ where })).toMatchObject({
+      state: 'READY',
+      width: 960,
+      height: 640,
+    });
+  });
+
+  it('retains committed media when the transaction acknowledgement is lost', async () => {
+    const bundle = await fixture();
+    const uncertain = new Proxy(staff.db, {
+      get(target, key, receiver) {
+        if (key !== '$transaction') return Reflect.get(target, key, receiver);
+        return async (
+          run: (tx: Prisma.TransactionClient) => Promise<boolean>,
+          options: { isolationLevel: 'ReadCommitted'; maxWait: number; timeout: number },
+        ) => {
+          await target.$transaction(run, options);
+          throw new Error('Simulated lost commit acknowledgement');
+        };
+      },
+    });
+    await expect(
+      seedLocalAuthoring(uncertain, bundle, storage, inspector.inspect.bind(inspector)),
+    ).rejects.toThrow('lost commit acknowledgement');
+    const media = await staff.db.mediaAsset.findFirstOrThrow({
+      where: { organisationId: bundle.organisationId },
+    });
+    expect(await storage.checksum(media.storageKey!)).toEqual({
+      sha256: media.sha256,
+      byteLength: media.byteLength,
+    });
+    expect(await storage.checksum(media.thumbnailKey!)).toEqual({
+      sha256: media.thumbnailSha256,
+      byteLength: media.thumbnailBytes,
+    });
+    expect(await run(bundle)).toBe(false);
+    expect(
+      await staff.db.botRelease.count({ where: { organisationId: bundle.organisationId } }),
+    ).toBe(1);
   });
 });

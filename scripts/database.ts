@@ -1,7 +1,8 @@
 import { spawnSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { loadWorkspaceEnvironment } from '../packages/config/src/server.js';
+import { loadWorkspaceEnvironment, parseServerConfig } from '../packages/config/src/server.js';
 import { createDatabase } from '../packages/database/src/index.js';
 import { assertDemoDatabase, assertTestDatabase } from '../packages/database/src/safety.js';
 import { seedOrganisations } from '../packages/database/src/seed.js';
@@ -46,6 +47,21 @@ if (operation !== 'seed') {
     );
     console.info(
       `Initial demo credentials: ${credentials.path}. Changed passwords are never reset by seeding.`,
+    );
+    const { seedLocalAuthoring } = await import('../packages/domain/src/local/authoring.js');
+    const { MediaStorage } = await import('../packages/domain/src/media/storage.js');
+    const { MediaInspector } = await import('../apps/worker/src/media/inspector.js');
+    const { demoAuthoringBundles } = await import('../fixtures/authoring.js');
+    const config = parseServerConfig(process.env);
+    const storage = await MediaStorage.open(config.MEDIA_ROOT);
+    const inspector = new MediaInspector(storage, config);
+    const map = await readFile(new URL('../fixtures/media/himal-campus-map.png', import.meta.url));
+    let added = 0;
+    for (const bundle of demoAuthoringBundles(map))
+      if (await seedLocalAuthoring(db, bundle, storage, inspector.inspect.bind(inspector)))
+        added += bundle.bots.length;
+    console.info(
+      `Added ${added} fictional demo guides. Completed seed bundles, edits and deleted content were preserved.`,
     );
   } finally {
     await db.$disconnect();

@@ -21,6 +21,7 @@ import { IdentityError } from '../identity/errors.js';
 import { AuthoringError } from './errors.js';
 import { assembleRelease, releaseDraftInclude, releaseSnapshotHash } from './release-assembly.js';
 import { ReleaseError } from './release-errors.js';
+import { captureRelease } from './release-capture.js';
 import { searchRelease } from './release-search.js';
 
 export { releaseSnapshotHash } from './release-assembly.js';
@@ -213,63 +214,15 @@ export class ReleaseService {
         const { organisationId } = member;
         const replay = await findReplay(tx, organisationId, member.id);
         if (replay) return replay;
-        await tx.$queryRaw`SELECT "id" FROM "Bot" WHERE "id" = ${botId}::uuid AND "organisationId" = ${organisationId}::uuid FOR UPDATE`;
-        const bot = await this.draft(tx, organisationId, botId, input.expectedRevision);
-        const { readiness, snapshot } = assembleRelease(bot, this.providerMode);
-        if (!snapshot || !(kind === 'PUBLISHED' ? readiness.canPublish : readiness.canPreview))
-          throw new ReleaseError('RELEASE_NOT_READY', readiness);
-        if (kind === 'PUBLISHED' && bot.nextReleaseVersion >= 2147483646)
-          throw new ReleaseError('RELEASE_LIMIT');
-        // Even previews write the locked row so concurrent serializable snapshots
-        // retry before returning inconsistent draft content. Draft revision/time stay unchanged.
-        const increment = kind === 'PUBLISHED' ? 1 : 0;
-        await tx.$executeRaw`UPDATE "Bot" SET "nextReleaseVersion" = "nextReleaseVersion" + ${increment} WHERE "id" = ${botId}::uuid AND "organisationId" = ${organisationId}::uuid`;
-        const createdAt = this.clock();
-        const snapshotHash = releaseSnapshotHash(snapshot);
-        const release = await tx.botRelease.create({
-          data: {
-            organisationId,
-            botId,
-            kind,
-            version: kind === 'PUBLISHED' ? bot.nextReleaseVersion : null,
-            previewExpiresAt:
-              kind === 'PREVIEW'
-                ? new Date(createdAt.getTime() + RELEASE_LIMITS.previewMilliseconds)
-                : null,
-            botRevision: bot.revision,
-            providerMode: this.providerMode,
-            snapshot,
-            snapshotHash,
-            createdAt,
-          },
+        const release = await captureRelease(tx, {
+          botId,
+          organisationId,
+          expectedRevision: input.expectedRevision,
+          kind,
+          providerMode: this.providerMode,
+          clock: this.clock,
         });
-        if (snapshot.knowledge.length)
-          await tx.releaseKnowledge.createMany({
-            data: snapshot.knowledge.flatMap((entry) =>
-              (['en', 'ne'] as const).map((locale) => ({
-                releaseId: release.id,
-                organisationId,
-                snapshotHash,
-                entryId: entry.id,
-                locale,
-                type: entry.type,
-                title: entry.title,
-                question: entry.question[locale],
-                content: entry.content[locale],
-              })),
-            ),
-          });
-        if (snapshot.media.length)
-          await tx.releaseMedia.createMany({
-            data: snapshot.media.map((asset) => ({
-              releaseId: release.id,
-              organisationId,
-              snapshotHash,
-              mediaId: asset.id,
-              sha256: asset.sha256,
-              byteLength: asset.byteLength,
-            })),
-          });
+        const createdAt = release.createdAt;
         await tx.idempotencyRecord.deleteMany({
           where: {
             organisationId,
