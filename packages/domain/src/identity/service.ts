@@ -103,7 +103,7 @@ export class IdentityService {
           timeout: 10000,
         });
       } catch (error) {
-        if (isTransactionConflict(error) && attempt < 3) {
+        if (isTransactionConflict(error) && attempt < 5) {
           // Give competing commits time to finish; jitter avoids another synchronized collision.
           const backoff = 50 * 2 ** attempt;
           await delay(backoff + randomInt(backoff));
