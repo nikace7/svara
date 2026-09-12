@@ -3,6 +3,33 @@ import { staffFixture } from './staff-fixture.js';
 import { IdentityService } from '../../packages/domain/src/identity/service.js';
 import { BotService } from '../../packages/domain/src/authoring/bots.js';
 
+it('retries raw SQL serialization failures but never retries a constraint error', async () => {
+  const staff = await staffFixture();
+  const identity = new IdentityService(staff.db, staff.pepper);
+  const organisationId = staff.owner.identity.organisation.id;
+  let attempts = 0;
+  let constraintAttempts = 0;
+  try {
+    await identity.asStaff(staff.owner.token, 'author', async (tx) => {
+      if (++attempts === 1)
+        await tx.$executeRaw`DO $$ BEGIN RAISE EXCEPTION 'Synthetic serialization conflict' USING ERRCODE = '40001'; END $$`;
+      await tx.bot.create({ data: { organisationId, name: 'After raw query contention' } });
+    });
+    expect(attempts).toBe(2);
+    expect(await staff.db.bot.count({ where: { organisationId } })).toBe(1);
+    await expect(
+      identity.asStaff(staff.owner.token, 'author', async (tx) => {
+        constraintAttempts++;
+        await tx.$executeRaw`DO $$ BEGIN RAISE EXCEPTION 'Synthetic constraint failure' USING ERRCODE = '23514'; END $$`;
+      }),
+    ).rejects.toMatchObject({ code: 'P2010' });
+    expect(constraintAttempts).toBe(1);
+  } finally {
+    await staff.db.bot.deleteMany({ where: { organisationId } });
+    await staff.close();
+  }
+});
+
 it('allows five bounded serialization retries without duplicate writes or cached authority', async () => {
   const staff = await staffFixture();
   const identity = new IdentityService(staff.db, staff.pepper);
