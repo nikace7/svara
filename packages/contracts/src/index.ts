@@ -6,4 +6,5 @@ export * from './knowledge.js';
 export * from './media.js';
 export * from './presentations.js';
 export * from './releases.js';
+export * from './devices.js';
 export type { paths, components } from './http.generated.js';
