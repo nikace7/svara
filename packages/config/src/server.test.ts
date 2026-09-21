@@ -17,6 +17,8 @@ describe('server configuration', () => {
     expect(config.SPEECH_PROVIDER).toBe('gemini');
     expect(config.GENERATION_PROVIDER).toBe('gemini');
     expect(config.GEMINI_MODEL).toBe('gemini-2.5-flash');
+    expect(config.GEMINI_TTS_MODEL).toBe('gemini-2.5-flash-preview-tts');
+    expect(config.GEMINI_VOICE).toBe('Kore');
     expect(config.TRUST_PROXY_HOPS).toBe(0);
     expect(config.APP_ORIGIN).toBe('http://localhost:4320');
     expect(config.MEDIA_INSPECTION_MODE).toBe('sandboxed');
@@ -143,6 +145,7 @@ describe('server configuration', () => {
     { MEDIA_ROOT: '' },
     { APP_ENV: 'staging' },
     { TRUST_PROXY_HOPS: '2' },
+    { GEMINI_VOICE: 'Kore; drop table' },
   ])('rejects invalid settings', (override) => {
     expect(() => parseServerConfig({ ...valid, ...override })).toThrow(
       'Invalid server configuration',

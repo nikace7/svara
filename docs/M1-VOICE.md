@@ -1,9 +1,17 @@
 # M1 — Bilingual voice feasibility
 
-Update 2026-09-08: the user's free-demo requirement selects Gemini generation with
-Azure Speech F0 as the planned demo configuration. Live adapters remain pending.
+Update 2026-09-21: Gemini-only is the demo configuration (ADR 011 amendment).
+`@svara/providers` now ships `GeminiAnswerGenerator`, `GeminiSpeechSynthesizer` and
+`GeminiSpeechRecognizer` over plain REST `fetch` (no SDK). `pnpm eval:gemini` runs
+the live gate: English and Nepali question → answer → 24 kHz speech → 16 kHz
+round-trip transcript, writing `artifacts/gemini-smoke/{en-US,ne-NP}.wav` and
+`report.json`. It requires `ALLOW_LIVE_EVAL=true` and `GEMINI_API_KEY` and has not
+yet been run against a real key, so the gate is implemented but unverified. The lab
+UI still uses fixture mode; wiring live turns into `/studio/voice-lab` is next.
+Recognition buffers each utterance and transcribes on finish (no partial results);
+streaming recognition via the Live API is deferred until hands-free barge-in.
 Historical Azure/OpenAI references below describe the original M1 increment;
-see `docs/FREE-DEMO-SETUP.md` and ADR 011 for the current provider direction.
+see `docs/FREE-DEMO-SETUP.md` for the current provider direction.
 
 Implemented the local increment on 2026-09-08 on `feat/m1-voice-feasibility`.
 The live provider gate remains pending; M1 is not marked complete.

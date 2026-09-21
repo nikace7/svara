@@ -2,6 +2,7 @@ import type { Locale, ProviderMode } from '@svara/contracts';
 
 export * from './segments.js';
 export * from './fixture.js';
+export * from './gemini.js';
 
 /** Provider implementations own and close all handles on signal cancellation. */
 export interface ProviderContext {

@@ -86,9 +86,25 @@ Do not add keys to `NEXT_PUBLIC_*`, Git, screenshots or chat. `.env.example` is 
 reference file containing no working credentials. `pnpm setup:local` preserves
 existing settings rather than replacing them.
 
-## 4. Live validation still required
+## 4. Run the live gate
 
-Once accounts and adapters are ready, the live gate must verify both locales,
+With the key stored, set `ALLOW_LIVE_EVAL=true` temporarily and run:
+
+```bash
+pnpm eval:gemini
+```
+
+It answers one English and one Nepali fixture question, synthesizes the answers,
+transcribes the synthesized audio back, and writes `artifacts/gemini-smoke/`
+(ignored) with both WAV files and `report.json` containing timings and transcripts.
+Listen to the Nepali WAV and compare the transcript to the answer; the script
+cannot judge pronunciation. Quota errors stop the run visibly. Set
+`ALLOW_LIVE_EVAL=false` again afterwards. `GEMINI_TTS_MODEL` and `GEMINI_VOICE`
+select the speech model and prebuilt voice.
+
+## 5. Live validation still required
+
+The lab UI does not yet use these adapters. The live gate must still verify both locales,
 actual voice availability, quota failures, cancellation, generation grounding and
 speaker/microphone behaviour. Provider quota errors must stop a request visibly;
 there will be no automatic switch to a paid provider. Account quotas and region

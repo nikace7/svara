@@ -5,7 +5,7 @@ Updated 2026-09-12. Evidence is local unless explicitly marked otherwise.
 | Milestone                                | State       | Evidence / remaining work                                                                                          |
 | ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
 | M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.       |
-| M1 — Bilingual voice feasibility         | Partial     | Local fixture lab and audio/protocol checks pass. Live adapters and bilingual provider smoke tests remain pending. |
+| M1 — Bilingual voice feasibility         | Partial     | Fixture lab passes. Gemini REST adapters and `pnpm eval:gemini` gate exist; the gate has not run with a real key. |
 | M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                          |
 | M3 — Authoring and immutable publication | Complete    | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.             |
 | M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                   |
@@ -13,6 +13,17 @@ Updated 2026-09-12. Evidence is local unless explicitly marked otherwise.
 | M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                            |
 | M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                |
 | M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                            |
+
+## Gemini adapters — 2026-09-21
+
+Gemini-only free-tier pipeline selected (ADR 011 amendment): `SPEECH_PROVIDER`,
+`GEMINI_TTS_MODEL` and `GEMINI_VOICE` settings; `GeminiAnswerGenerator`,
+`GeminiSpeechSynthesizer` and `GeminiSpeechRecognizer` in `@svara/providers` using
+global `fetch` with the key in a header only; `pnpm eval:gemini` live gate script.
+15 adapter unit tests cover prompt grounding, SSE chunking, quota/unavailable
+mapping, audio-format rejection, WAV framing and cancellation. 117 unit tests pass;
+lint, format and root typecheck pass. No provider call was made: no key is
+configured, so live behaviour, Nepali quality and rate limits remain unverified.
 
 ## Initial inspection
 
