@@ -14,6 +14,7 @@ describe('server configuration', () => {
     const config = parseServerConfig(valid);
     expect(config.PROVIDER_MODE).toBe('fixture');
     expect(config.ALLOW_LIVE_EVAL).toBe(false);
+    expect(config.SPEECH_PROVIDER).toBe('gemini');
     expect(config.GENERATION_PROVIDER).toBe('gemini');
     expect(config.GEMINI_MODEL).toBe('gemini-2.5-flash');
     expect(config.TRUST_PROXY_HOPS).toBe(0);
@@ -34,8 +35,11 @@ describe('server configuration', () => {
 
   it('names all missing live settings without exposing any supplied secret', () => {
     expect(() => parseServerConfig({ ...valid, PROVIDER_MODE: 'live' })).toThrow(
-      /AZURE_SPEECH_KEY.*AZURE_SPEECH_REGION.*GEMINI_API_KEY/,
+      /Invalid server configuration: GEMINI_API_KEY$/,
     );
+    expect(() =>
+      parseServerConfig({ ...valid, PROVIDER_MODE: 'live', SPEECH_PROVIDER: 'azure' }),
+    ).toThrow(/AZURE_SPEECH_KEY.*AZURE_SPEECH_REGION.*GEMINI_API_KEY/);
     expect(() => parseServerConfig({ ...valid, AUTH_TOKEN_PEPPER: 'private-value' })).toThrow(
       'AUTH_TOKEN_PEPPER',
     );
@@ -48,6 +52,7 @@ describe('server configuration', () => {
     const config = parseServerConfig({
       ...valid,
       PROVIDER_MODE: 'live',
+      SPEECH_PROVIDER: 'azure',
       GENERATION_PROVIDER: 'openai',
       AZURE_SPEECH_KEY: 'test-key',
       AZURE_SPEECH_REGION: 'test-region',
@@ -58,25 +63,33 @@ describe('server configuration', () => {
     expect(config.ALLOW_LIVE_EVAL).toBe(true);
   });
 
-  it('accepts the free-tier demo provider without requiring an OpenAI key', () => {
+  it('accepts a Gemini-only live demo with a single key', () => {
     const config = parseServerConfig({
       ...valid,
       PROVIDER_MODE: 'live',
-      AZURE_SPEECH_KEY: 'synthetic',
-      AZURE_SPEECH_REGION: 'eastus',
       GEMINI_API_KEY: 'synthetic',
     });
+    expect(config.SPEECH_PROVIDER).toBe('gemini');
     expect(config.GENERATION_PROVIDER).toBe('gemini');
+    expect(config.AZURE_SPEECH_KEY).toBeUndefined();
     expect(config.OPENAI_API_KEY).toBeUndefined();
+    expect(() =>
+      parseServerConfig({ ...valid, PROVIDER_MODE: 'live', OPENAI_API_KEY: 'synthetic' }),
+    ).toThrow('GEMINI_API_KEY');
+  });
+
+  it('requires Azure credentials only when Azure speech is selected', () => {
     expect(() =>
       parseServerConfig({
         ...valid,
         PROVIDER_MODE: 'live',
-        AZURE_SPEECH_KEY: 'synthetic',
-        AZURE_SPEECH_REGION: 'eastus',
-        OPENAI_API_KEY: 'synthetic',
+        SPEECH_PROVIDER: 'azure',
+        GEMINI_API_KEY: 'synthetic',
       }),
-    ).toThrow('GEMINI_API_KEY');
+    ).toThrow(/Invalid server configuration: AZURE_SPEECH_KEY, AZURE_SPEECH_REGION$/);
+    expect(() => parseServerConfig({ ...valid, SPEECH_PROVIDER: 'whisper' })).toThrow(
+      'SPEECH_PROVIDER',
+    );
   });
 
   it.each([
