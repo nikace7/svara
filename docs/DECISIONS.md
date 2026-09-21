@@ -113,6 +113,12 @@ live evaluation remain pending. Configuration does not prove a key is on a free
 billing plan. The user selected account setup instructions, now recorded in
 `docs/FREE-DEMO-SETUP.md`. No paid fallback or account upgrade is authorized.
 
+Amended 2026-09-21: the user holds only a Google AI Studio key. Gemini's free tier
+now lists TTS and Live native-audio models with Nepali support, so
+`SPEECH_PROVIDER=gemini` is the default and Azure F0 credentials are required only
+when `SPEECH_PROVIDER=azure`. Azure remains the documented fallback if the live
+gate finds Gemini's Nepali speech inadequate.
+
 ## ADR 012 — Transactional staff identity and scoped recovery
 
 Use opaque random session credentials with purpose-separated HMAC digests and

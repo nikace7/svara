@@ -25,6 +25,7 @@ const serverSchema = z
     MEDIA_SANDBOX_PATH: z.string().trim().min(1).default('/usr/local/bin/svara-media-sandbox'),
     AUTH_TOKEN_PEPPER: z.string().min(64),
     PROVIDER_MODE: z.enum(['fixture', 'live']).default('fixture'),
+    SPEECH_PROVIDER: z.enum(['gemini', 'azure']).default('gemini'),
     AZURE_SPEECH_KEY: z.string().optional(),
     AZURE_SPEECH_REGION: z.string().optional(),
     GENERATION_PROVIDER: z.enum(['gemini', 'openai']).default('gemini'),
@@ -72,9 +73,16 @@ const serverSchema = z
       });
     }
     if (config.PROVIDER_MODE === 'live') {
-      const generationKey =
-        config.GENERATION_PROVIDER === 'gemini' ? 'GEMINI_API_KEY' : 'OPENAI_API_KEY';
-      for (const key of ['AZURE_SPEECH_KEY', 'AZURE_SPEECH_REGION', generationKey] as const) {
+      const required = [
+        ...(config.SPEECH_PROVIDER === 'azure'
+          ? (['AZURE_SPEECH_KEY', 'AZURE_SPEECH_REGION'] as const)
+          : []),
+        ...(config.SPEECH_PROVIDER === 'gemini' || config.GENERATION_PROVIDER === 'gemini'
+          ? (['GEMINI_API_KEY'] as const)
+          : []),
+        ...(config.GENERATION_PROVIDER === 'openai' ? (['OPENAI_API_KEY'] as const) : []),
+      ];
+      for (const key of required) {
         if (!config[key]?.trim())
           context.addIssue({ code: 'custom', path: [key], message: 'Required in live mode.' });
       }
