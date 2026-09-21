@@ -31,6 +31,11 @@ const serverSchema = z
     GENERATION_PROVIDER: z.enum(['gemini', 'openai']).default('gemini'),
     GEMINI_API_KEY: z.string().optional(),
     GEMINI_MODEL: z.string().min(1).default('gemini-2.5-flash'),
+    GEMINI_TTS_MODEL: z.string().min(1).default('gemini-2.5-flash-preview-tts'),
+    GEMINI_VOICE: z
+      .string()
+      .regex(/^[A-Za-z]{2,32}$/)
+      .default('Kore'),
     OPENAI_API_KEY: z.string().optional(),
     OPENAI_MODEL: z.string().min(1).default('gpt-5-mini'),
     VOICE_EN: z.literal('en-US-JennyNeural').default('en-US-JennyNeural'),

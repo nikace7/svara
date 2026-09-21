@@ -20,6 +20,7 @@ export default defineConfig({
         'packages/domain/src/identity/policies.ts',
         'packages/providers/src/segments.ts',
         'packages/providers/src/fixture.ts',
+        'packages/providers/src/gemini.ts',
         'packages/domain/src/feasibility.ts',
         'apps/api/src/local-access.ts',
         'apps/web/src/lib/voice-stream.ts',
