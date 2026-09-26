@@ -23,6 +23,12 @@ interface Run {
   node?: AudioWorkletNode;
   removeAbort(): void;
 }
+export interface AnswerPlayback {
+  /** Queues one bounded 24 kHz PCM16 packet for its segment. */
+  push(pcm: ArrayBuffer, segment: number, end: boolean): void;
+  /** No more packets. Pass the final segment index, or nothing if none were queued. */
+  finish(lastSegment?: number): void;
+}
 export interface CaptureMeter {
   rms: number;
   seq: number;
@@ -134,11 +140,18 @@ export class LabAudio {
     }
   }
 
-  async playTone(
+  /** Opens one playback graph. Callers own what they post and when they dispose it. */
+  private async openPlayback(
     signal: AbortSignal,
-    event: (type: 'started' | 'completed' | 'failed') => void,
-  ): Promise<void> {
-    if (this.playback && !this.playback.disposed) throw new Error('Speaker check already active.');
+    generation: number,
+    handle: (
+      message: { type: string; accepted?: boolean; segment?: number },
+      run: Run,
+      node: AudioWorkletNode,
+    ) => void,
+    failed: (run: Run) => void,
+  ): Promise<{ run: Run; node: AudioWorkletNode }> {
+    if (this.playback && !this.playback.disposed) throw new Error('Playback already active.');
     const run = this.createRun(signal);
     this.playback = run;
     try {
@@ -148,42 +161,140 @@ export class LabAudio {
       if (run.disposed) throw new DOMException('Playback ended.', 'AbortError');
       const node = this.environment.createWorklet(run.context, 'svara-playback');
       run.node = node;
-      const failed = () => {
+      const terminal = () => {
         if (!run.disposed) {
           void this.dispose(run);
-          event('failed');
+          failed(run);
         }
       };
-      node.onprocessorerror = failed;
-      node.port.onmessage = (message: MessageEvent<{ type: string; accepted?: boolean }>) => {
+      node.onprocessorerror = terminal;
+      node.port.onmessage = (
+        message: MessageEvent<{ type: string; accepted?: boolean; segment?: number }>,
+      ) => {
         if (run.disposed) return;
-        if (message.data.type === 'started') event('started');
-        if (message.data.type === 'segment-completed') {
-          void this.dispose(run);
-          event('completed');
+        if (message.data.type === 'error') {
+          terminal();
+          return;
         }
-        if (message.data.type === 'error' || message.data.accepted === false) failed();
+        handle(message.data, run, node);
       };
-      node.port.postMessage({ type: 'reset', generation: 1 });
-      // Original 600 ms, 440 Hz test signal with fades. This is not synthesized speech.
-      for (let seq = 0; seq < 6; seq++) {
-        const pcm = new ArrayBuffer(4800);
-        const view = new DataView(pcm);
-        for (let i = 0; i < 2400; i++) {
-          const t = (seq * 2400 + i) / 24000;
-          const gain = 0.12 * Math.min(1, t / 0.02, (0.6 - t) / 0.02);
-          view.setInt16(i * 2, Math.round(32767 * gain * Math.sin(2 * Math.PI * 440 * t)), true);
-        }
-        node.port.postMessage(
-          { type: 'pcm', packet: { generation: 1, seq, segment: 0, end: seq === 5, pcm } },
-          [pcm],
-        );
-      }
-      node.connect(run.context.destination);
+      node.port.postMessage({ type: 'reset', generation });
+      return { run, node };
     } catch (error) {
       await this.dispose(run);
       throw error;
     }
+  }
+
+  async playTone(
+    signal: AbortSignal,
+    event: (type: 'started' | 'completed' | 'failed') => void,
+  ): Promise<void> {
+    const { run, node } = await this.openPlayback(
+      signal,
+      1,
+      (message) => {
+        if (message.type === 'started') event('started');
+        if (message.type === 'segment-completed') {
+          void this.dispose(run);
+          event('completed');
+        }
+        if (message.accepted === false) {
+          void this.dispose(run);
+          event('failed');
+        }
+      },
+      () => event('failed'),
+    );
+    // Original 600 ms, 440 Hz test signal with fades. This is not synthesized speech.
+    for (let seq = 0; seq < 6; seq++) {
+      const pcm = new ArrayBuffer(4800);
+      const view = new DataView(pcm);
+      for (let i = 0; i < 2400; i++) {
+        const t = (seq * 2400 + i) / 24000;
+        const gain = 0.12 * Math.min(1, t / 0.02, (0.6 - t) / 0.02);
+        view.setInt16(i * 2, Math.round(32767 * gain * Math.sin(2 * Math.PI * 440 * t)), true);
+      }
+      node.port.postMessage(
+        { type: 'pcm', packet: { generation: 1, seq, segment: 0, end: seq === 5, pcm } },
+        [pcm],
+      );
+    }
+    node.connect(run.context.destination);
+  }
+
+  /** Streams answer speech. The worklet's bounded queue is the pacing signal: a
+   * rejected packet is retried rather than dropped, so nothing plays out of order. */
+  async startAnswer(
+    signal: AbortSignal,
+    generation: number,
+    event: (type: 'started' | 'completed' | 'failed') => void,
+  ): Promise<AnswerPlayback> {
+    const pending: { pcm: ArrayBuffer; segment: number; end: boolean }[] = [];
+    let seq = 0;
+    let inFlight = false;
+    let finished = false;
+    let finalSegment: number | undefined;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    let sender: ((packet: { type: string; packet: unknown }) => void) | undefined;
+    const send = () => {
+      if (inFlight || !sender) return;
+      const next = pending[0];
+      if (!next) return;
+      inFlight = true;
+      sender({
+        type: 'pcm',
+        packet: { generation, seq, segment: next.segment, end: next.end, pcm: next.pcm },
+      });
+    };
+    const { run, node } = await this.openPlayback(
+      signal,
+      generation,
+      (message, _run, worklet) => {
+        sender ??= (packet) => worklet.port.postMessage(packet);
+        if (message.type === 'started') event('started');
+        if (message.type === 'accepted') {
+          inFlight = false;
+          if (message.accepted === true) {
+            pending.shift();
+            seq++;
+            send();
+          } else {
+            // The queue is full; it drains at playback rate, so wait and retry the same packet.
+            clearTimeout(retry);
+            retry = setTimeout(send, 100);
+          }
+        }
+        if (message.type === 'segment-completed' && message.segment === finalSegment) {
+          clearTimeout(retry);
+          void this.dispose(run);
+          event('completed');
+        }
+      },
+      () => {
+        clearTimeout(retry);
+        event('failed');
+      },
+    );
+    sender = (packet) => node.port.postMessage(packet);
+    node.connect(run.context.destination);
+    return {
+      push: (pcm, segment, end) => {
+        if (run.disposed || finished) return;
+        pending.push({ pcm, segment, end });
+        send();
+      },
+      finish: (lastSegment) => {
+        finished = true;
+        finalSegment = lastSegment;
+        // Nothing was ever queued, so no segment will complete.
+        if (lastSegment === undefined) {
+          clearTimeout(retry);
+          void this.dispose(run);
+          event('completed');
+        }
+      },
+    };
   }
 
   async stop(): Promise<void> {

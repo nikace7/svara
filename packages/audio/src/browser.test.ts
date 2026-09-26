@@ -31,6 +31,119 @@ function harness(media?: Promise<MediaStream>) {
   return { audio: new LabAudio(env), track, stream, context, node };
 }
 
+describe('streaming answer playback', () => {
+  function playbackHarness() {
+    const { audio, node, context } = harness();
+    const posted: { type: string; packet?: { seq: number; segment: number; end: boolean } }[] = [];
+    node.port.postMessage.mockImplementation((message: unknown) => {
+      posted.push(message as { type: string });
+    });
+    const reply = (data: Record<string, unknown>) =>
+      node.port.onmessage?.(new MessageEvent('message', { data }));
+    const packets = () => posted.filter((message) => message.type === 'pcm').map((m) => m.packet!);
+    return { audio, node, context, posted, reply, packets };
+  }
+  const pcm = () => new ArrayBuffer(4800);
+
+  it('resets the generation and sends one packet at a time in order', async () => {
+    const { audio, reply, posted, packets } = playbackHarness();
+    const events: string[] = [];
+    const playback = await audio.startAnswer(new AbortController().signal, 7, (type) =>
+      events.push(type),
+    );
+    expect(posted[0]).toEqual({ type: 'reset', generation: 7 });
+    playback.push(pcm(), 0, false);
+    playback.push(pcm(), 0, true);
+    // The second packet waits for the first acknowledgement rather than racing it.
+    expect(packets()).toHaveLength(1);
+    reply({ type: 'started' });
+    reply({ type: 'accepted', accepted: true, seq: 0 });
+    expect(packets()).toEqual([
+      { generation: 7, seq: 0, segment: 0, end: false, pcm: expect.anything() },
+      { generation: 7, seq: 1, segment: 0, end: true, pcm: expect.anything() },
+    ]);
+    reply({ type: 'accepted', accepted: true, seq: 1 });
+    playback.finish(0);
+    expect(events).toEqual(['started']);
+    reply({ type: 'segment-completed', segment: 0 });
+    expect(events).toEqual(['started', 'completed']);
+    await audio.stop();
+  });
+
+  it('retries a rejected packet instead of dropping or reordering it', async () => {
+    vi.useFakeTimers();
+    try {
+      const { audio, reply, packets } = playbackHarness();
+      const events: string[] = [];
+      const playback = await audio.startAnswer(new AbortController().signal, 1, (type) =>
+        events.push(type),
+      );
+      playback.push(pcm(), 0, true);
+      expect(packets()).toHaveLength(1);
+      reply({ type: 'accepted', accepted: false, seq: 0 });
+      expect(packets()).toHaveLength(1);
+      vi.advanceTimersByTime(100);
+      // Same sequence number, resent: a full queue is backpressure, not a failure.
+      expect(packets()).toEqual([
+        { generation: 1, seq: 0, segment: 0, end: true, pcm: expect.anything() },
+        { generation: 1, seq: 0, segment: 0, end: true, pcm: expect.anything() },
+      ]);
+      expect(events).toEqual([]);
+      await audio.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('completes only on the final segment and ignores pushes after finish', async () => {
+    const { audio, reply, packets } = playbackHarness();
+    const events: string[] = [];
+    const playback = await audio.startAnswer(new AbortController().signal, 1, (type) =>
+      events.push(type),
+    );
+    playback.push(pcm(), 0, true);
+    reply({ type: 'accepted', accepted: true, seq: 0 });
+    playback.push(pcm(), 1, true);
+    reply({ type: 'accepted', accepted: true, seq: 1 });
+    playback.finish(1);
+    playback.push(pcm(), 2, true);
+    expect(packets()).toHaveLength(2);
+    reply({ type: 'segment-completed', segment: 0 });
+    expect(events).toEqual([]);
+    reply({ type: 'segment-completed', segment: 1 });
+    expect(events).toEqual(['completed']);
+    await audio.stop();
+  });
+
+  it('completes immediately when a turn produced no audio at all', async () => {
+    const { audio, context } = playbackHarness();
+    const events: string[] = [];
+    const playback = await audio.startAnswer(new AbortController().signal, 1, (type) =>
+      events.push(type),
+    );
+    playback.finish();
+    expect(events).toEqual(['completed']);
+    expect(context.close).toHaveBeenCalled();
+    await audio.stop();
+  });
+
+  it('reports a processor failure and refuses a second concurrent playback', async () => {
+    const { audio, node } = playbackHarness();
+    const events: string[] = [];
+    const playback = await audio.startAnswer(new AbortController().signal, 1, (type) =>
+      events.push(type),
+    );
+    await expect(audio.startAnswer(new AbortController().signal, 2, () => {})).rejects.toThrow(
+      'already active',
+    );
+    node.onprocessorerror?.();
+    expect(events).toEqual(['failed']);
+    // A disposed run accepts no further audio.
+    playback.push(new ArrayBuffer(4800), 0, true);
+    await audio.stop();
+  });
+});
+
 describe('browser microphone lifecycle', () => {
   it('acknowledges consumed frames and ends capture after a processor error', async () => {
     const { audio, node, track } = harness();

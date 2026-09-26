@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readVoiceStream } from './voice-stream.js';
+import { decodeAudioPacket, readVoiceStream } from './voice-stream.js';
 
 const make = (seq: number, type = 'answer', generation = 1) => ({
   v: 1,
@@ -17,6 +17,19 @@ async function read(response: Response) {
   for await (const event of readVoiceStream(response, 1)) values.push(event);
   return values;
 }
+describe('audio packet decoding', () => {
+  it('decodes bounded PCM and rejects anything the worklet cannot play', () => {
+    const bytes = new Uint8Array([1, 0, 255, 127]);
+    expect(new Uint8Array(decodeAudioPacket(Buffer.from(bytes).toString('base64')))).toEqual(bytes);
+    for (const invalid of [
+      '',
+      Buffer.from(new Uint8Array(3)).toString('base64'),
+      Buffer.from(new Uint8Array(4802)).toString('base64'),
+    ])
+      expect(() => decodeAudioPacket(invalid)).toThrow();
+  });
+});
+
 describe('fixture stream validation', () => {
   it('decodes Nepali split across individual UTF-8 bytes', async () => {
     const bytes = new TextEncoder().encode(

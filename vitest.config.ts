@@ -22,6 +22,7 @@ export default defineConfig({
         'packages/providers/src/fixture.ts',
         'packages/providers/src/gemini.ts',
         'packages/domain/src/feasibility.ts',
+        'packages/domain/src/live-feasibility.ts',
         'apps/api/src/local-access.ts',
         'apps/web/src/lib/voice-stream.ts',
         'packages/contracts/src/media.ts',

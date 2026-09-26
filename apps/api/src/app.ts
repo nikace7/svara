@@ -54,6 +54,7 @@ import {
   BotPresentationController,
 } from './authoring/presentation-controller.js';
 import type { PresentationHttpService } from './authoring/presentation-controller.js';
+import type { LiveTurnProviders } from '@svara/domain';
 
 const OPTIONS = Symbol('application-options');
 export interface ApplicationOptions {
@@ -61,6 +62,8 @@ export interface ApplicationOptions {
   localDocs: boolean;
   probe: () => Promise<Readiness>;
   feasibilityOrigin?: string;
+  /** Required before a live voice route is exposed; absent keeps the lab on fixtures. */
+  liveVoice?: LiveTurnProviders;
   identity?: IdentityHttpOptions;
   authoring?: BotHttpService;
   knowledge?: KnowledgeHttpService;
@@ -396,14 +399,17 @@ export async function createApplication(
         }),
     }),
   );
+  const liveVoice = options.providerMode === 'live' ? options.liveVoice : undefined;
   if (
     options.localDocs &&
-    options.providerMode === 'fixture' &&
     options.feasibilityOrigin &&
-    options.identity
+    options.identity &&
+    (options.providerMode === 'fixture' || liveVoice)
   ) {
-    const handler = createFeasibilityHandler(options.feasibilityOrigin, (request) =>
-      boundary.settings.service.resolve(boundary.token(request), false),
+    const handler = createFeasibilityHandler(
+      options.feasibilityOrigin,
+      (request) => boundary.settings.service.resolve(boundary.token(request), false),
+      liveVoice,
     );
     app
       .getHttpAdapter()

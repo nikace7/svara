@@ -105,15 +105,24 @@ and `GEMINI_VOICE` select the speech models and prebuilt voice.
 This gate passed for English and Nepali on 2026-09-25; `docs/M1-VOICE.md` records
 the measured timings and the provider behaviour it exposed.
 
+## 5. Try it in the studio
+
+Set `PROVIDER_MODE=live` in `.env`, keep `APP_ENV=local`, and run `pnpm dev`. Sign in
+and open `/studio/voice-lab`: the badge reads **Live providers**, scripted scenarios
+are disabled, and a typed question returns a grounded answer with spoken audio. Each
+question spends free-tier quota. Revert to `PROVIDER_MODE=fixture` for the offline
+demo. Spoken questions are not uploaded yet, so the microphone panel stays a local
+capture check.
+
 **Free-tier quota is about 20 requests per day, per model** — not per minute. A
 single gate run uses roughly two generation, four to six speech and two
 recognition requests. If generation returns 429, point `GEMINI_MODEL` at another
 model (for example `gemini-3.6-flash` or `gemini-3-flash-preview`) for a separate
 daily budget. Popular models also return transient 503s, which the adapter retries.
 
-## 5. Live validation still required
+## 6. Live validation still required
 
-The lab UI does not yet use these adapters. The live gate must still verify both locales,
+The live gate must still verify both locales,
 actual voice availability, quota failures, cancellation, generation grounding and
 speaker/microphone behaviour. Provider quota errors must stop a request visibly;
 there will be no automatic switch to a paid provider. Account quotas and region

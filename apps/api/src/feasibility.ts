@@ -1,7 +1,9 @@
 import { once } from 'node:events';
 import type { Request, Response } from 'express';
 import { FeasibilityRequestSchema } from '@svara/contracts';
-import { runFixtureTurn } from '@svara/domain';
+import type { FeasibilityEvent } from '@svara/contracts';
+import { runFixtureTurn, runLiveTurn } from '@svara/domain';
+import type { LiveTurnProviders } from '@svara/domain';
 import { allowsLocalFeasibility } from './local-access.js';
 
 function fail(response: Response, status: number, code: string, message: string): void {
@@ -11,10 +13,12 @@ function fail(response: Response, status: number, code: string, message: string)
   });
 }
 
-/** Temporary local experiment; no persistence, provider keys or audio upload. */
+/** Temporary local experiment; no persistence or microphone upload.
+ * Live mode reaches real providers; keys stay on the server and never reach a response. */
 export function createFeasibilityHandler(
   origin: string,
   authorize: (request: Request) => Promise<unknown>,
+  live?: LiveTurnProviders,
 ) {
   let active = 0;
   return async (request: Request, response: Response): Promise<void> => {
@@ -27,7 +31,12 @@ export function createFeasibilityHandler(
       fail(response, 400, 'INVALID_INPUT', 'Choose one bounded input and an explicit locale.');
       return;
     }
-    if (active >= 4) {
+    if (live && parsed.data.text === undefined) {
+      fail(response, 400, 'INVALID_INPUT', 'Live mode answers typed questions only.');
+      return;
+    }
+    // Live turns hold a provider quota slot, so allow fewer of them at once.
+    if (active >= (live ? 2 : 4)) {
       response.setHeader('Retry-After', '2');
       fail(response, 429, 'BUSY', 'The local lab is busy. Retry shortly.');
       return;
@@ -35,13 +44,17 @@ export function createFeasibilityHandler(
     active++;
     const controller = new AbortController();
     const end = () => controller.abort();
-    const deadline = setTimeout(end, 10000);
+    // Live turns make several buffered provider calls; fixtures stay on the short leash.
+    const deadline = setTimeout(end, live ? 120000 : 10000);
     response.once('close', end);
     response.status(200).setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
     response.setHeader('X-Accel-Buffering', 'no');
     response.flushHeaders();
     try {
-      for await (const event of runFixtureTurn(parsed.data, controller.signal)) {
+      const turn: AsyncIterable<FeasibilityEvent> = live
+        ? runLiveTurn(parsed.data, live, controller.signal)
+        : runFixtureTurn(parsed.data, controller.signal);
+      for await (const event of turn) {
         await authorize(request);
         if (!response.write(`${JSON.stringify(event)}\n`))
           await once(response, 'drain', { signal: controller.signal });

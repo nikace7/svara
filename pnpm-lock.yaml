@@ -98,6 +98,9 @@ importers:
       '@svara/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@svara/providers':
+        specifier: workspace:*
+        version: link:../../packages/providers
       busboy:
         specifier: 1.6.0
         version: 1.6.0
