@@ -16,8 +16,9 @@ describe('server configuration', () => {
     expect(config.ALLOW_LIVE_EVAL).toBe(false);
     expect(config.SPEECH_PROVIDER).toBe('gemini');
     expect(config.GENERATION_PROVIDER).toBe('gemini');
-    expect(config.GEMINI_MODEL).toBe('gemini-2.5-flash');
-    expect(config.GEMINI_TTS_MODEL).toBe('gemini-2.5-flash-preview-tts');
+    expect(config.GEMINI_MODEL).toBe('gemini-3.8-flash');
+    expect(config.GEMINI_TTS_MODEL).toBe('gemini-3.8-flash-tts');
+    expect(config.GEMINI_STT_MODEL).toBe('gemini-3.5-transcribe');
     expect(config.GEMINI_VOICE).toBe('Kore');
     expect(config.TRUST_PROXY_HOPS).toBe(0);
     expect(config.APP_ORIGIN).toBe('http://localhost:4320');

@@ -99,8 +99,17 @@ transcribes the synthesized audio back, and writes `artifacts/gemini-smoke/`
 (ignored) with both WAV files and `report.json` containing timings and transcripts.
 Listen to the Nepali WAV and compare the transcript to the answer; the script
 cannot judge pronunciation. Quota errors stop the run visibly. Set
-`ALLOW_LIVE_EVAL=false` again afterwards. `GEMINI_TTS_MODEL` and `GEMINI_VOICE`
-select the speech model and prebuilt voice.
+`ALLOW_LIVE_EVAL=false` again afterwards. `GEMINI_TTS_MODEL`, `GEMINI_STT_MODEL`
+and `GEMINI_VOICE` select the speech models and prebuilt voice.
+
+This gate passed for English and Nepali on 2026-09-25; `docs/M1-VOICE.md` records
+the measured timings and the provider behaviour it exposed.
+
+**Free-tier quota is about 20 requests per day, per model** — not per minute. A
+single gate run uses roughly two generation, four to six speech and two
+recognition requests. If generation returns 429, point `GEMINI_MODEL` at another
+model (for example `gemini-3.6-flash` or `gemini-3-flash-preview`) for a separate
+daily budget. Popular models also return transient 503s, which the adapter retries.
 
 ## 5. Live validation still required
 
