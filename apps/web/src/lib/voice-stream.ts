@@ -1,6 +1,16 @@
 import { FeasibilityEventSchema } from '@svara/contracts';
 import type { FeasibilityEvent } from '@svara/contracts';
 
+/** Decodes one base64 audio packet into the bytes the playback worklet expects. */
+export function decodeAudioPacket(base64: string): ArrayBuffer {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  if (!bytes.length || bytes.length > 4800 || bytes.length % 2)
+    throw new Error('Malformed audio packet.');
+  return bytes.buffer;
+}
+
 export async function* readVoiceStream(
   response: Response,
   generation: number,

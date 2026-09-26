@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { AudioLines, Clock3, Languages, Mic, Play, Square, Volume2 } from 'lucide-react';
 import { Button, FormField, StatusBadge } from '@svara/ui';
 import { GenerationOwner, LabAudio } from '@svara/audio';
-import type { CaptureMeter } from '@svara/audio';
-import type { FixtureScenarioId, Locale } from '@svara/contracts';
-import { readVoiceStream } from '../lib/voice-stream';
+import type { AnswerPlayback, CaptureMeter } from '@svara/audio';
+import type { FixtureScenarioId, Locale, ProviderMode } from '@svara/contracts';
+import { decodeAudioPacket, readVoiceStream } from '../lib/voice-stream';
 import { staffResponse } from '../lib/staff-api';
 import { useStaffSession } from './session-provider';
 
@@ -19,7 +19,8 @@ const scenarios: { id: FixtureScenarioId; label: string }[] = [
   { id: 'provider_quota', label: 'Provider quota reached' },
 ];
 
-export function VoiceLab() {
+export function VoiceLab({ mode }: { mode: ProviderMode }) {
+  const live = mode === 'live';
   const { csrfToken } = useStaffSession();
   const [locale, setLocale] = useState<Locale>('en-US');
   const [scenario, setScenario] = useState<FixtureScenarioId>('supported_faq');
@@ -96,6 +97,9 @@ export function VoiceLab() {
   async function run(text?: string) {
     stopAudio();
     const generation = owner.current.begin();
+    const playbackControl = new AbortController();
+    let playback: AnswerPlayback | undefined;
+    let lastSegment: number | undefined;
     setPhase('Answering');
     setQuestion('');
     setAnswer('');
@@ -114,7 +118,7 @@ export function VoiceLab() {
           generation: generation.id,
           ...(text === undefined ? { scenario } : { text }),
         }),
-        signal: AbortSignal.any([generation.signal, AbortSignal.timeout(12000)]),
+        signal: AbortSignal.any([generation.signal, AbortSignal.timeout(live ? 130000 : 12000)]),
       });
       for await (const event of readVoiceStream(response, generation.id)) {
         if (!owner.current.accepts(generation.id)) return;
@@ -126,17 +130,40 @@ export function VoiceLab() {
           }
           setAnswer((current) => current + event.text);
         }
+        if (event.type === 'audio' && event.pcm !== undefined && event.segment !== undefined) {
+          if (!playback) {
+            audioSignal.current = playbackControl;
+            const session = new LabAudio();
+            audio.current = session;
+            setSpeaker('Playing answer');
+            playback = await session.startAnswer(playbackControl.signal, generation.id, (type) => {
+              if (!owner.current.accepts(generation.id)) return;
+              if (type === 'completed') setSpeaker('Answer finished');
+              if (type === 'failed') {
+                setSpeaker('Speaker unavailable');
+                setError(
+                  'Answer audio could not play. Press Test speaker once, then retry the question.',
+                );
+              }
+            });
+          }
+          lastSegment = event.segment;
+          playback.push(decodeAudioPacket(event.pcm), event.segment, event.end === true);
+        }
         if (event.type === 'complete') {
+          playback?.finish(lastSegment);
           setPhase('Completed');
           setTotalMs(event.elapsedMs);
         }
         if (event.type === 'error') {
+          playback?.finish(lastSegment);
           setPhase('Failed');
           setError(event.text);
           setTotalMs(event.elapsedMs);
         }
       }
     } catch {
+      playbackControl.abort();
       if (owner.current.accepts(generation.id)) {
         setPhase('Failed');
         setError('The local voice stream stopped. Read any partial text or retry the scenario.');
@@ -219,15 +246,18 @@ export function VoiceLab() {
             One pipeline. Two languages. A clear account of what works.
           </p>
         </div>
-        <StatusBadge tone="warning">Text-only fixture</StatusBadge>
+        <StatusBadge tone={live ? 'success' : 'warning'}>
+          {live ? 'Live providers' : 'Text-only fixture'}
+        </StatusBadge>
       </div>
       <div className="preview-notice">
         <AudioLines size={21} aria-hidden="true" />
         <div>
           <strong>A local place to listen, read and interrupt.</strong>
           <p>
-            Scripted answers use synthetic campus information. Live recognition and speech are
-            pending provider setup.
+            {live
+              ? 'Typed questions reach real providers and play synthesized speech. Answers are grounded in synthetic campus passages only, and the microphone is still a local check.'
+              : 'Scripted answers use synthetic campus information. Live recognition and speech are pending provider setup.'}
           </p>
         </div>
       </div>
@@ -261,6 +291,7 @@ export function VoiceLab() {
               id="voice-scenario"
               className="input"
               value={scenario}
+              disabled={live}
               onChange={(event) => {
                 interrupt(true);
                 setScenario(event.target.value as FixtureScenarioId);
@@ -275,7 +306,7 @@ export function VoiceLab() {
           </div>
           <Button
             variant="primary"
-            disabled={busy}
+            disabled={busy || live}
             onClick={() => {
               void run();
             }}
@@ -283,6 +314,11 @@ export function VoiceLab() {
             <Play size={16} aria-hidden="true" />
             Run scenario
           </Button>
+          {live && (
+            <p className="field-help">
+              Scripted scenarios are fixture-only. In live mode, ask a typed question below.
+            </p>
+          )}
           <div className="voice-divider" />
           <form
             onSubmit={(event) => {
@@ -295,10 +331,18 @@ export function VoiceLab() {
               value={typed}
               maxLength={1000}
               onChange={(event) => setTyped(event.target.value)}
-              help="Typed input tests the text fallback; fixture mode does not generate an answer to it."
+              help={
+                live
+                  ? 'Asks the provider and plays the spoken answer. Each question uses free-tier quota.'
+                  : 'Typed input tests the text fallback; fixture mode does not generate an answer to it.'
+              }
             />
-            <Button type="submit" disabled={busy}>
-              Send text
+            <Button
+              type="submit"
+              {...(live ? { variant: 'primary' as const } : {})}
+              disabled={busy}
+            >
+              {live ? 'Ask' : 'Send text'}
             </Button>
           </form>
         </section>
@@ -356,8 +400,9 @@ export function VoiceLab() {
             </dl>
           </div>
           <p className="field-help">
-            Measured fixture timing includes deliberate replay delays. It is not live provider
-            latency.
+            {live
+              ? 'Real provider latency: recognition is skipped, and each sentence waits for its own speech request.'
+              : 'Measured fixture timing includes deliberate replay delays. It is not live provider latency.'}
           </p>
         </section>
       </div>
@@ -378,8 +423,8 @@ export function VoiceLab() {
           <div>
             <h3>Microphone · local only</h3>
             <p className="field-help">
-              Audio stays in this browser. This checks capture and PCM framing, not recognition.
-              Stops after 30 seconds.
+              Audio stays in this browser. This checks capture and PCM framing, not recognition;
+              spoken questions are not uploaded yet. Stops after 30 seconds.
             </p>
             <div className="voice-meter">
               <progress
@@ -438,8 +483,9 @@ export function VoiceLab() {
         </div>
       </section>
       <p className="voice-footnote">
-        Local fixture lab · no microphone uploads · no saved transcripts · live English/Nepali
-        validation pending
+        {live
+          ? 'Local live lab · typed questions only · no microphone uploads · no saved transcripts · provider keys stay on the server'
+          : 'Local fixture lab · no microphone uploads · no saved transcripts · live English/Nepali validation pending'}
       </p>
     </>
   );

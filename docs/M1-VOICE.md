@@ -8,10 +8,41 @@ round-trip transcript, writing `artifacts/gemini-smoke/{en-US,ne-NP}.wav` and
 `report.json`. It requires `ALLOW_LIVE_EVAL=true` and `GEMINI_API_KEY`.
 
 **The gate passed against a real key on 2026-09-25 for both locales** — see
-"Live gate result" below. The lab UI still uses fixture mode; wiring live turns into
-`/studio/voice-lab` is next. Recognition buffers each utterance and transcribes on
+"Live gate result" below. Recognition buffers each utterance and transcribes on
 finish (no partial results); streaming recognition via the Live API is deferred
 until hands-free barge-in.
+
+## Live turns in the Voice lab — 2026-09-26
+
+`/studio/voice-lab` now runs live turns when `PROVIDER_MODE=live`, still only on a
+local host and behind a staff session. Typed question → grounded answer subtitles →
+real 24 kHz speech playback. The page reports the mode it is actually running in;
+it no longer claims to be fixture-only when it is not.
+
+**Scope.** Typed questions only. The microphone stays a local capture check and is
+never uploaded, so `GeminiSpeechRecognizer` is not yet reachable from the browser.
+Scripted scenarios remain fixture-only and their control is disabled in live mode.
+Answers are grounded in two synthetic campus passages declared in `apps/api/src/main.ts`;
+no published release is read yet.
+
+**Transport.** The existing NDJSON turn stream carries a new `audio` event type:
+base64 PCM16 bounded to 4,800 bytes with its own `segment` and `end` fields. The
+contract binds them together — a text event cannot smuggle audio, and an audio
+packet cannot appear on a non-streaming turn. `providerMode` and `audio` are now
+enums rather than fixture literals, and the fixture turn shape is unchanged.
+
+**Playback backpressure.** `LabAudio.startAnswer` posts one packet at a time and
+waits for the worklet's `accepted` reply. The playback queue is bounded to two
+seconds, so a rejected packet is retried after 100 ms rather than dropped: the queue
+draining at playback rate is the pacing signal. Completion is reported only when the
+final segment finishes, so "Answer finished" cannot appear while audio is still
+queued.
+
+**Limits.** A live turn holds a provider quota slot, so the route allows two
+concurrent turns instead of four and the request deadline rises to 120 s. Autoplay
+policy can still refuse a context created after the click that started the turn; that
+path reports "Answer audio could not play" and suggests pressing Test speaker first.
+A browser run with a real key has not been recorded yet — see PROGRESS.md.
 
 ## Live gate result — 2026-09-25
 

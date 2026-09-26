@@ -5,7 +5,7 @@ Updated 2026-09-12. Evidence is local unless explicitly marked otherwise.
 | Milestone                                | State       | Evidence / remaining work                                                                                          |
 | ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
 | M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.       |
-| M1 — Bilingual voice feasibility         | Partial     | Live Gemini gate passed both locales once (2026-09-25). Lab UI, hardware barge-in and repeated sampling remain. |
+| M1 — Bilingual voice feasibility         | Partial     | Live gate and lab live turns work. Browser evidence, spoken input, hardware barge-in and repeated sampling remain. |
 | M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                          |
 | M3 — Authoring and immutable publication | Complete    | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.             |
 | M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                   |
@@ -13,6 +13,33 @@ Updated 2026-09-12. Evidence is local unless explicitly marked otherwise.
 | M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                            |
 | M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                |
 | M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                            |
+
+## Live turns in the Voice lab — 2026-09-26
+
+`/studio/voice-lab` runs live Gemini turns under `PROVIDER_MODE=live`, local host and
+staff session only: typed question, grounded subtitles and real 24 kHz speech
+playback. Microphone input stays local and is not uploaded, so browser recognition
+is still pending. `docs/M1-VOICE.md` records the transport, backpressure and limits.
+
+| Check                 | Result                                                                                          |
+| --------------------- | ----------------------------------------------------------------------------------------------- |
+| Unit tests            | 138 passed; new coverage for the live turn, streaming playback pacing and audio packet decoding |
+| Integration tests     | 57 passed, including 4 new live-route tests against stub providers on real PostgreSQL           |
+| Contract drift        | OpenAPI and HTTP types match the API                                                            |
+| Lint / format / types | Clean, including the web app and root project                                                   |
+| Production build      | All three applications and seven packages build                                                 |
+
+The live route tests assert ordered audio packets, segment/end framing, a readable
+quota failure, refusal of fixture scenarios in live mode, the unchanged origin/host/
+size/authentication guards, and a 404 when live mode is configured without providers.
+They use stub providers deliberately: real provider behaviour is covered by
+`pnpm eval:gemini`, and burning free-tier quota inside a test suite would make it
+non-deterministic.
+
+**Not yet verified:** no browser run with a real key has been recorded, so actual
+speech playback in Chromium, autoplay behaviour and the answer/audio timing under
+real latency remain unobserved. That is the next evidence step, alongside Playwright
+coverage for the live path.
 
 ## Live Gemini gate passed — 2026-09-25
 

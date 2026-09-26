@@ -17,6 +17,7 @@
     "@svara/config": "workspace:*",
     "@svara/contracts": "workspace:*",
     "@svara/domain": "workspace:*",
+    "@svara/providers": "workspace:*",
     "busboy": "1.6.0",
     "class-transformer": "0.5.1",
     "class-validator": "0.15.1",

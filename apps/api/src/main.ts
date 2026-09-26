@@ -1,4 +1,5 @@
 import { loadWorkspaceEnvironment, parseServerConfig } from '@svara/config/server';
+import { GeminiAnswerGenerator, GeminiSpeechSynthesizer } from '@svara/providers';
 import {
   BotService,
   createDependencies,
@@ -16,6 +17,26 @@ loadWorkspaceEnvironment();
 const config = parseServerConfig(process.env);
 const dependencies = await createDependencies(config);
 const identity = new IdentityService(dependencies.database, config.AUTH_TOKEN_PEPPER);
+/** Synthetic campus passages until a published release grounds live answers. */
+const livePassages = [
+  { id: 'admissions', text: 'The demo admissions office is in Room A-101, open 10:00-16:00.' },
+  { id: 'library', text: 'The demo library is on the second floor of Block B.' },
+];
+function liveVoiceProviders(apiKey: string) {
+  const gemini = {
+    apiKey,
+    model: config.GEMINI_MODEL,
+    ttsModel: config.GEMINI_TTS_MODEL,
+    sttModel: config.GEMINI_STT_MODEL,
+    voice: config.GEMINI_VOICE,
+    retries: 2,
+  };
+  return {
+    generator: new GeminiAnswerGenerator(gemini),
+    synthesizer: new GeminiSpeechSynthesizer(gemini),
+    passages: livePassages,
+  };
+}
 const app = await createApplication({
   providerMode: config.PROVIDER_MODE,
   localDocs: config.APP_ENV === 'local',
@@ -36,8 +57,9 @@ const app = await createApplication({
     dependencies.database,
     await MediaStorage.open(config.MEDIA_ROOT),
   ),
-  ...(config.APP_ENV === 'local' && config.PROVIDER_MODE === 'fixture'
-    ? { feasibilityOrigin: config.APP_ORIGIN }
+  ...(config.APP_ENV === 'local' ? { feasibilityOrigin: config.APP_ORIGIN } : {}),
+  ...(config.APP_ENV === 'local' && config.PROVIDER_MODE === 'live' && config.GEMINI_API_KEY
+    ? { liveVoice: liveVoiceProviders(config.GEMINI_API_KEY) }
     : {}),
 });
 let closing = false;
