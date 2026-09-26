@@ -30,8 +30,9 @@ const serverSchema = z
     AZURE_SPEECH_REGION: z.string().optional(),
     GENERATION_PROVIDER: z.enum(['gemini', 'openai']).default('gemini'),
     GEMINI_API_KEY: z.string().optional(),
-    GEMINI_MODEL: z.string().min(1).default('gemini-2.5-flash'),
-    GEMINI_TTS_MODEL: z.string().min(1).default('gemini-2.5-flash-preview-tts'),
+    GEMINI_MODEL: z.string().min(1).default('gemini-3.8-flash'),
+    GEMINI_TTS_MODEL: z.string().min(1).default('gemini-3.8-flash-tts'),
+    GEMINI_STT_MODEL: z.string().min(1).default('gemini-3.5-transcribe'),
     GEMINI_VOICE: z
       .string()
       .regex(/^[A-Za-z]{2,32}$/)

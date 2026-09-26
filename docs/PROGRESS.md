@@ -5,7 +5,7 @@ Updated 2026-09-12. Evidence is local unless explicitly marked otherwise.
 | Milestone                                | State       | Evidence / remaining work                                                                                          |
 | ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
 | M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.       |
-| M1 — Bilingual voice feasibility         | Partial     | Fixture lab passes. Gemini REST adapters and `pnpm eval:gemini` gate exist; the gate has not run with a real key. |
+| M1 — Bilingual voice feasibility         | Partial     | Live Gemini gate passed both locales once (2026-09-25). Lab UI, hardware barge-in and repeated sampling remain. |
 | M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                          |
 | M3 — Authoring and immutable publication | Complete    | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.             |
 | M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                   |
@@ -13,6 +13,26 @@ Updated 2026-09-12. Evidence is local unless explicitly marked otherwise.
 | M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                            |
 | M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                |
 | M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                            |
+
+## Live Gemini gate passed — 2026-09-25
+
+Ran `pnpm eval:gemini` with a real free-tier key. Both locales completed the full
+question → grounded answer → 24 kHz speech → 16 kHz round-trip transcript path.
+Nepali answered and transcribed correctly in Devanagari. Timings, the single-sample
+caveat and the six provider-contract corrections this run exposed (retired
+`gemini-2.5-flash`, per-day-per-model quota, WAV container instead of raw L16,
+`audioTranscription` field, CRLF SSE frames, default thinking consuming the output
+budget) are recorded in `docs/M1-VOICE.md`.
+
+Adapter fixes from those findings: WAV container parsing with format validation,
+transcription-part extraction, reasoning-part filtering, CRLF-tolerant SSE parsing,
+`thinkingConfig.thinkingBudget = 0`, bounded 429/503 retry honouring the server's
+backoff hint, and a separate `GEMINI_STT_MODEL`. 123 unit tests pass (28 for the
+adapter, 93% lines); lint, format and root typecheck pass.
+
+Still pending for M1: the Voice lab UI remains fixture-only, latency is
+REST-buffered rather than conversational, pronunciation needs a human listener, and
+hands-free barge-in needs the physical setup and the Live API session.
 
 ## Gemini adapters — 2026-09-21
 

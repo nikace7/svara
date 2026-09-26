@@ -24,7 +24,9 @@ const gemini = {
   apiKey: config.GEMINI_API_KEY,
   model: config.GEMINI_MODEL,
   ttsModel: config.GEMINI_TTS_MODEL,
+  sttModel: config.GEMINI_STT_MODEL,
   voice: config.GEMINI_VOICE,
+  retries: 2,
 };
 const passages = [
   { id: 'admissions', text: 'The demo admissions office is in Room A-101, open 10:00–16:00.' },
@@ -39,7 +41,7 @@ await mkdir(outDir, { recursive: true });
 
 async function runLocale(locale: Locale) {
   const controller = new AbortController();
-  const deadline = setTimeout(() => controller.abort(), 60000);
+  const deadline = setTimeout(() => controller.abort(), 180000);
   const context = { locale, mode: 'live' as const, signal: controller.signal };
   const timings: Record<string, number> = {};
   const started = performance.now();
@@ -105,7 +107,12 @@ async function runLocale(locale: Locale) {
 const results = [await runLocale('en-US'), await runLocale('ne-NP')];
 const report = {
   checkedAt: new Date().toISOString(),
-  models: { generation: gemini.model, speech: gemini.ttsModel, voice: gemini.voice },
+  models: {
+    generation: gemini.model,
+    speech: gemini.ttsModel,
+    recognition: gemini.sttModel,
+    voice: gemini.voice,
+  },
   results,
 };
 await writeFile(join(outDir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);

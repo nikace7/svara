@@ -4,6 +4,7 @@ import {
   GeminiError,
   GeminiSpeechRecognizer,
   GeminiSpeechSynthesizer,
+  pcmFromWav,
   wavFromPcm16,
 } from './gemini.js';
 import type { ProviderContext, RecognitionEvent } from './index.js';
@@ -41,7 +42,7 @@ describe('Gemini request boundary', () => {
     await collect(generator.generate({ question: 'q', passages: [], history: [] }, context()));
     expect(calls[0]!.url).not.toContain('secret-key');
     expect(new Headers(calls[0]!.init.headers).get('x-goog-api-key')).toBe('secret-key');
-    expect(calls[0]!.url).toMatch(/models\/gemini-2\.5-flash:streamGenerateContent\?alt=sse$/);
+    expect(calls[0]!.url).toMatch(/models\/gemini-3\.8-flash:streamGenerateContent\?alt=sse$/);
   });
 
   it.each([
@@ -88,10 +89,73 @@ describe('Gemini request boundary', () => {
   });
 });
 
+describe('free-tier retry', () => {
+  const sseOk = () =>
+    new Response('data: {"candidates":[{"content":{"parts":[{"text":"ok"}]}}]}\n\n');
+  const quota = () =>
+    new Response('{"error":{"message":"Quota exceeded. Please retry in 1.5s"}}', { status: 429 });
+
+  it('honours the server backoff hint, then succeeds', async () => {
+    const slept: number[] = [];
+    let call = 0;
+    const { calls, fetch } = fakeFetch(() => (++call === 1 ? quota() : sseOk()));
+    const deltas = await collect(
+      new GeminiAnswerGenerator({
+        ...options(fetch),
+        retries: 1,
+        sleep: async (ms) => void slept.push(ms),
+      }).generate({ question: 'q', passages: [], history: [] }, context()),
+    );
+    expect(deltas).toEqual(['ok']);
+    expect(calls).toHaveLength(2);
+    expect(slept).toEqual([1500]);
+  });
+
+  it('retries 503 with a bounded default delay and gives up as quota after the last attempt', async () => {
+    const slept: number[] = [];
+    const busy = fakeFetch(() => new Response('{}', { status: 503 }));
+    await expect(
+      collect(
+        new GeminiAnswerGenerator({
+          ...options(busy.fetch),
+          retries: 2,
+          sleep: async (ms) => void slept.push(ms),
+        }).generate({ question: 'q', passages: [], history: [] }, context()),
+      ),
+    ).rejects.toMatchObject({ code: 'PROVIDER_UNAVAILABLE', status: 503 });
+    expect(busy.calls).toHaveLength(3);
+    expect(slept).toEqual([2000, 4000]);
+    const exhausted = fakeFetch(quota);
+    await expect(
+      collect(
+        new GeminiAnswerGenerator({ ...options(exhausted.fetch), retries: 0 }).generate(
+          { question: 'q', passages: [], history: [] },
+          context(),
+        ),
+      ),
+    ).rejects.toMatchObject({ code: 'PROVIDER_QUOTA' });
+    expect(exhausted.calls).toHaveLength(1);
+  });
+
+  it('does not retry a non-transient rejection', async () => {
+    const { calls, fetch } = fakeFetch(() => new Response('{}', { status: 400 }));
+    await expect(
+      collect(
+        new GeminiAnswerGenerator({ ...options(fetch), retries: 3 }).generate(
+          { question: 'q', passages: [], history: [] },
+          context(),
+        ),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(calls).toHaveLength(1);
+  });
+});
+
 describe('GeminiAnswerGenerator', () => {
+  // The live API separates frames with CRLF, so the parser must accept both forms.
   const sse = (...chunks: unknown[]) =>
     new Response(
-      chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\n\n`).join('') + 'data: [DONE]\n\n',
+      chunks.map((chunk) => `data: ${JSON.stringify(chunk)}\r\n\r\n`).join('') + 'data: [DONE]\n\n',
       { headers: { 'content-type': 'text/event-stream' } },
     );
   const chunk = (text: string) => ({ candidates: [{ content: { parts: [{ text }] } }] });
@@ -125,6 +189,7 @@ describe('GeminiAnswerGenerator', () => {
       { role: 'user', parts: [{ text: 'भर्ना कार्यालय कहाँ छ?' }] },
     ]);
     expect(request['tools']).toBeUndefined();
+    expect(request['generationConfig']).toMatchObject({ thinkingConfig: { thinkingBudget: 0 } });
   });
 
   it('surfaces a blocked or empty answer as an explicit error', async () => {
@@ -139,6 +204,30 @@ describe('GeminiAnswerGenerator', () => {
         ),
       ),
     ).rejects.toMatchObject({ code: 'PROVIDER_UNAVAILABLE' });
+  });
+
+  it('never emits reasoning parts as answer text', async () => {
+    const { fetch } = fakeFetch(() =>
+      sse({
+        candidates: [
+          {
+            content: {
+              parts: [
+                { text: 'internal plan', thought: true },
+                { text: 'Room A-101.', thoughtSignature: 'sig' },
+              ],
+            },
+          },
+        ],
+      }),
+    );
+    const deltas = await collect(
+      new GeminiAnswerGenerator(options(fetch)).generate(
+        { question: 'q', passages: [], history: [] },
+        context(),
+      ),
+    );
+    expect(deltas).toEqual(['Room A-101.']);
   });
 
   it('splits SSE frames across arbitrary chunk boundaries', async () => {
@@ -163,7 +252,8 @@ describe('GeminiAnswerGenerator', () => {
 
 describe('GeminiSpeechSynthesizer', () => {
   const pcm = new Int16Array([0, 1000, -1000, 32767]);
-  const audioResponse = (mimeType: string, bytes = new Uint8Array(pcm.buffer)) =>
+  const wav24k = (rate = 24000) => new Uint8Array(wavFromPcm16(new Uint8Array(pcm.buffer), rate));
+  const audioResponse = (mimeType: string, bytes = wav24k()) =>
     new Response(
       JSON.stringify({
         candidates: [
@@ -177,13 +267,13 @@ describe('GeminiSpeechSynthesizer', () => {
     );
 
   it('requests 24 kHz PCM with the configured voice and yields decoded bytes', async () => {
-    const { calls, fetch } = fakeFetch(() => audioResponse('audio/L16;codec=pcm;rate=24000'));
+    const { calls, fetch } = fakeFetch(() => audioResponse('audio/wav'));
     const synthesizer = new GeminiSpeechSynthesizer({ ...options(fetch), voice: 'Puck' });
     const chunks = await collect(synthesizer.synthesize('नमस्ते।', context()));
     expect(chunks).toHaveLength(1);
     expect(new Int16Array(chunks[0]!)).toEqual(pcm);
     const request = body(calls[0]!);
-    expect(calls[0]!.url).toMatch(/models\/gemini-2\.5-flash-preview-tts:generateContent$/);
+    expect(calls[0]!.url).toMatch(/models\/gemini-3\.8-flash-tts:generateContent$/);
     expect(request['generationConfig']).toEqual({
       responseModalities: ['AUDIO'],
       speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } } },
@@ -191,8 +281,18 @@ describe('GeminiSpeechSynthesizer', () => {
     expect(JSON.stringify(request['contents'])).toContain('नमस्ते।');
   });
 
+  it('accepts the documented raw L16 form as well as a WAV container', async () => {
+    const raw = fakeFetch(() =>
+      audioResponse('audio/L16;codec=pcm;rate=24000', new Uint8Array(pcm.buffer)),
+    );
+    const [chunk] = await collect(
+      new GeminiSpeechSynthesizer(options(raw.fetch)).synthesize('x', context()),
+    );
+    expect(new Int16Array(chunk!)).toEqual(pcm);
+  });
+
   it('rejects unexpected audio formats and odd byte lengths rather than playing noise', async () => {
-    const wrongRate = fakeFetch(() => audioResponse('audio/L16;codec=pcm;rate=16000'));
+    const wrongRate = fakeFetch(() => audioResponse('audio/wav', wav24k(16000)));
     await expect(
       collect(new GeminiSpeechSynthesizer(options(wrongRate.fetch)).synthesize('x', context())),
     ).rejects.toMatchObject({ code: 'PROVIDER_UNAVAILABLE' });
@@ -219,7 +319,12 @@ describe('GeminiSpeechSynthesizer', () => {
 
 describe('GeminiSpeechRecognizer', () => {
   const transcript = (text: string) =>
-    new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text }] } }] }));
+    new Response(
+      JSON.stringify({
+        // gemini-3.5-transcribe answers with audioTranscription, not a text part.
+        candidates: [{ content: { parts: [{ audioTranscription: { text } }] } }],
+      }),
+    );
   const frame = (seq: number, fill: number) => ({
     seq,
     pcm: new Int16Array(1600).fill(fill).buffer,
@@ -241,6 +346,7 @@ describe('GeminiSpeechRecognizer', () => {
     const inline = parts.find((part) => part['inlineData']) as {
       inlineData: { mimeType: string; data: string };
     };
+    expect(calls[0]!.url).toMatch(/models\/gemini-3\.5-transcribe:generateContent$/);
     expect(inline.inlineData.mimeType).toBe('audio/wav');
     const wav = Buffer.from(inline.inlineData.data, 'base64');
     expect(wav.subarray(0, 4).toString('ascii')).toBe('RIFF');
@@ -279,6 +385,14 @@ describe('GeminiSpeechRecognizer', () => {
     expect(events).toEqual([{ type: 'error', code: 'PROVIDER_QUOTA' }]);
     session.close();
     expect(() => session.write(frame(1, 0))).toThrow();
+  });
+
+  it('round-trips PCM through the WAV helpers', () => {
+    const bytes = new Uint8Array([1, 0, 2, 0, 3, 0]);
+    const parsed = pcmFromWav(new Uint8Array(wavFromPcm16(bytes, 24000)), 24000);
+    expect(new Uint8Array(parsed)).toEqual(bytes);
+    expect(() => pcmFromWav(new Uint8Array(wavFromPcm16(bytes, 16000)), 24000)).toThrow();
+    expect(() => pcmFromWav(new Uint8Array([1, 2, 3]), 24000)).toThrow();
   });
 
   it('builds a canonical 44-byte WAV header', () => {

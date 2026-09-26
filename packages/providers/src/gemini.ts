@@ -14,10 +14,18 @@ export interface GeminiOptions {
   apiKey: string;
   model?: string;
   ttsModel?: string;
+  sttModel?: string;
   voice?: string;
   baseUrl?: string;
   fetch?: typeof fetch;
+  /** Retries on 429/503 for the free tier's narrow per-model quota. 0 disables. */
+  retries?: number;
+  sleep?: (ms: number) => Promise<void>;
 }
+
+const DEFAULT_MODEL = 'gemini-3.8-flash';
+const DEFAULT_TTS_MODEL = 'gemini-3.8-flash-tts';
+const DEFAULT_STT_MODEL = 'gemini-3.5-transcribe';
 
 export type GeminiErrorCode = 'PROVIDER_QUOTA' | 'PROVIDER_UNAVAILABLE';
 export class GeminiError extends Error {
@@ -41,10 +49,19 @@ const FRAME_BYTES = 3200;
 
 interface GeminiPart {
   text?: string;
+  thought?: boolean;
+  audioTranscription?: { text?: string };
   inlineData?: { mimeType?: string; data?: string };
 }
 interface GeminiResponse {
   candidates?: { finishReason?: string; content?: { parts?: GeminiPart[] } }[];
+}
+
+/** Reads the server's own backoff hint. The body is otherwise never surfaced. */
+function retryDelayMs(body: string): number | undefined {
+  const seconds = /retry in ([0-9]+(?:\.[0-9]+)?)s/i.exec(body)?.[1];
+  const value = seconds === undefined ? Number.NaN : Number(seconds) * 1000;
+  return Number.isFinite(value) && value >= 0 && value <= 60000 ? value : undefined;
 }
 
 async function callGemini(
@@ -53,30 +70,48 @@ async function callGemini(
   body: unknown,
   signal: AbortSignal,
 ): Promise<Response> {
-  signal.throwIfAborted();
   const fetchFn = options.fetch ?? globalThis.fetch;
   const url = `${options.baseUrl ?? 'https://generativelanguage.googleapis.com/v1beta'}/${path}`;
-  let response: Response;
-  try {
-    response = await fetchFn(url, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': options.apiKey },
-      body: JSON.stringify(body),
-      signal,
-    });
-  } catch (error) {
-    if (signal.aborted) throw error;
-    throw new GeminiError('PROVIDER_UNAVAILABLE', undefined, 'request failed');
+  const attempts = Math.max(0, options.retries ?? 0) + 1;
+  const sleep =
+    options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  for (let attempt = 1; ; attempt++) {
+    signal.throwIfAborted();
+    let response: Response;
+    try {
+      response = await fetchFn(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-goog-api-key': options.apiKey },
+        body: JSON.stringify(body),
+        signal,
+      });
+    } catch (error) {
+      if (signal.aborted) throw error;
+      throw new GeminiError('PROVIDER_UNAVAILABLE', undefined, 'request failed');
+    }
+    if (response.ok) {
+      if (!response.body) throw new GeminiError('PROVIDER_UNAVAILABLE', response.status, 'empty');
+      return response;
+    }
+    const retryable = response.status === 429 || response.status === 503;
+    const hint = retryable ? retryDelayMs(await response.text().catch(() => '')) : undefined;
+    if (retryable && attempt < attempts) {
+      await sleep(hint ?? Math.min(2000 * attempt, 10000));
+      continue;
+    }
+    if (response.status === 429) throw new GeminiError('PROVIDER_QUOTA', 429, 'quota exhausted');
+    throw new GeminiError('PROVIDER_UNAVAILABLE', response.status, 'rejected');
   }
-  if (response.status === 429) throw new GeminiError('PROVIDER_QUOTA', 429, 'quota exhausted');
-  if (!response.ok) throw new GeminiError('PROVIDER_UNAVAILABLE', response.status, 'rejected');
-  if (!response.body) throw new GeminiError('PROVIDER_UNAVAILABLE', response.status, 'empty');
-  return response;
 }
 
 function textParts(payload: GeminiResponse): string {
-  const candidate = payload.candidates?.[0];
-  return (candidate?.content?.parts ?? []).map((part) => part.text ?? '').join('');
+  return (
+    (payload.candidates?.[0]?.content?.parts ?? [])
+      // Reasoning parts are not the answer and must never reach subtitles or speech.
+      .filter((part) => part.thought !== true)
+      .map((part) => part.audioTranscription?.text ?? part.text ?? '')
+      .join('')
+  );
 }
 
 async function* sseData(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
@@ -85,12 +120,11 @@ async function* sseData(body: ReadableStream<Uint8Array>): AsyncGenerator<string
   let buffer = '';
   for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
     buffer += decoder.decode(chunk.value, { stream: true });
-    let end: number;
-    while ((end = buffer.indexOf('\n\n')) >= 0) {
-      const frame = buffer.slice(0, end);
-      buffer = buffer.slice(end + 2);
+    for (let match; (match = /\r?\n\r?\n/.exec(buffer));) {
+      const frame = buffer.slice(0, match.index);
+      buffer = buffer.slice(match.index + match[0].length);
       const data = frame
-        .split('\n')
+        .split(/\r?\n/)
         .filter((line) => line.startsWith('data:'))
         .map((line) => line.slice(5).trim())
         .join('\n');
@@ -103,7 +137,7 @@ export class GeminiAnswerGenerator implements AnswerGenerator {
   constructor(private readonly options: GeminiOptions) {}
 
   async *generate(input: AnswerInput, context: ProviderContext): AsyncIterable<string> {
-    const model = this.options.model ?? 'gemini-2.5-flash';
+    const model = this.options.model ?? DEFAULT_MODEL;
     const passages = input.passages.map((passage) => `[${passage.id}] ${passage.text}`).join('\n');
     const system =
       `You are a campus assistant. Answer in ${languageName[context.locale]} only, in at most ` +
@@ -123,7 +157,11 @@ export class GeminiAnswerGenerator implements AnswerGenerator {
       {
         systemInstruction: { parts: [{ text: system }] },
         contents,
-        generationConfig: { temperature: 0.2, maxOutputTokens: 400 },
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 800,
+          thinkingConfig: { thinkingBudget: 0 },
+        },
       },
       context.signal,
     );
@@ -154,7 +192,7 @@ export class GeminiSpeechSynthesizer implements SpeechSynthesizer {
     const trimmed = text.trim();
     if (!trimmed || trimmed.length > MAX_SYNTHESIS_CHARS)
       throw new Error('Synthesis text must be 1–2000 characters.');
-    const model = this.options.ttsModel ?? 'gemini-2.5-flash-preview-tts';
+    const model = this.options.ttsModel ?? DEFAULT_TTS_MODEL;
     const response = await callGemini(
       this.options,
       `models/${model}:generateContent`,
@@ -175,18 +213,57 @@ export class GeminiSpeechSynthesizer implements SpeechSynthesizer {
     )?.inlineData;
     if (!audio?.data) throw new GeminiError('PROVIDER_UNAVAILABLE', undefined, 'returned no audio');
     const mime = (audio.mimeType ?? '').toLowerCase();
-    if (!mime.startsWith('audio/l16') || !mime.includes(`rate=${OUTPUT_RATE}`))
+    const bytes = Buffer.from(audio.data, 'base64');
+    let pcm: ArrayBuffer;
+    try {
+      if (mime === 'audio/wav' || mime === 'audio/wave' || mime === 'audio/x-wav')
+        pcm = pcmFromWav(bytes, OUTPUT_RATE);
+      else if (mime.startsWith('audio/l16') && mime.includes(`rate=${OUTPUT_RATE}`)) {
+        if (bytes.length === 0 || bytes.length % 2 !== 0) throw new Error('odd PCM length');
+        pcm = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      } else throw new Error('unsupported mime type');
+    } catch {
       throw new GeminiError(
         'PROVIDER_UNAVAILABLE',
         undefined,
         'returned an unexpected audio format',
       );
-    const bytes = Buffer.from(audio.data, 'base64');
-    if (bytes.length === 0 || bytes.length % 2 !== 0)
-      throw new GeminiError('PROVIDER_UNAVAILABLE', undefined, 'returned malformed PCM');
+    }
     context.signal.throwIfAborted();
-    yield bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    yield pcm;
   }
+}
+
+/** Extracts mono 16-bit PCM at the expected rate from a RIFF/WAVE container. */
+export function pcmFromWav(wav: Uint8Array, expectedRate: number): ArrayBuffer {
+  const view = new DataView(wav.buffer, wav.byteOffset, wav.byteLength);
+  const tag = (offset: number) => String.fromCharCode(...wav.subarray(offset, offset + 4));
+  if (wav.byteLength < 44 || tag(0) !== 'RIFF' || tag(8) !== 'WAVE')
+    throw new Error('Expected a RIFF/WAVE container.');
+  let format: number | undefined;
+  for (let offset = 12; offset + 8 <= wav.byteLength;) {
+    const id = tag(offset);
+    const size = view.getUint32(offset + 4, true);
+    const start = offset + 8;
+    if (id === 'fmt ' && size >= 16) {
+      format = view.getUint16(start, true);
+      const channels = view.getUint16(start + 2, true);
+      const rate = view.getUint32(start + 4, true);
+      const bits = view.getUint16(start + 14, true);
+      if (format !== 1 || channels !== 1 || rate !== expectedRate || bits !== 16)
+        throw new Error('Expected mono 16-bit PCM at the agreed rate.');
+    }
+    if (id === 'data') {
+      if (format === undefined) throw new Error('Missing format chunk.');
+      const length = Math.min(size, wav.byteLength - start);
+      if (length === 0 || length % 2 !== 0) throw new Error('Malformed PCM payload.');
+      const pcm = new ArrayBuffer(length);
+      new Uint8Array(pcm).set(wav.subarray(start, start + length));
+      return pcm;
+    }
+    offset = start + size + (size % 2);
+  }
+  throw new Error('Missing data chunk.');
 }
 
 export function wavFromPcm16(pcm: Uint8Array, sampleRate: number): Buffer {
@@ -217,7 +294,7 @@ export class GeminiSpeechRecognizer implements SpeechRecognizer {
   ): Promise<RecognitionSession> {
     const frames: Uint8Array[] = [];
     let closed = false;
-    const model = this.options.model ?? 'gemini-2.5-flash';
+    const model = this.options.sttModel ?? DEFAULT_STT_MODEL;
     return {
       write: ({ seq, pcm }) => {
         if (closed) throw new Error('Recognition session is closed.');
