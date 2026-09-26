@@ -1,6 +1,6 @@
 # Implementation progress
 
-Updated 2026-09-12. Evidence is local unless explicitly marked otherwise.
+Updated 2026-09-26. Evidence is local unless explicitly marked otherwise.
 
 | Milestone                                | State       | Evidence / remaining work                                                                                          |
 | ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
@@ -14,6 +14,17 @@ Updated 2026-09-12. Evidence is local unless explicitly marked otherwise.
 | M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                |
 | M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                            |
 
+## Branch lines merged — 2026-09-26
+
+The authoring line (media library, presentations, immutable releases, demo content)
+and the voice line (Gemini adapters, live gate, live lab turns) were developed
+separately and are now one history: `main` fast-forwarded to the authoring tip, then
+the four voice commits were rebased on top. Conflicts were confined to wiring and
+documentation — `apps/api/src/app.ts` and `main.ts` (both additive), `apps/api/package.json`,
+`pnpm-lock.yaml` and this file. The whole `pnpm check` chain was re-run on the result;
+the counts below are from that run, not from either branch alone. Device pairing (M4)
+remains on its own branch and is not merged.
+
 ## Live turns in the Voice lab — 2026-09-26
 
 `/studio/voice-lab` runs live Gemini turns under `PROVIDER_MODE=live`, local host and
@@ -21,13 +32,13 @@ staff session only: typed question, grounded subtitles and real 24 kHz speech
 playback. Microphone input stays local and is not uploaded, so browser recognition
 is still pending. `docs/M1-VOICE.md` records the transport, backpressure and limits.
 
-| Check                 | Result                                                                                          |
-| --------------------- | ----------------------------------------------------------------------------------------------- |
-| Unit tests            | 138 passed; new coverage for the live turn, streaming playback pacing and audio packet decoding |
-| Integration tests     | 57 passed, including 4 new live-route tests against stub providers on real PostgreSQL           |
-| Contract drift        | OpenAPI and HTTP types match the API                                                            |
-| Lint / format / types | Clean, including the web app and root project                                                   |
-| Production build      | All three applications and seven packages build                                                 |
+| Check                 | Result                                                                                        |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| Unit tests            | 171 passed (28 files) on the merged line                                                      |
+| Integration tests     | 123 passed (24 files) on real PostgreSQL, including 4 live-route tests against stub providers |
+| Contract drift        | OpenAPI and HTTP types match the API                                                          |
+| Lint / format / types | Clean, including the web app and root project                                                 |
+| Production build      | All three applications and seven packages build                                               |
 
 The live route tests assert ordered audio packets, segment/end framing, a readable
 quota failure, refusal of fixture scenarios in live mode, the unchanged origin/host/
@@ -98,7 +109,8 @@ plus ordered presentation drafts with protected media references and screen prev
 Staff release readiness, preview/publication, history and frozen bilingual query
 inspection are also implemented and verified. Additive demo content now includes
 three fictional guides and a complete published campus release with inspected media.
-Live voice remains pending account setup and provider adapters.
+Live voice adapters, the passing provider gate and live lab turns are merged from
+the voice line; browser evidence for live playback remains pending.
 
 ## M0 delivered
 
