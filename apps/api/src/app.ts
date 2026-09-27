@@ -25,7 +25,22 @@ import type { NextFunction, Request, Response } from 'express';
 import { mediaRejectionMessages } from '@svara/contracts';
 import type { ProviderMode } from '@svara/contracts';
 import type { Readiness } from '@svara/domain';
-import { AuthoringError, IdentityError, MediaError, ReleaseError } from '@svara/domain';
+import {
+  AuthoringError,
+  DeviceError,
+  IdentityError,
+  MediaError,
+  ReleaseError,
+} from '@svara/domain';
+import {
+  DEVICE_SERVICE,
+  DevicesController,
+  DeviceRuntimeController,
+} from './devices/controller.js';
+import type { DeviceHttpService } from './devices/controller.js';
+import { DeviceRuntimeBoundary, RUNTIME_BOUNDARY } from './devices/boundary.js';
+import type { DeviceRuntimeHttpOptions } from './devices/boundary.js';
+import { deviceErrorResponse } from './devices/errors.js';
 import {
   RELEASE_SERVICE,
   BotReleasesController,
@@ -79,6 +94,8 @@ export interface ApplicationOptions {
   releases?: ReleaseHttpService;
   media?: MediaHttpService;
   schedules?: ScheduleHttpService;
+  devices?: DeviceHttpService;
+  runtime?: DeviceRuntimeHttpOptions;
   trustedProxyHops?: 0 | 1;
 }
 
@@ -133,6 +150,10 @@ class HealthController {
 class SafeExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>();
+    if (exception instanceof DeviceError) {
+      deviceErrorResponse(exception, response);
+      return;
+    }
     const parserType =
       exception instanceof Error && 'type' in exception ? exception.type : undefined;
     const schedule = scheduleFailure(exception);
@@ -345,6 +366,15 @@ export function createOpenApiDocument(app: NestExpressApplication) {
         },
         'staff',
       )
+      .addCookieAuth(
+        'svara-device',
+        {
+          type: 'apiKey',
+          in: 'cookie',
+          description: 'Separate HttpOnly paired-device cookie; __Host-svara-device on HTTPS.',
+        },
+        'device',
+      )
       .build(),
     {
       operationIdFactory: (controller, method) =>
@@ -375,6 +405,8 @@ export async function createApplication(
       EventsController,
       DeploymentsController,
       DeviceScheduleController,
+      DevicesController,
+      DeviceRuntimeController,
     ],
     providers: [
       { provide: OPTIONS, useValue: options },
@@ -385,6 +417,8 @@ export async function createApplication(
       { provide: PRESENTATION_SERVICE, useValue: options.presentations ?? null },
       { provide: RELEASE_SERVICE, useValue: options.releases ?? null },
       { provide: SCHEDULE_SERVICE, useValue: options.schedules ?? null },
+      { provide: DEVICE_SERVICE, useValue: options.devices ?? null },
+      { provide: RUNTIME_BOUNDARY, useValue: new DeviceRuntimeBoundary(options.runtime) },
       StaffGuard,
     ],
   })

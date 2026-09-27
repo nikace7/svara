@@ -719,6 +719,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["devices_list"];
+        put?: never;
+        post: operations["devices_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/devices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["devices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["devices_save"];
+        trace?: never;
+    };
+    "/api/v1/devices/{id}/pairing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["devices_pairing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/devices/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["devices_revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runtime/pair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["deviceruntime_pair"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runtime/device": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["deviceruntime_device"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runtime/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["deviceruntime_tickets"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4908,6 +5020,482 @@ export interface operations {
                         };
                     };
                 };
+            };
+        };
+    };
+    devices_list: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            capabilities: {
+                                microphone: boolean;
+                                speaker: boolean;
+                                secondaryDisplay: boolean;
+                            };
+                            enabled: boolean;
+                            maintenanceMode: boolean;
+                            revision: number;
+                            paired: boolean;
+                            /** @enum {string} */
+                            connection: "NEVER_SEEN" | "ONLINE" | "OFFLINE";
+                            /** Format: date-time */
+                            lastSeenAt: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        }[];
+                        page: {
+                            /** Format: uuid */
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    devices_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /**
+                     * @default {
+                     *       "microphone": false,
+                     *       "speaker": false,
+                     *       "secondaryDisplay": false
+                     *     }
+                     */
+                    capabilities?: {
+                        microphone: boolean;
+                        speaker: boolean;
+                        secondaryDisplay: boolean;
+                    };
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            capabilities: {
+                                microphone: boolean;
+                                speaker: boolean;
+                                secondaryDisplay: boolean;
+                            };
+                            enabled: boolean;
+                            maintenanceMode: boolean;
+                            revision: number;
+                            paired: boolean;
+                            /** @enum {string} */
+                            connection: "NEVER_SEEN" | "ONLINE" | "OFFLINE";
+                            /** Format: date-time */
+                            lastSeenAt: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    devices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            capabilities: {
+                                microphone: boolean;
+                                speaker: boolean;
+                                secondaryDisplay: boolean;
+                            };
+                            enabled: boolean;
+                            maintenanceMode: boolean;
+                            revision: number;
+                            paired: boolean;
+                            /** @enum {string} */
+                            connection: "NEVER_SEEN" | "ONLINE" | "OFFLINE";
+                            /** Format: date-time */
+                            lastSeenAt: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    devices_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    capabilities: {
+                        microphone: boolean;
+                        speaker: boolean;
+                        secondaryDisplay: boolean;
+                    };
+                    enabled: boolean;
+                    maintenanceMode: boolean;
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            capabilities: {
+                                microphone: boolean;
+                                speaker: boolean;
+                                secondaryDisplay: boolean;
+                            };
+                            enabled: boolean;
+                            maintenanceMode: boolean;
+                            revision: number;
+                            paired: boolean;
+                            /** @enum {string} */
+                            connection: "NEVER_SEEN" | "ONLINE" | "OFFLINE";
+                            /** Format: date-time */
+                            lastSeenAt: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description The device configuration has changed. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description expectedRevision is required. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    devices_pairing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            deviceId: string;
+                            code: string;
+                            /** Format: date-time */
+                            expiresAt: string;
+                            revision: number;
+                        };
+                    };
+                };
+            };
+            /** @description The device is disabled or its revision has changed. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    devices_revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            capabilities: {
+                                microphone: boolean;
+                                speaker: boolean;
+                                secondaryDisplay: boolean;
+                            };
+                            enabled: boolean;
+                            maintenanceMode: boolean;
+                            revision: number;
+                            paired: boolean;
+                            /** @enum {string} */
+                            connection: "NEVER_SEEN" | "ONLINE" | "OFFLINE";
+                            /** Format: date-time */
+                            lastSeenAt: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    deviceruntime_pair: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    challengeId: string;
+                    code: string;
+                    /** @default false */
+                    replaceExisting?: boolean;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            device: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                capabilities: {
+                                    microphone: boolean;
+                                    speaker: boolean;
+                                    secondaryDisplay: boolean;
+                                };
+                                enabled: boolean;
+                                maintenanceMode: boolean;
+                                revision: number;
+                                paired: boolean;
+                                /** @enum {string} */
+                                connection: "NEVER_SEEN" | "ONLINE" | "OFFLINE";
+                                /** Format: date-time */
+                                lastSeenAt: string | null;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            };
+                            csrfToken: string;
+                        };
+                    };
+                };
+            };
+            /** @description Confirm replacement of this browser profile’s pairing. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description At most ten pairing attempts per IP per minute. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deviceruntime_device: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            device: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                capabilities: {
+                                    microphone: boolean;
+                                    speaker: boolean;
+                                    secondaryDisplay: boolean;
+                                };
+                                enabled: boolean;
+                                maintenanceMode: boolean;
+                                revision: number;
+                                paired: boolean;
+                                /** @enum {string} */
+                                connection: "NEVER_SEEN" | "ONLINE" | "OFFLINE";
+                                /** Format: date-time */
+                                lastSeenAt: string | null;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            };
+                            csrfToken: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    deviceruntime_tickets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    namespace: "/devices";
+                    /** @enum {string} */
+                    role: "PRIMARY" | "DISPLAY";
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            ticket: string;
+                            /** Format: date-time */
+                            expiresAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description Too many outstanding unconsumed tickets. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
