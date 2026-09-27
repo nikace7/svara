@@ -1,5 +1,16 @@
 import { z } from 'zod';
 import {
+  deviceCreateSchema,
+  deviceSaveSchema,
+  deviceRevisionSchema,
+  deviceSummarySchema,
+  devicePairHttpSchema,
+  pairingChallengeSchema,
+  deviceIdentitySchema,
+  deviceTicketSchema,
+  deviceTicketResultSchema,
+} from './devices.js';
+import {
   releaseCreateSchema,
   releaseReadinessSchema,
   releasePageSchema,
@@ -94,4 +105,25 @@ export const releaseApiSchemas = {
   page: z.toJSONSchema(z.object({ data: releasePageSchema }), { target: 'openapi-3.0' }),
   detail: z.toJSONSchema(z.object({ data: releaseDetailSchema }), { target: 'openapi-3.0' }),
   search: z.toJSONSchema(z.object({ data: releaseSearchResultSchema }), { target: 'openapi-3.0' }),
+};
+
+export const deviceApiSchemas = {
+  create: z.toJSONSchema(deviceCreateSchema, { target: 'openapi-3.0', io: 'input' }),
+  save: z.toJSONSchema(deviceSaveSchema, { target: 'openapi-3.0', io: 'input' }),
+  revision: z.toJSONSchema(deviceRevisionSchema, { target: 'openapi-3.0', io: 'input' }),
+  detail: z.toJSONSchema(z.object({ data: deviceSummarySchema }), { target: 'openapi-3.0' }),
+  page: z.toJSONSchema(
+    z.object({
+      data: z.array(deviceSummarySchema),
+      page: z.object({ nextCursor: z.uuid().nullable() }),
+    }),
+    { target: 'openapi-3.0' },
+  ),
+  pairing: z.toJSONSchema(z.object({ data: pairingChallengeSchema }), { target: 'openapi-3.0' }),
+  pair: z.toJSONSchema(devicePairHttpSchema, { target: 'openapi-3.0', io: 'input' }),
+  identity: z.toJSONSchema(z.object({ data: deviceIdentitySchema }), { target: 'openapi-3.0' }),
+  ticket: z.toJSONSchema(deviceTicketSchema, { target: 'openapi-3.0', io: 'input' }),
+  ticketResult: z.toJSONSchema(z.object({ data: deviceTicketResultSchema }), {
+    target: 'openapi-3.0',
+  }),
 };

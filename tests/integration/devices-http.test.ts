@@ -14,7 +14,6 @@ describe('device and runtime HTTP authority', () => {
   const calls: { bucket: string; maximum: number; windowMs: number }[] = [];
   const origin = 'http://localhost:4320';
   const base = { Host: 'localhost:4320', Origin: origin };
-  const cookie = (token: string) => `svara-device=${token}`;
   const staffHeaders = () => ({
     ...base,
     Cookie: `svara-session=${staff.owner.token}`,

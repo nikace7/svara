@@ -11,7 +11,12 @@ export const DEVICE_LIMITS = {
   displayConnections: 2,
 } as const;
 
-const name = z.string().trim().min(1).max(120);
+const name = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .refine((value) => !value.includes('\u0000'), 'NUL characters are not supported.');
 export const deviceCapabilitiesSchema = z.strictObject({
   microphone: z.boolean(),
   speaker: z.boolean(),
@@ -34,7 +39,12 @@ export const deviceSaveSchema = z.strictObject({
 });
 export const deviceRevisionSchema = z.strictObject({ expectedRevision: revisionSchema });
 export const deviceListSchema = z.strictObject({
-  search: z.string().trim().max(120).default(''),
+  search: z
+    .string()
+    .trim()
+    .max(120)
+    .refine((value) => !value.includes('\u0000'), 'NUL characters are not supported.')
+    .default(''),
   cursor: z.uuid().optional(),
   limit: z.number().int().min(1).max(100).default(25),
 });
@@ -58,6 +68,9 @@ export const devicePairSchema = z.strictObject({
     .regex(/^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{6}$/),
 });
 export const deviceRoleSchema = z.enum(['PRIMARY', 'DISPLAY']);
+export const devicePairHttpSchema = devicePairSchema.extend({
+  replaceExisting: z.boolean().default(false),
+});
 export const deviceTicketSchema = z.strictObject({
   namespace: z.literal('/devices'),
   role: deviceRoleSchema,
@@ -78,6 +91,10 @@ export const deviceSummarySchema = z.strictObject({
 export const devicePageSchema = z.strictObject({
   items: z.array(deviceSummarySchema).max(100),
   nextCursor: z.uuid().nullable(),
+});
+export const deviceIdentitySchema = z.strictObject({
+  device: deviceSummarySchema,
+  csrfToken: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
 });
 export const pairingChallengeSchema = z.strictObject({
   id: z.uuid(),
