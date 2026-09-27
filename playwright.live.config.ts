@@ -5,7 +5,7 @@ import base from './playwright.config.js';
 export default defineConfig({
   ...base,
   testIgnore: [],
-  testMatch: /voice-lab-live\.spec\.ts/,
+  testMatch: /(voice-lab-live|schedules)\.spec\.ts/,
   workers: 1,
   use: {
     ...base.use,
