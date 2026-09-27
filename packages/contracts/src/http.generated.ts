@@ -815,6 +815,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/runtime/manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["deviceruntime_manifest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runtime/media/{id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["deviceruntime_media"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runtime/tickets": {
         parameters: {
             query?: never;
@@ -5455,6 +5487,103 @@ export interface operations {
                         };
                     };
                 };
+            };
+        };
+    };
+    deviceruntime_manifest: {
+        parameters: {
+            query?: {
+                view?: "desired" | "applied";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The desired release to apply next, or the applied release displays mirror. Knowledge is never included. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** @enum {string} */
+                            view: "desired" | "applied";
+                            revision: number;
+                            /** Format: uuid */
+                            commandId: string | null;
+                            release: {
+                                /** Format: uuid */
+                                id: string;
+                                version: number;
+                                botName: string;
+                                greeting: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                slides: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    position: number;
+                                    title: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    body: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    /** Format: uuid */
+                                    mediaId: string | null;
+                                    /** @enum {string} */
+                                    target: "PRIMARY" | "SECONDARY" | "BOTH";
+                                    durationSeconds: number;
+                                }[];
+                                media: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    filename: string;
+                                    /** @enum {string} */
+                                    mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                    sha256: string;
+                                    byteLength: number;
+                                    width: number;
+                                    height: number;
+                                    durationSeconds: number | null;
+                                }[];
+                            } | null;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    deviceruntime_media: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Media referenced by the desired or applied release. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not part of this device’s releases. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

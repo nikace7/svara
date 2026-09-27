@@ -19,6 +19,7 @@ import {
   ApiCookieAuth,
   ApiCreatedResponse,
   ApiOkResponse,
+  ApiProduces,
   ApiQuery,
   ApiResponse,
   ApiTags,
@@ -32,6 +33,7 @@ import type { DeviceService } from '@svara/domain';
 import { AUTH_BOUNDARY } from '../auth/boundary.js';
 import type { StaffBoundary } from '../auth/boundary.js';
 import { StaffGuard } from '../auth/guard.js';
+import { sendMediaFile } from '../media/send.js';
 import { RUNTIME_BOUNDARY } from './boundary.js';
 import type { DeviceRuntimeBoundary } from './boundary.js';
 
@@ -149,6 +151,45 @@ export class DeviceRuntimeController {
     const token = this.boundary.token(request);
     const device = await this.boundary.settings.service.identity(token);
     return { data: { device, csrfToken: this.boundary.csrf(token) } };
+  }
+  @Get('manifest')
+  @ApiCookieAuth('device')
+  @ApiQuery({ name: 'view', required: false, enum: ['desired', 'applied'] })
+  @ApiOkResponse({
+    schema: schemas.manifest,
+    description:
+      'The desired release to apply next, or the applied release displays mirror. Knowledge is never included.',
+  })
+  async manifest(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+    @Query() value: unknown,
+  ) {
+    await this.boundary.authorize(request, response);
+    return { data: await this.releases.manifest(this.boundary.token(request), value) };
+  }
+  @Get('media/:id/content')
+  @ApiCookieAuth('device')
+  @ApiProduces('image/png', 'image/jpeg', 'video/mp4')
+  @ApiResponse({ status: 200, description: 'Media referenced by the desired or applied release.' })
+  @ApiResponse({ status: 404, description: 'Not part of this device’s releases.' })
+  async media(
+    @Req() request: Request,
+    @Res() response: Response,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    await this.boundary.authorize(request, response);
+    await sendMediaFile(
+      request,
+      response,
+      id,
+      await this.releases.media(this.boundary.token(request), id),
+    );
+  }
+  private get releases() {
+    const releases = this.boundary.settings.releases;
+    if (!releases) throw new ServiceUnavailableException();
+    return releases;
   }
   @Post('tickets')
   @ApiCookieAuth('device')

@@ -1,6 +1,6 @@
 import { HttpException, ServiceUnavailableException } from '@nestjs/common';
 import { csrfToken, DeviceError, IdentityError, verifyCsrf } from '@svara/domain';
-import type { DeviceRuntime } from '@svara/domain';
+import type { DeviceReleases, DeviceRuntime } from '@svara/domain';
 import type { Request, Response } from 'express';
 import { readSessionToken } from '../auth/boundary.js';
 import type { IdentityHttpOptions } from '../auth/boundary.js';
@@ -8,6 +8,8 @@ import type { IdentityHttpOptions } from '../auth/boundary.js';
 export const RUNTIME_BOUNDARY = Symbol('device-runtime-boundary');
 export interface DeviceRuntimeHttpOptions {
   service: Pick<DeviceRuntime, 'identity' | 'pair' | 'issueTicket'>;
+  /** Manifest and media downloads scoped to the device's desired and applied releases. */
+  releases?: Pick<DeviceReleases, 'manifest' | 'media'>;
   origin: string;
   pepper: string;
   consumeLimit: IdentityHttpOptions['consumeLimit'];

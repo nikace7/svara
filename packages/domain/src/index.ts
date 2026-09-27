@@ -17,6 +17,7 @@ export { ReleaseService, releaseSnapshotHash } from './authoring/releases.js';
 export { ReleaseError } from './authoring/release-errors.js';
 export { DeviceService } from './devices/service.js';
 export { DeviceRuntime } from './devices/runtime.js';
+export { DeviceReleases } from './devices/releases.js';
 export type { RuntimeActor, IssuedDeviceCredential } from './devices/runtime.js';
 export { DeviceError } from './devices/errors.js';
 export { MediaService } from './media/service.js';

@@ -11,6 +11,8 @@ import {
   IdentityService,
   DeviceService,
   DeviceRuntime,
+  DeviceCommands,
+  DeviceReleases,
   KnowledgeService,
   PresentationService,
   ReleaseService,
@@ -18,7 +20,9 @@ import {
   MediaService,
   MediaStorage,
 } from '@svara/domain';
+import { commandWakeupSchema } from '@svara/contracts';
 import { createApplication } from './app.js';
+import { DeviceGateway } from './devices/gateway.js';
 
 loadWorkspaceEnvironment();
 const config = parseServerConfig(process.env);
@@ -39,6 +43,13 @@ function liveVoiceProviders(apiKey: string) {
     recognizer: new GeminiSpeechRecognizer(gemini),
   };
 }
+const storage = await MediaStorage.open(config.MEDIA_ROOT);
+const deviceRuntime = new DeviceRuntime(dependencies.database, config.AUTH_TOKEN_PEPPER);
+const gateway = new DeviceGateway({
+  origin: config.APP_ORIGIN,
+  runtime: deviceRuntime,
+  commands: new DeviceCommands(deviceRuntime),
+});
 const app = await createApplication({
   providerMode: config.PROVIDER_MODE,
   localDocs: config.APP_ENV === 'local',
@@ -52,8 +63,10 @@ const app = await createApplication({
   },
   authoring: new BotService(identity),
   devices: new DeviceService(identity, config.AUTH_TOKEN_PEPPER),
+  deviceGateway: gateway,
   runtime: {
-    service: new DeviceRuntime(dependencies.database, config.AUTH_TOKEN_PEPPER),
+    service: deviceRuntime,
+    releases: new DeviceReleases(deviceRuntime, storage),
     origin: config.APP_ORIGIN,
     pepper: config.AUTH_TOKEN_PEPPER,
     consumeLimit: createStaffLimiter(dependencies.redis, config.AUTH_TOKEN_PEPPER),
@@ -62,20 +75,33 @@ const app = await createApplication({
   presentations: new PresentationService(identity),
   releases: new ReleaseService(identity, { providerMode: config.PROVIDER_MODE }),
   schedules: new ScheduleService(identity),
-  media: new MediaService(
-    identity,
-    dependencies.database,
-    await MediaStorage.open(config.MEDIA_ROOT),
-  ),
+  media: new MediaService(identity, dependencies.database, storage),
   ...(config.APP_ENV === 'local' ? { feasibilityOrigin: config.APP_ORIGIN } : {}),
   ...(config.APP_ENV === 'local' && config.PROVIDER_MODE === 'live' && config.GEMINI_API_KEY
     ? { liveVoice: liveVoiceProviders(config.GEMINI_API_KEY) }
     : {}),
 });
+// Worker wake-ups name commands by ID; the gateway re-reads desired state from PostgreSQL.
+const subscriber = dependencies.redis.duplicate();
+subscriber.on('error', () => {
+  console.error(JSON.stringify({ event: 'dependency.error', dependency: 'redis-subscriber' }));
+});
+subscriber.on('message', (_channel, message) => {
+  let parsed: ReturnType<typeof commandWakeupSchema.safeParse>;
+  try {
+    parsed = commandWakeupSchema.safeParse(JSON.parse(message));
+  } catch {
+    return;
+  }
+  if (parsed.success) void gateway.wake(parsed.data.map((item) => item.deviceId));
+});
+await subscriber.subscribe(`${config.WORKER_NAMESPACE}:device-commands`);
 let closing = false;
 async function shutdown() {
   if (closing) return;
   closing = true;
+  subscriber.disconnect();
+  await gateway.close();
   await app.close();
   await dependencies.close();
 }

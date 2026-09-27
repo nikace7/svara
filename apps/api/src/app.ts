@@ -41,6 +41,7 @@ import type { DeviceHttpService } from './devices/controller.js';
 import { DeviceRuntimeBoundary, RUNTIME_BOUNDARY } from './devices/boundary.js';
 import type { DeviceRuntimeHttpOptions } from './devices/boundary.js';
 import { deviceErrorResponse } from './devices/errors.js';
+import type { DeviceGateway } from './devices/gateway.js';
 import {
   RELEASE_SERVICE,
   BotReleasesController,
@@ -96,6 +97,8 @@ export interface ApplicationOptions {
   schedules?: ScheduleHttpService;
   devices?: DeviceHttpService;
   runtime?: DeviceRuntimeHttpOptions;
+  /** Attached to the HTTP server; staff changes that revoke access disconnect its sockets. */
+  deviceGateway?: DeviceGateway;
   trustedProxyHops?: 0 | 1;
 }
 
@@ -348,6 +351,31 @@ class SafeExceptionFilter implements ExceptionFilter {
   }
 }
 
+/** Revoking, disabling or re-pairing a device also closes its open connections. The
+ * database change has already revoked their grants; this makes it immediate. */
+function disconnecting(service: DeviceHttpService, gateway: DeviceGateway): DeviceHttpService {
+  return {
+    create: (...args) => service.create(...args),
+    get: (...args) => service.get(...args),
+    list: (...args) => service.list(...args),
+    save: async (token, id, value) => {
+      const device = await service.save(token, id, value);
+      if (!device.enabled) gateway.disconnect(id);
+      return device;
+    },
+    createPairing: async (token, id, value) => {
+      const challenge = await service.createPairing(token, id, value);
+      gateway.disconnect(id);
+      return challenge;
+    },
+    revoke: async (token, id, value) => {
+      const device = await service.revoke(token, id, value);
+      gateway.disconnect(id);
+      return device;
+    },
+  };
+}
+
 export function createOpenApiDocument(app: NestExpressApplication) {
   return SwaggerModule.createDocument(
     app,
@@ -387,6 +415,11 @@ export async function createApplication(
   options: ApplicationOptions,
 ): Promise<NestExpressApplication> {
   const boundary = new StaffBoundary(options.identity);
+  const gateway = options.deviceGateway;
+  const devices =
+    options.devices && gateway
+      ? disconnecting(options.devices, gateway)
+      : (options.devices ?? null);
   @Module({
     controllers: [
       HealthController,
@@ -417,13 +450,14 @@ export async function createApplication(
       { provide: PRESENTATION_SERVICE, useValue: options.presentations ?? null },
       { provide: RELEASE_SERVICE, useValue: options.releases ?? null },
       { provide: SCHEDULE_SERVICE, useValue: options.schedules ?? null },
-      { provide: DEVICE_SERVICE, useValue: options.devices ?? null },
+      { provide: DEVICE_SERVICE, useValue: devices },
       { provide: RUNTIME_BOUNDARY, useValue: new DeviceRuntimeBoundary(options.runtime) },
       StaffGuard,
     ],
   })
   class AppModule {}
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: false });
+  gateway?.attach(app.getHttpServer());
   app.disable('x-powered-by');
   app.set('trust proxy', options.trustedProxyHops ?? false);
   app.use((_request: Request, response: Response, next: NextFunction) => {
