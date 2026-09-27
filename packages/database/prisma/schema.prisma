@@ -26,6 +26,7 @@ model Organisation {
   bots Bot[]
   mediaAssets MediaAsset[]
   devices Device[]
+  events Event[]
 }
 
 model Bot {
@@ -180,6 +181,7 @@ model Membership {
   uploadedMedia MediaAsset[]
   idempotencyRecords IdempotencyRecord[]
   issuedPairings PairingChallenge[]
+  createdDeployments Deployment[]
 
   @@unique([organisationId, userId])
   @@unique([id, organisationId])
@@ -308,6 +310,7 @@ model BotRelease {
   knowledge ReleaseKnowledge[]
   media ReleaseMedia[]
   idempotencyRecords IdempotencyRecord[]
+  deployments Deployment[]
 
   @@unique([id, organisationId])
   @@unique([id, organisationId, snapshotHash])
@@ -398,6 +401,9 @@ model Device {
   challenges PairingChallenge[]
   credentials DeviceCredential[]
   grants DeviceGrant[]
+  deployments Deployment[]
+  desiredState DesiredDeviceState?
+  commands DeviceCommand[]
 
   @@unique([id, organisationId])
   @@index([organisationId, id])
@@ -486,4 +492,103 @@ model DeviceGrant {
   @@unique([ticketId, credentialId, deviceId, organisationId, role, namespace], map: "DeviceGrant_ticket_scope_key")
   @@index([deviceId, organisationId, role, expiresAt])
   @@index([expiresAt])
+}
+
+/// Descriptive grouping only: deployments own their actual times.
+model Event {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  name String @db.VarChar(120)
+  venue String @default("") @db.VarChar(160)
+  timezone String @db.VarChar(64)
+  suggestedStartsAt DateTime? @db.Timestamptz(3)
+  suggestedEndsAt DateTime? @db.Timestamptz(3)
+  archivedAt DateTime? @db.Timestamptz(3)
+  revision Int @default(1)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  deployments Deployment[]
+
+  @@unique([id, organisationId])
+  @@index([organisationId, archivedAt, name])
+}
+enum DeploymentKind {
+  SCHEDULED
+  OVERRIDE
+}
+/// Intervals are [startsAt, endsAt). Overlap checks run under the device row lock.
+model Deployment {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  deviceId String @db.Uuid
+  releaseId String @db.Uuid
+  eventId String? @db.Uuid
+  kind DeploymentKind
+  startsAt DateTime @db.Timestamptz(3)
+  endsAt DateTime @db.Timestamptz(3)
+  cancelledAt DateTime? @db.Timestamptz(3)
+  revision Int @default(1)
+  createdByMembershipId String @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  device Device @relation(fields: [deviceId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  release BotRelease @relation(fields: [releaseId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  event Event? @relation(fields: [eventId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  createdBy Membership @relation(fields: [createdByMembershipId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  desiredStates DesiredDeviceState[]
+
+  @@unique([id, organisationId])
+  @@index([deviceId, organisationId, kind, endsAt])
+  @@index([organisationId, startsAt])
+  @@index([releaseId, organisationId])
+  @@index([eventId, organisationId])
+  @@index([createdByMembershipId, organisationId])
+}
+/// One row per device. revision only moves forward; applied* is what the device acknowledged.
+model DesiredDeviceState {
+  deviceId String @id @db.Uuid
+  organisationId String @db.Uuid
+  revision Int
+  releaseId String? @db.Uuid
+  deploymentId String? @db.Uuid
+  appliedRevision Int @default(0)
+  appliedReleaseId String? @db.Uuid
+  appliedAt DateTime? @db.Timestamptz(3)
+  updatedAt DateTime @db.Timestamptz(3)
+  device Device @relation(fields: [deviceId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  deployment Deployment? @relation(fields: [deploymentId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([deviceId, organisationId])
+  @@index([deploymentId, organisationId])
+}
+enum DeviceCommandStatus {
+  QUEUED
+  SENT
+  ACKNOWLEDGED
+  FAILED
+  EXPIRED
+  SUPERSEDED
+}
+/// The durable outbox: written in the same transaction as the desired-state change it carries.
+model DeviceCommand {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  deviceId String @db.Uuid
+  type String @db.VarChar(32)
+  payload Json
+  stateRevision Int
+  status DeviceCommandStatus @default(QUEUED)
+  attempts Int @default(0)
+  nextAttemptAt DateTime @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  sentAt DateTime? @db.Timestamptz(3)
+  acknowledgedAt DateTime? @db.Timestamptz(3)
+  result String? @db.VarChar(16)
+  reason String? @db.VarChar(64)
+  device Device @relation(fields: [deviceId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([status, nextAttemptAt])
+  @@index([deviceId, organisationId, createdAt])
 }

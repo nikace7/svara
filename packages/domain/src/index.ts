@@ -30,3 +30,8 @@ export type {
   InspectMedia,
   MediaJobOutcome,
 } from './media/jobs.js';
+export { ScheduleService } from './schedules/service.js';
+export { CommandOutbox, DeviceCommands } from './schedules/outbox.js';
+export type { ClaimedCommand } from './schedules/outbox.js';
+export { ScheduleError } from './schedules/errors.js';
+export type { ScheduleErrorCode } from './schedules/errors.js';
