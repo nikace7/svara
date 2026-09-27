@@ -120,6 +120,16 @@ export class DeviceCommands {
     });
   }
 
+  /** What the primary has confirmed it shows; displays mirror this, never the desired state. */
+  async applied(actor: RuntimeActor): Promise<{ revision: number; releaseId: string | null }> {
+    return this.runtime.asGrant(actor.id, actor.role, async (tx, current) => {
+      const state = await tx.desiredDeviceState.findUnique({
+        where: { deviceId: current.deviceId },
+      });
+      return { revision: state?.appliedRevision ?? 0, releaseId: state?.appliedReleaseId ?? null };
+    });
+  }
+
   /**
    * A repeated acknowledgement returns the stored outcome and changes nothing. A late
    * acknowledgement for a superseded command is kept as telemetry but never revives it, and

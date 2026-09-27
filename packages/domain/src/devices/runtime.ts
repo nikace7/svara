@@ -148,6 +148,17 @@ export class DeviceRuntime {
     return credential;
   }
 
+  /** Runs `run` under a valid, unrevoked device cookie with the device row locked. */
+  async asCredential<T>(
+    token: string,
+    run: (tx: Transaction, credential: { deviceId: string; organisationId: string }) => Promise<T>,
+  ): Promise<T> {
+    return this.transaction(async (tx) => {
+      const credential = await this.credential(tx, token);
+      return run(tx, { deviceId: credential.deviceId, organisationId: credential.organisationId });
+    });
+  }
+
   async identity(token: string): Promise<DeviceSummary> {
     return this.transaction(async (tx) => {
       const credential = await this.credential(tx, token);

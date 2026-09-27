@@ -1,4 +1,3 @@
-import { pipeline } from 'node:stream/promises';
 import {
   Body,
   Controller,
@@ -30,12 +29,13 @@ import type { ApiBodyOptions } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { mediaListQuerySchema } from '@svara/contracts';
 import { mediaApiSchemas } from '@svara/contracts/authoring-openapi';
-import { IdentityError, parseMediaRange } from '@svara/domain';
+import { IdentityError } from '@svara/domain';
 import type { MediaService } from '@svara/domain';
 import { AUTH_BOUNDARY } from '../auth/boundary.js';
 import type { StaffBoundary } from '../auth/boundary.js';
 import { MultipartStaff, StaffGuard } from '../auth/guard.js';
 import { receiveMultipart } from './upload.js';
+import { sendMediaFile } from './send.js';
 
 export const MEDIA_SERVICE = Symbol('media-service');
 export type MediaHttpService = Pick<
@@ -164,49 +164,11 @@ export class MediaController {
     await this.serve(request, response, id, true);
   }
   private async serve(request: Request, response: Response, id: string, thumbnail: boolean) {
-    const file = await this.available().file(this.boundary.token(request), id, thumbnail);
-    try {
-      const etag = `"${file.sha256}"`;
-      const requested =
-        !request.headers['if-range'] || request.headers['if-range'] === etag
-          ? request.headers.range
-          : undefined;
-      response.setHeader('Content-Range', `bytes */${file.byteLength}`);
-      const range = parseMediaRange(requested, file.byteLength);
-      response.removeHeader('Content-Range');
-      response.status(range.partial ? 206 : 200);
-      response.setHeader('Content-Type', file.mimeType);
-      response.setHeader('Content-Length', String(range.end - range.start + 1));
-      response.setHeader('ETag', etag);
-      response.setHeader('Accept-Ranges', 'bytes');
-      response.setHeader('X-Content-Type-Options', 'nosniff');
-      response.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-      const name = encodeURIComponent(file.filename).replace(
-        /[!'()*]/g,
-        (value) => `%${value.charCodeAt(0).toString(16).toUpperCase()}`,
-      );
-      response.setHeader(
-        'Content-Disposition',
-        `inline; filename="media"; filename*=UTF-8''${name}`,
-      );
-      if (range.partial)
-        response.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${file.byteLength}`);
-      if (request.method === 'HEAD') {
-        response.end();
-        return;
-      }
-      try {
-        await pipeline(
-          file.handle.createReadStream({ start: range.start, end: range.end, autoClose: true }),
-          response,
-        );
-      } catch {
-        // The response may already have streamed bytes; never append an error envelope.
-        if (!response.destroyed) response.destroy();
-        console.error(JSON.stringify({ event: 'media.response.interrupted', assetId: id }));
-      }
-    } finally {
-      await file.handle.close();
-    }
+    await sendMediaFile(
+      request,
+      response,
+      id,
+      await this.available().file(this.boundary.token(request), id, thumbnail),
+    );
   }
 }

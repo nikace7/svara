@@ -13554,6 +13554,303 @@
         ]
       }
     },
+    "/api/v1/runtime/manifest": {
+      "get": {
+        "operationId": "deviceruntime_manifest",
+        "parameters": [
+          {
+            "name": "view",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "desired",
+                "applied"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The desired release to apply next, or the applied release displays mirror. Knowledge is never included.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "view": {
+                          "type": "string",
+                          "enum": [
+                            "desired",
+                            "applied"
+                          ]
+                        },
+                        "revision": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "commandId": {
+                          "nullable": true,
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "release": {
+                          "nullable": true,
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "version": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "exclusiveMinimum": true,
+                              "maximum": 9007199254740991
+                            },
+                            "botName": {
+                              "type": "string"
+                            },
+                            "greeting": {
+                              "type": "object",
+                              "properties": {
+                                "en": {
+                                  "type": "string"
+                                },
+                                "ne": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "en",
+                                "ne"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "slides": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  },
+                                  "position": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "title": {
+                                    "type": "object",
+                                    "properties": {
+                                      "en": {
+                                        "type": "string"
+                                      },
+                                      "ne": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "en",
+                                      "ne"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  "body": {
+                                    "type": "object",
+                                    "properties": {
+                                      "en": {
+                                        "type": "string"
+                                      },
+                                      "ne": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "en",
+                                      "ne"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  "mediaId": {
+                                    "nullable": true,
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  },
+                                  "target": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PRIMARY",
+                                      "SECONDARY",
+                                      "BOTH"
+                                    ]
+                                  },
+                                  "durationSeconds": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "exclusiveMinimum": true,
+                                    "maximum": 9007199254740991
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "position",
+                                  "title",
+                                  "body",
+                                  "mediaId",
+                                  "target",
+                                  "durationSeconds"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "media": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  },
+                                  "filename": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 160
+                                  },
+                                  "mimeType": {
+                                    "type": "string",
+                                    "enum": [
+                                      "image/jpeg",
+                                      "image/png",
+                                      "video/mp4"
+                                    ]
+                                  },
+                                  "sha256": {
+                                    "type": "string",
+                                    "pattern": "^[a-f0-9]{64}$"
+                                  },
+                                  "byteLength": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "exclusiveMinimum": true,
+                                    "maximum": 52428800
+                                  },
+                                  "width": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "exclusiveMinimum": true,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "height": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "exclusiveMinimum": true,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "durationSeconds": {
+                                    "nullable": true,
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "exclusiveMinimum": true,
+                                    "maximum": 120
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "filename",
+                                  "mimeType",
+                                  "sha256",
+                                  "byteLength",
+                                  "width",
+                                  "height",
+                                  "durationSeconds"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "version",
+                            "botName",
+                            "greeting",
+                            "slides",
+                            "media"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "view",
+                        "revision",
+                        "commandId",
+                        "release"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "device": []
+          }
+        ],
+        "tags": [
+          "Device runtime"
+        ]
+      }
+    },
+    "/api/v1/runtime/media/{id}/content": {
+      "get": {
+        "operationId": "deviceruntime_media",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Media referenced by the desired or applied release."
+          },
+          "404": {
+            "description": "Not part of this device’s releases."
+          }
+        },
+        "security": [
+          {
+            "device": []
+          }
+        ],
+        "tags": [
+          "Device runtime"
+        ]
+      }
+    },
     "/api/v1/runtime/tickets": {
       "post": {
         "operationId": "deviceruntime_tickets",

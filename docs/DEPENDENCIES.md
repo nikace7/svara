@@ -13,6 +13,8 @@ from the Debian image's signed repositories; the current image resolved FFmpeg
 only in its build stage. See `MEDIA-INSPECTION.md` for supported inspection modes.
 The API explicitly pins Busboy 1.6.0 for streaming multipart parsing, with
 `@types/busboy` 1.5.4 for development. No native build script is required by this addition.
+Device connections pin Socket.IO 4.8.4 (API) and socket.io-client 4.8.4 (web), the
+realtime stack the blueprint specifies. Neither needs a native build script.
 
 ESLint 9.39.5 is retained for `eslint-plugin-react` compatibility: the installed
 React lint plugin does not declare ESLint 10 support. Revisit together with Next's

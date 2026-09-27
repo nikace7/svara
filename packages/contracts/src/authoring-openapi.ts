@@ -10,6 +10,7 @@ import {
   deviceTicketSchema,
   deviceTicketResultSchema,
 } from './devices.js';
+import { runtimeManifestSchema } from './runtime.js';
 import {
   releaseCreateSchema,
   releaseReadinessSchema,
@@ -123,6 +124,7 @@ export const deviceApiSchemas = {
   pair: z.toJSONSchema(devicePairHttpSchema, { target: 'openapi-3.0', io: 'input' }),
   identity: z.toJSONSchema(z.object({ data: deviceIdentitySchema }), { target: 'openapi-3.0' }),
   ticket: z.toJSONSchema(deviceTicketSchema, { target: 'openapi-3.0', io: 'input' }),
+  manifest: z.toJSONSchema(z.object({ data: runtimeManifestSchema }), { target: 'openapi-3.0' }),
   ticketResult: z.toJSONSchema(z.object({ data: deviceTicketResultSchema }), {
     target: 'openapi-3.0',
   }),
