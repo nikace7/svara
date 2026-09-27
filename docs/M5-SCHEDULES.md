@@ -1,9 +1,8 @@
 # M5 — Events, schedules and reliable commands
 
-M5 is built on M4's committed device tables and is waiting on M4's device HTTP layer
-and socket gateway. Scheduling, desired state, the command outbox, the worker and
-the studio board work end to end. Nothing delivers commands to a real device yet;
-that is the gateway's job (see "What M4 still has to connect").
+Scheduling, desired state, the command outbox, the worker and the studio board work
+end to end, and M4's device gateway delivers each command to the paired kiosk, which
+acknowledges it (see `M4-DEVICES.md`).
 
 ## Model
 
@@ -52,15 +51,13 @@ Worker readiness reports `scheduling`.
   telemetry but never revives the command, and the applied revision only moves
   forward.
 
-## What M4 still has to connect
+## Delivery
 
-- The device socket gateway subscribes to the wake-up channel. It sends
-  `command.execute` and the reconnect snapshot, and calls `acknowledge` on
-  `command.ack`.
-- Device HTTP routes. Until they exist, the browser test inserts device rows
-  directly.
-- Download, checksum and atomic application of the desired release on the simulator.
-- Closing voice sessions on a desired-state change. That belongs to M6 admission.
+The API subscribes to the wake-up channel and pushes the current desired snapshot to
+each connected primary as `release.desired`. The kiosk downloads and verifies the
+release, then calls `command.ack`. The command becomes `ACKNOWLEDGED` or `FAILED`, and
+the studio's delivery history shows the result. Closing voice sessions on a
+desired-state change belongs to M6 admission.
 
 ## Not built
 
