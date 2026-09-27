@@ -22,8 +22,10 @@ it no longer claims to be fixture-only when it is not.
 **Scope.** Typed questions only. The microphone stays a local capture check and is
 never uploaded, so `GeminiSpeechRecognizer` is not yet reachable from the browser.
 Scripted scenarios remain fixture-only and their control is disabled in live mode.
-Answers are grounded in two synthetic campus passages declared in `apps/api/src/main.ts`;
-no published release is read yet.
+Answers are grounded in a release the operator picks in the lab (bot, then one of its
+saved releases). Each question is searched against that release's frozen knowledge under
+the caller's staff session; an unknown or foreign release is a 404 and an expired preview
+a 410, both before the stream opens.
 
 **Transport.** The existing NDJSON turn stream carries a new `audio` event type:
 base64 PCM16 bounded to 4,800 bytes with its own `segment` and `end` fields. The

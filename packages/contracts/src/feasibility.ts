@@ -17,6 +17,8 @@ export const FeasibilityRequestSchema = z
     generation: z.number().int().min(1).max(2147483647),
     scenario: fixtureScenarioSchema.optional(),
     text: z.string().trim().min(1).max(1000).optional(),
+    /** Live mode only: the release whose knowledge grounds the answer. */
+    releaseId: z.uuid().optional(),
   })
   .refine(
     (value) => (value.scenario === undefined) !== (value.text === undefined),

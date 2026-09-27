@@ -1,18 +1,41 @@
 # Implementation progress
 
-Updated 2026-09-26. Evidence is local unless explicitly marked otherwise.
+Updated 2026-09-27. Evidence is local unless explicitly marked otherwise.
 
-| Milestone                                | State       | Evidence / remaining work                                                                                          |
-| ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
-| M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.       |
-| M1 — Bilingual voice feasibility         | Partial     | Live gate and lab live turns work. Browser evidence, spoken input, hardware barge-in and repeated sampling remain. |
-| M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                          |
-| M3 — Authoring and immutable publication | Complete    | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.             |
-| M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                   |
-| M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                                |
-| M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                            |
-| M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                |
-| M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                            |
+| Milestone                                | State       | Evidence / remaining work                                                                                                                                 |
+| ---------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.                                              |
+| M1 — Bilingual voice feasibility         | Partial     | Live gate and lab live turns work, grounded in a chosen release. Real-key browser evidence, spoken input, hardware barge-in and repeated sampling remain. |
+| M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                                                                 |
+| M3 — Authoring and immutable publication | Complete    | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.                                                    |
+| M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                                                          |
+| M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                                                                       |
+| M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                                                                   |
+| M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                                                       |
+| M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                                                                   |
+
+## Live answers grounded in a chosen release — 2026-09-27
+
+Live lab turns no longer read two hardcoded campus sentences from `apps/api/src/main.ts`.
+The operator picks a bot and one of its saved releases; each typed question is searched
+against that release's frozen knowledge with the same `ReleaseService.search` the release
+inspector uses, under the caller's own staff session, and the passages it returns are the
+only reference text the model receives. Retrieval happens before the stream opens, so an
+unknown or foreign release is a 404 and an expired preview a 410 rather than a broken
+stream. Live mode now also requires a release service; voice providers alone no longer
+expose the route.
+
+| Check             | Result                                                                                             |
+| ----------------- | -------------------------------------------------------------------------------------------------- |
+| Unit tests        | 171 passed (28 files), 95.42% statement coverage                                                   |
+| Integration tests | 124 passed (24 files), including 5 live-route tests: grounding, tenancy, expiry and route exposure |
+| `pnpm check`      | Format, lint, types, contracts and production build clean                                          |
+| Browser           | Pickers load the seeded Himal bots; Version 1 retrieves the room 12 admissions passage             |
+
+The browser run used a deliberately invalid provider key: the release lookup succeeded,
+then Gemini refused the key and the lab showed the readable provider failure, with no key
+or provider detail in the API log. A real-key spoken answer is still the outstanding
+evidence step.
 
 ## Branch lines merged — 2026-09-26
 

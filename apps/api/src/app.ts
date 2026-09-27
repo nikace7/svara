@@ -35,6 +35,7 @@ import type { ReleaseHttpService } from './authoring/release-controller.js';
 import { MEDIA_SERVICE, MediaController } from './media/controller.js';
 import type { MediaHttpService } from './media/controller.js';
 import { createFeasibilityHandler } from './feasibility.js';
+import type { LiveVoice } from './feasibility.js';
 import { AUTH_BOUNDARY, StaffBoundary } from './auth/boundary.js';
 import type { IdentityHttpOptions } from './auth/boundary.js';
 import { AuthController, MembersController, OrganisationController } from './auth/controller.js';
@@ -54,7 +55,6 @@ import {
   BotPresentationController,
 } from './authoring/presentation-controller.js';
 import type { PresentationHttpService } from './authoring/presentation-controller.js';
-import type { LiveTurnProviders } from '@svara/domain';
 
 const OPTIONS = Symbol('application-options');
 export interface ApplicationOptions {
@@ -62,8 +62,8 @@ export interface ApplicationOptions {
   localDocs: boolean;
   probe: () => Promise<Readiness>;
   feasibilityOrigin?: string;
-  /** Required before a live voice route is exposed; absent keeps the lab on fixtures. */
-  liveVoice?: LiveTurnProviders;
+  /** With `releases`, required before a live voice route is exposed. */
+  liveVoice?: LiveVoice['voice'];
   identity?: IdentityHttpOptions;
   authoring?: BotHttpService;
   knowledge?: KnowledgeHttpService;
@@ -399,7 +399,14 @@ export async function createApplication(
         }),
     }),
   );
-  const liveVoice = options.providerMode === 'live' ? options.liveVoice : undefined;
+  const releases = options.releases;
+  const liveVoice: LiveVoice | undefined =
+    options.providerMode === 'live' && options.liveVoice && releases
+      ? {
+          voice: options.liveVoice,
+          search: (request, id, query) => releases.search(boundary.token(request), id, query),
+        }
+      : undefined;
   if (
     options.localDocs &&
     options.feasibilityOrigin &&
