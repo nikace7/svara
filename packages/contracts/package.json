@@ -8,6 +8,10 @@
       "types": "./src/authoring-openapi.ts",
       "default": "./dist/authoring-openapi.js"
     },
+    "./schedule-openapi": {
+      "types": "./src/schedule-openapi.ts",
+      "default": "./dist/schedule-openapi.js"
+    },
     ".": {
       "types": "./src/index.ts",
       "default": "./dist/index.js"

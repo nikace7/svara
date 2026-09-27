@@ -32,6 +32,14 @@ import {
   ReleasesController,
 } from './authoring/release-controller.js';
 import type { ReleaseHttpService } from './authoring/release-controller.js';
+import {
+  DeploymentsController,
+  DeviceScheduleController,
+  EventsController,
+  SCHEDULE_SERVICE,
+} from './schedules/controller.js';
+import type { ScheduleHttpService } from './schedules/controller.js';
+import { scheduleFailure } from './schedules/errors.js';
 import { MEDIA_SERVICE, MediaController } from './media/controller.js';
 import type { MediaHttpService } from './media/controller.js';
 import { createFeasibilityHandler } from './feasibility.js';
@@ -70,6 +78,7 @@ export interface ApplicationOptions {
   presentations?: PresentationHttpService;
   releases?: ReleaseHttpService;
   media?: MediaHttpService;
+  schedules?: ScheduleHttpService;
   trustedProxyHops?: 0 | 1;
 }
 
@@ -126,6 +135,14 @@ class SafeExceptionFilter implements ExceptionFilter {
     const response = host.switchToHttp().getResponse<Response>();
     const parserType =
       exception instanceof Error && 'type' in exception ? exception.type : undefined;
+    const schedule = scheduleFailure(exception);
+    if (schedule) {
+      response.status(schedule.status).json({
+        error: schedule.error,
+        requestId: response.getHeader('x-request-id'),
+      });
+      return;
+    }
     if (exception instanceof ReleaseError) {
       const [status, message] = {
         RELEASE_NOT_READY: [
@@ -355,6 +372,9 @@ export async function createApplication(
       BotPresentationController,
       BotReleasesController,
       ReleasesController,
+      EventsController,
+      DeploymentsController,
+      DeviceScheduleController,
     ],
     providers: [
       { provide: OPTIONS, useValue: options },
@@ -364,6 +384,7 @@ export async function createApplication(
       { provide: MEDIA_SERVICE, useValue: options.media ?? null },
       { provide: PRESENTATION_SERVICE, useValue: options.presentations ?? null },
       { provide: RELEASE_SERVICE, useValue: options.releases ?? null },
+      { provide: SCHEDULE_SERVICE, useValue: options.schedules ?? null },
       StaffGuard,
     ],
   })

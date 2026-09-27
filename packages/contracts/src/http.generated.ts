@@ -591,6 +591,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["events_list"];
+        put?: never;
+        post: operations["events_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["events_save"];
+        trace?: never;
+    };
+    "/api/v1/events/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["events_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deployments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["deployments_board"];
+        put?: never;
+        post: operations["deployments_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deployments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["deployments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["deployments_save"];
+        trace?: never;
+    };
+    "/api/v1/deployments/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["deployments_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/devices/{id}/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["deviceschedule_override"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/devices/{id}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["deviceschedule_timeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4024,6 +4152,762 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    events_list: {
+        parameters: {
+            query?: {
+                archived?: "true" | "false";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            items: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                venue: string;
+                                timezone: string;
+                                /** Format: date-time */
+                                suggestedStartsAt: string | null;
+                                /** Format: date-time */
+                                suggestedEndsAt: string | null;
+                                /** Format: date-time */
+                                archivedAt: string | null;
+                                revision: number;
+                                deploymentCount: number;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+    };
+    events_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @default  */
+                    venue?: string;
+                    timezone: string;
+                    /**
+                     * Format: date-time
+                     * @default null
+                     */
+                    suggestedStartsAt?: string | null;
+                    /**
+                     * Format: date-time
+                     * @default null
+                     */
+                    suggestedEndsAt?: string | null;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            venue: string;
+                            timezone: string;
+                            /** Format: date-time */
+                            suggestedStartsAt: string | null;
+                            /** Format: date-time */
+                            suggestedEndsAt: string | null;
+                            /** Format: date-time */
+                            archivedAt: string | null;
+                            revision: number;
+                            deploymentCount: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    events_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @default  */
+                    venue?: string;
+                    timezone: string;
+                    /**
+                     * Format: date-time
+                     * @default null
+                     */
+                    suggestedStartsAt?: string | null;
+                    /**
+                     * Format: date-time
+                     * @default null
+                     */
+                    suggestedEndsAt?: string | null;
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Edits never move deployments; they own their times. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            venue: string;
+                            timezone: string;
+                            /** Format: date-time */
+                            suggestedStartsAt: string | null;
+                            /** Format: date-time */
+                            suggestedEndsAt: string | null;
+                            /** Format: date-time */
+                            archivedAt: string | null;
+                            revision: number;
+                            deploymentCount: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description Stale revision (the error includes currentRevision) or a closed deployment. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description expectedRevision is required. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    events_archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    archived: boolean;
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            venue: string;
+                            timezone: string;
+                            /** Format: date-time */
+                            suggestedStartsAt: string | null;
+                            /** Format: date-time */
+                            suggestedEndsAt: string | null;
+                            /** Format: date-time */
+                            archivedAt: string | null;
+                            revision: number;
+                            deploymentCount: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description Stale revision (the error includes currentRevision) or a closed deployment. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description expectedRevision is required. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deployments_board: {
+        parameters: {
+            query: {
+                to: string;
+                from: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Devices with desired and applied state, and deployments overlapping [from, to). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            devices: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                enabled: boolean;
+                                desired: {
+                                    revision: number;
+                                    /** Format: uuid */
+                                    releaseId: string | null;
+                                    /** Format: uuid */
+                                    deploymentId: string | null;
+                                    appliedRevision: number;
+                                    /** Format: uuid */
+                                    appliedReleaseId: string | null;
+                                    /** Format: date-time */
+                                    appliedAt: string | null;
+                                };
+                            }[];
+                            deployments: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                deviceId: string;
+                                /** @enum {string} */
+                                kind: "SCHEDULED" | "OVERRIDE";
+                                release: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    /** Format: uuid */
+                                    botId: string;
+                                    botName: string;
+                                    version: number;
+                                };
+                                event: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                } | null;
+                                /** Format: date-time */
+                                startsAt: string;
+                                /** Format: date-time */
+                                endsAt: string;
+                                /** Format: date-time */
+                                cancelledAt: string | null;
+                                /** @enum {string} */
+                                state: "UPCOMING" | "ACTIVE" | "ENDED" | "CANCELLED";
+                                revision: number;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+    };
+    deployments_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    deviceId: string;
+                    /** Format: uuid */
+                    releaseId: string;
+                    /**
+                     * Format: uuid
+                     * @default null
+                     */
+                    eventId?: string | null;
+                    /** Format: date-time */
+                    startsAt: string;
+                    /** Format: date-time */
+                    endsAt: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            deviceId: string;
+                            /** @enum {string} */
+                            kind: "SCHEDULED" | "OVERRIDE";
+                            release: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                botId: string;
+                                botName: string;
+                                version: number;
+                            };
+                            event: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            /** Format: date-time */
+                            startsAt: string;
+                            /** Format: date-time */
+                            endsAt: string;
+                            /** Format: date-time */
+                            cancelledAt: string | null;
+                            /** @enum {string} */
+                            state: "UPCOMING" | "ACTIVE" | "ENDED" | "CANCELLED";
+                            revision: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description SCHEDULE_CONFLICT or OVERRIDE_CONFLICT. conflictIds lists only this organisation’s blocking deployments. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Preview release, or a window that has ended or exceeds 31 days. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deployments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            deviceId: string;
+                            /** @enum {string} */
+                            kind: "SCHEDULED" | "OVERRIDE";
+                            release: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                botId: string;
+                                botName: string;
+                                version: number;
+                            };
+                            event: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            /** Format: date-time */
+                            startsAt: string;
+                            /** Format: date-time */
+                            endsAt: string;
+                            /** Format: date-time */
+                            cancelledAt: string | null;
+                            /** @enum {string} */
+                            state: "UPCOMING" | "ACTIVE" | "ENDED" | "CANCELLED";
+                            revision: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    deployments_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    releaseId: string;
+                    /** Format: uuid */
+                    eventId: string | null;
+                    /** Format: date-time */
+                    startsAt: string;
+                    /** Format: date-time */
+                    endsAt: string;
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            deviceId: string;
+                            /** @enum {string} */
+                            kind: "SCHEDULED" | "OVERRIDE";
+                            release: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                botId: string;
+                                botName: string;
+                                version: number;
+                            };
+                            event: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            /** Format: date-time */
+                            startsAt: string;
+                            /** Format: date-time */
+                            endsAt: string;
+                            /** Format: date-time */
+                            cancelledAt: string | null;
+                            /** @enum {string} */
+                            state: "UPCOMING" | "ACTIVE" | "ENDED" | "CANCELLED";
+                            revision: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description SCHEDULE_CONFLICT or OVERRIDE_CONFLICT. conflictIds lists only this organisation’s blocking deployments. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description expectedRevision is required. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deployments_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            deviceId: string;
+                            /** @enum {string} */
+                            kind: "SCHEDULED" | "OVERRIDE";
+                            release: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                botId: string;
+                                botName: string;
+                                version: number;
+                            };
+                            event: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            /** Format: date-time */
+                            startsAt: string;
+                            /** Format: date-time */
+                            endsAt: string;
+                            /** Format: date-time */
+                            cancelledAt: string | null;
+                            /** @enum {string} */
+                            state: "UPCOMING" | "ACTIVE" | "ENDED" | "CANCELLED";
+                            revision: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description Stale revision (the error includes currentRevision) or a closed deployment. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description expectedRevision is required. */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deviceschedule_override: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    releaseId: string;
+                    /** @default 30 */
+                    minutes?: number;
+                    /**
+                     * Format: uuid
+                     * @default null
+                     */
+                    replaceOverrideId?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Starts now and wins over any schedule until it ends or is cancelled. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            deviceId: string;
+                            /** @enum {string} */
+                            kind: "SCHEDULED" | "OVERRIDE";
+                            release: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                botId: string;
+                                botName: string;
+                                version: number;
+                            };
+                            event: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                            } | null;
+                            /** Format: date-time */
+                            startsAt: string;
+                            /** Format: date-time */
+                            endsAt: string;
+                            /** Format: date-time */
+                            cancelledAt: string | null;
+                            /** @enum {string} */
+                            state: "UPCOMING" | "ACTIVE" | "ENDED" | "CANCELLED";
+                            revision: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description SCHEDULE_CONFLICT or OVERRIDE_CONFLICT. conflictIds lists only this organisation’s blocking deployments. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deviceschedule_timeline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Desired and acknowledged revisions with the latest commands. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            deviceId: string;
+                            desired: {
+                                revision: number;
+                                /** Format: uuid */
+                                releaseId: string | null;
+                                /** Format: uuid */
+                                deploymentId: string | null;
+                                appliedRevision: number;
+                                /** Format: uuid */
+                                appliedReleaseId: string | null;
+                                /** Format: date-time */
+                                appliedAt: string | null;
+                            };
+                            commands: {
+                                /** Format: uuid */
+                                id: string;
+                                type: string;
+                                stateRevision: number;
+                                /** Format: uuid */
+                                releaseId: string | null;
+                                /** @enum {string} */
+                                status: "QUEUED" | "SENT" | "ACKNOWLEDGED" | "FAILED" | "EXPIRED" | "SUPERSEDED";
+                                attempts: number;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: date-time */
+                                sentAt: string | null;
+                                /** Format: date-time */
+                                acknowledgedAt: string | null;
+                                /** @enum {string|null} */
+                                result: "APPLIED" | "REJECTED" | null;
+                                reason: string | null;
+                            }[];
+                        };
+                    };
+                };
             };
         };
     };
