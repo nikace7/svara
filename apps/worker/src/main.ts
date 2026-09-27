@@ -1,8 +1,15 @@
 import { createServer } from 'node:http';
 import { loadWorkspaceEnvironment, parseServerConfig } from '@svara/config/server';
-import { createDependencies, MediaJobs, MediaStorage, type Readiness } from '@svara/domain';
+import {
+  CommandOutbox,
+  createDependencies,
+  MediaJobs,
+  MediaStorage,
+  type Readiness,
+} from '@svara/domain';
 import { MediaInspector } from './media/inspector.js';
 import { MediaQueueRuntime } from './media/queue.js';
+import { ScheduleLoop } from './schedules/loop.js';
 
 loadWorkspaceEnvironment();
 const config = parseServerConfig(process.env);
@@ -13,17 +20,26 @@ const jobs = new MediaJobs(dependencies.database, storage, inspector.inspect.bin
 const mediaQueue = new MediaQueueRuntime(config.REDIS_URL, jobs, inspector.check.bind(inspector), {
   prefix: `${config.WORKER_NAMESPACE}:media`,
 });
+// Wake-ups carry IDs only; the API's device connections read the command from PostgreSQL.
+const schedules = new ScheduleLoop(new CommandOutbox(dependencies.database), async (commands) => {
+  await dependencies.redis.publish(
+    `${config.WORKER_NAMESPACE}:device-commands`,
+    JSON.stringify(commands.map(({ id, deviceId }) => ({ commandId: id, deviceId }))),
+  );
+});
 let closing = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
 
 async function ready(): Promise<Readiness> {
   const infrastructure = await dependencies.ready();
   const available = !closing && mediaQueue.isReady();
+  const scheduling = !closing && schedules.isReady();
   return {
-    status: infrastructure.status === 'ready' && available ? 'ready' : 'unavailable',
+    status: infrastructure.status === 'ready' && available && scheduling ? 'ready' : 'unavailable',
     dependencies: {
       ...infrastructure.dependencies,
       mediaInspection: available ? 'ready' : 'unavailable',
+      scheduling: scheduling ? 'ready' : 'unavailable',
     },
   };
 }
@@ -81,7 +97,7 @@ async function shutdown(): Promise<void> {
   }, 25_000);
   deadline.unref();
   try {
-    await mediaQueue.close();
+    await Promise.all([mediaQueue.close(), schedules.close()]);
   } finally {
     await dependencies.close();
     clearTimeout(deadline);
@@ -102,11 +118,19 @@ server.on('error', () => {
 });
 server.listen(config.WORKER_PORT, config.BIND_HOST);
 mediaQueue.start();
+schedules.start();
 await heartbeat();
 console.info(
   JSON.stringify({
     event: 'worker.started',
     port: config.WORKER_PORT,
-    responsibilities: ['dependency-health', 'heartbeat', 'media-inspection', 'media-cleanup'],
+    responsibilities: [
+      'dependency-health',
+      'heartbeat',
+      'media-inspection',
+      'media-cleanup',
+      'desired-state-reconciliation',
+      'command-outbox',
+    ],
   }),
 );

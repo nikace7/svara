@@ -36,6 +36,8 @@ export default defineConfig({
         'packages/domain/src/media/range.ts',
         'apps/worker/src/media/policy.ts',
         'apps/worker/src/media/process.ts',
+        'apps/worker/src/schedules/loop.ts',
+        'packages/contracts/src/schedules.ts',
       ],
       reporter: ['text', 'html', 'json-summary'],
       thresholds: { lines: 80, statements: 80, functions: 80, branches: 80 },
