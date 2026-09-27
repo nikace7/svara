@@ -383,6 +383,14 @@ export async function createApplication(
       /^\/api\/v1\/(?:bots|knowledge)(?:\/|\?|$)/.test(request.url ?? '') &&
       /^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] ?? ''),
   });
+  // A recorded question is up to 15 s of base64 PCM (640,000 characters); only the local
+  // voice turn accepts that much.
+  app.useBodyParser('json', {
+    limit: '700kb',
+    type: (request) =>
+      /^\/api\/v1\/feasibility\/turn(?:\?|$)/.test(request.url ?? '') &&
+      /^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] ?? ''),
+  });
   app.useBodyParser('json', { limit: '16kb' });
   app.useGlobalPipes(
     new ValidationPipe({

@@ -56,7 +56,10 @@ describe('local-only fixture HTTP stream', () => {
       .send({ ...body, scenario: 'supported_faq' })
       .expect(400);
     await post()
-      .send({ ...body, text: 'x'.repeat(17000) })
+      .send({ locale: 'en-US', generation: 1, audio: Buffer.alloc(3200).toString('base64') })
+      .expect(400);
+    await post()
+      .send({ ...body, text: 'x'.repeat(800_000) })
       .expect(413);
   });
   it('does not register the endpoint outside the local fixture gate', async () => {

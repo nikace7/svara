@@ -3,6 +3,8 @@ import { localeSchema, providerModeSchema } from './events.js';
 
 /** One playback packet's worth of 24 kHz PCM16, base64 encoded: 4,800 bytes max. */
 export const AUDIO_PACKET_BYTES = 4800;
+/** One spoken question: 15 seconds of 16 kHz mono PCM16. */
+export const MAX_QUESTION_AUDIO_BYTES = 480_000;
 
 export const fixtureScenarioSchema = z.enum([
   'supported_faq',
@@ -17,11 +19,17 @@ export const FeasibilityRequestSchema = z
     generation: z.number().int().min(1).max(2147483647),
     scenario: fixtureScenarioSchema.optional(),
     text: z.string().trim().min(1).max(1000).optional(),
+    /** Live mode only: one recorded question as base64 16 kHz mono PCM16. */
+    audio: z
+      .base64()
+      .max(Math.ceil(MAX_QUESTION_AUDIO_BYTES / 3) * 4)
+      .optional(),
     /** Live mode only: the release whose knowledge grounds the answer. */
     releaseId: z.uuid().optional(),
   })
   .refine(
-    (value) => (value.scenario === undefined) !== (value.text === undefined),
+    (value) =>
+      [value.scenario, value.text, value.audio].filter((v) => v !== undefined).length === 1,
     'Choose one input.',
   );
 

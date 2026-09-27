@@ -2,8 +2,14 @@ import { describe, expect, it } from 'vitest';
 import type { FeasibilityEvent } from '@svara/contracts';
 import { AUDIO_PACKET_BYTES, FeasibilityEventSchema } from '@svara/contracts';
 import { GeminiError } from '@svara/providers';
-import type { AnswerGenerator, ProviderContext, SpeechSynthesizer } from '@svara/providers';
-import { runLiveTurn } from './live-feasibility.js';
+import type {
+  AnswerGenerator,
+  ProviderContext,
+  RecognitionEvent,
+  SpeechRecognizer,
+  SpeechSynthesizer,
+} from '@svara/providers';
+import { RecognitionError, runLiveTurn, transcribe } from './live-feasibility.js';
 
 const speech = (bytes: number) => new ArrayBuffer(bytes);
 function providers(
@@ -177,5 +183,58 @@ describe('live feasibility turn', () => {
       ),
     );
     expect(failure).toBeInstanceOf(Error);
+  });
+});
+
+describe('recorded question transcription', () => {
+  function recognizer(result: RecognitionEvent) {
+    const frames: { seq: number; bytes: number }[] = [];
+    const state = { closed: false, locale: '' };
+    const value: SpeechRecognizer = {
+      async open(context, emit) {
+        state.locale = context.locale;
+        return {
+          write: ({ seq, pcm }) => {
+            frames.push({ seq, bytes: pcm.byteLength });
+          },
+          finish: async () => emit(result),
+          close: () => {
+            state.closed = true;
+          },
+        };
+      },
+    };
+    return { value, frames, state };
+  }
+
+  it('replays the recording as ordered 100 ms frames and returns the trimmed transcript', async () => {
+    const { value, frames, state } = recognizer({ type: 'final', text: '  भर्ना कहाँ छ?  ' });
+    const text = await transcribe(
+      value,
+      // A Buffer, as the server passes it: its slices are views, not copies.
+      Buffer.alloc(8000),
+      'ne-NP',
+      new AbortController().signal,
+    );
+    expect(text).toBe('भर्ना कहाँ छ?');
+    expect(frames).toEqual([
+      { seq: 0, bytes: 3200 },
+      { seq: 1, bytes: 3200 },
+      { seq: 2, bytes: 1600 },
+    ]);
+    expect(state).toEqual({ closed: true, locale: 'ne-NP' });
+  });
+
+  it('reports recognition failures by code and still closes the session', async () => {
+    const { value, state } = recognizer({ type: 'error', code: 'PROVIDER_QUOTA' });
+    const failure = await transcribe(
+      value,
+      new Uint8Array(3200),
+      'en-US',
+      new AbortController().signal,
+    ).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(RecognitionError);
+    expect((failure as RecognitionError).code).toBe('PROVIDER_QUOTA');
+    expect(state.closed).toBe(true);
   });
 });

@@ -1,5 +1,9 @@
 import { loadWorkspaceEnvironment, parseServerConfig } from '@svara/config/server';
-import { GeminiAnswerGenerator, GeminiSpeechSynthesizer } from '@svara/providers';
+import {
+  GeminiAnswerGenerator,
+  GeminiSpeechRecognizer,
+  GeminiSpeechSynthesizer,
+} from '@svara/providers';
 import {
   BotService,
   createDependencies,
@@ -29,6 +33,7 @@ function liveVoiceProviders(apiKey: string) {
   return {
     generator: new GeminiAnswerGenerator(gemini),
     synthesizer: new GeminiSpeechSynthesizer(gemini),
+    recognizer: new GeminiSpeechRecognizer(gemini),
   };
 }
 const app = await createApplication({

@@ -42,7 +42,7 @@ with their actual features; no illustrative October 2026 date is used here.
    content belong to a different workspace; Himal resource IDs return 404 there.
 
 The release inspector shows retrieved text rather than a generated conversation.
-In live mode the Voice lab grounds typed questions in a release chosen from this same
+In live mode the Voice lab grounds typed or spoken questions in a release chosen from this same
 list, so Version 1 answers from the room 12 passage; fixture mode keeps its scripted
 scenarios. Device pairing, scheduled deployments and public sessions are later steps.
 

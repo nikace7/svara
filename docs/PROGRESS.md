@@ -2,17 +2,42 @@
 
 Updated 2026-09-27. Evidence is local unless explicitly marked otherwise.
 
-| Milestone                                | State       | Evidence / remaining work                                                                                                                                 |
-| ---------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.                                              |
-| M1 — Bilingual voice feasibility         | Partial     | Live gate and lab live turns work, grounded in a chosen release. Real-key browser evidence, spoken input, hardware barge-in and repeated sampling remain. |
-| M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                                                                 |
-| M3 — Authoring and immutable publication | Complete    | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.                                                    |
-| M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                                                          |
-| M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                                                                       |
-| M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                                                                   |
-| M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                                                       |
-| M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                                                                   |
+| Milestone                                | State       | Evidence / remaining work                                                                                                                                    |
+| ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.                                                 |
+| M1 — Bilingual voice feasibility         | Partial     | Live gate and lab live turns work, typed or spoken, grounded in a chosen release. Real-key browser evidence, hardware barge-in and repeated sampling remain. |
+| M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                                                                    |
+| M3 — Authoring and immutable publication | Complete    | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.                                                       |
+| M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                                                             |
+| M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                                                                          |
+| M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                                                                      |
+| M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                                                          |
+| M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                                                                      |
+
+## Spoken questions in the live lab — 2026-09-27
+
+"Ask by voice" records up to 15 seconds of 16 kHz PCM16 and sends it once with the turn
+request; the microphone is released before the upload. The API transcribes it with
+`GeminiSpeechRecognizer` before the stream opens, then grounds and answers the transcript
+exactly like a typed question, so the question event shows what was heard. Recognition
+failure is a 502, provider quota a 503 (the studio treats 429 as its own rate limit) and
+silence a 422, each with a readable message. Only the turn route accepts the larger
+700 KB body; recordings and transcripts are never stored.
+
+Integration tests caught a real defect before it shipped: replaying a Node `Buffer` by
+`slice().buffer` handed the recognizer the whole shared allocation for every frame, which
+would have sent the provider corrupted audio. Frames are now copied, and the unit test
+uses a `Buffer` so the old code fails it.
+
+| Check             | Result                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------ |
+| Unit tests        | 175 passed (28 files), 95.53% statement coverage                                           |
+| Integration tests | 126 passed (24 files): transcription, grounding, 502/503/422, odd audio and size guards    |
+| Live Playwright   | 3 passed; Chromium's synthetic microphone records, uploads once and gets a grounded answer |
+| `pnpm check`      | Format, lint, types, contracts and production build clean                                  |
+
+No real-key spoken question has been run: recognition quality in either language is
+still covered only by the earlier `pnpm eval:gemini` round trip.
 
 ## Playwright coverage for the live lab — 2026-09-27
 

@@ -2,13 +2,52 @@ import { randomUUID } from 'node:crypto';
 import { AUDIO_PACKET_BYTES } from '@svara/contracts';
 import type { FeasibilityEvent, FeasibilityRequest } from '@svara/contracts';
 import { GeminiError, SentenceSegments } from '@svara/providers';
-import type { AnswerGenerator, SpeechSynthesizer } from '@svara/providers';
+import type {
+  AnswerGenerator,
+  RecognitionEvent,
+  SpeechRecognizer,
+  SpeechSynthesizer,
+} from '@svara/providers';
 
 export interface LiveTurnProviders {
   generator: AnswerGenerator;
   synthesizer: SpeechSynthesizer;
   /** Passages retrieved for this turn from the release the caller chose. */
   passages: readonly { id: string; text: string }[];
+}
+
+export class RecognitionError extends Error {
+  constructor(readonly code: Extract<RecognitionEvent, { type: 'error' }>['code']) {
+    super('Recognition failed.');
+  }
+}
+
+/** One recorded question → trimmed transcript. The recording is replayed as the 100 ms
+ * frames the recognizer expects; an empty string means no speech was heard. */
+export async function transcribe(
+  recognizer: SpeechRecognizer,
+  pcm: Uint8Array,
+  locale: FeasibilityRequest['locale'],
+  signal: AbortSignal,
+): Promise<string> {
+  let result: RecognitionEvent | undefined;
+  const session = await recognizer.open({ locale, mode: 'live', signal }, (event) => {
+    if (event.type === 'final' || event.type === 'error') result = event;
+  });
+  try {
+    for (let seq = 0; seq * 3200 < pcm.byteLength; seq++)
+      // Copy each frame: a Node Buffer's slice is a view onto a larger shared allocation.
+      session.write({
+        seq,
+        pcm: new Uint8Array(pcm.subarray(seq * 3200, (seq + 1) * 3200)).buffer,
+      });
+    await session.finish();
+  } finally {
+    session.close();
+  }
+  const outcome = result as RecognitionEvent | undefined;
+  if (outcome?.type === 'error') throw new RecognitionError(outcome.code);
+  return outcome?.type === 'final' ? outcome.text.trim() : '';
 }
 
 function providerCode(error: unknown, speaking: boolean): NonNullable<FeasibilityEvent['code']> {
