@@ -162,7 +162,15 @@ export function AuthForm({ mode }: { mode: Mode }) {
               Continue to sign in <ArrowRight size={17} aria-hidden="true" />
             </Link>
           ) : (
-            <form onSubmit={(event) => void submit(event)} noValidate className="staff-form">
+            // A submit before hydration falls back to the native form; POST keeps secrets out of
+            // the URL and Next re-renders this page without reading the url-encoded body.
+            <form
+              method="post"
+              action={`/${mode}`}
+              onSubmit={(event) => void submit(event)}
+              noValidate
+              className="staff-form"
+            >
               {message && (
                 <div
                   className="form-notice form-notice--error"
