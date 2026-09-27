@@ -12,6 +12,7 @@ import {
   KnowledgeService,
   PresentationService,
   ReleaseService,
+  ScheduleService,
   MediaService,
   MediaStorage,
 } from '@svara/domain';
@@ -51,6 +52,7 @@ const app = await createApplication({
   knowledge: new KnowledgeService(identity),
   presentations: new PresentationService(identity),
   releases: new ReleaseService(identity, { providerMode: config.PROVIDER_MODE }),
+  schedules: new ScheduleService(identity),
   media: new MediaService(
     identity,
     dependencies.database,
