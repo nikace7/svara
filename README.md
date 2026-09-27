@@ -49,8 +49,9 @@ flowchart LR
 Apps compose shared packages. Browser code imports only contracts, UI and audio;
 server domain code owns database/provider work. PostgreSQL is durable truth. Redis
 coordinates media jobs and readiness; the worker reconciles database state, inspects
-uploads and cleans eligible files. Socket.IO, runtime tickets and device jobs arrive
-with later milestones.
+uploads and cleans eligible files. It also reconciles schedules into each device's
+desired release and wakes the API, whose Socket.IO `/devices` gateway delivers it to
+paired kiosks.
 
 The demo pipeline is Azure Speech F0 STT → approved release knowledge → Gemini
 free-tier generation → Azure Speech F0 TTS. Provider adapters and live validation
@@ -161,6 +162,17 @@ for the upload, sandbox, range serving and cleanup boundaries.
 See [M1 design, evidence and limits](docs/M1-VOICE.md). Restart `pnpm dev` after editing
 worklet source so the compiled public worklet modules are refreshed.
 
+## Pair a kiosk and schedule it
+
+1. In **Devices**, register a kiosk and choose **Pair**. Open the kiosk link in another
+   browser profile (or the **Device simulator**) and enter the code.
+2. Choose **Open display** on the kiosk for its second screen.
+3. In **Events & Deployments**, schedule a published release or start an override. The
+   kiosk downloads and verifies it, shows it, and its delivery history reports the
+   acknowledgement. **Revoke** returns the kiosk to pairing at once.
+
+See [M4 devices](docs/M4-DEVICES.md) and [M5 schedules](docs/M5-SCHEDULES.md).
+
 ## Verification
 
 ```sh
@@ -169,7 +181,7 @@ pnpm audit                 # all dependency groups
 pnpm test:integration      # requires native infrastructure
 pnpm exec playwright install chromium
 pnpm test:e2e              # requires the complete running app
-pnpm test:e2e:live         # live-mode voice lab on its own stub-provider stack; run pnpm build first
+pnpm test:e2e:live         # voice lab, schedules and kiosks on a stub-provider stack; run pnpm build first
 ```
 
 For the full Compose demo use `pnpm test:integration:container` instead of the native

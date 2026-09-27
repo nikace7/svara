@@ -8,11 +8,27 @@ Updated 2026-09-27. Evidence is local unless explicitly marked otherwise.
 | M1 — Bilingual voice feasibility         | Partial     | Live gate and lab live turns work, typed or spoken, grounded in a chosen release. Real-key browser evidence, hardware barge-in and repeated sampling remain. |
 | M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                                                                    |
 | M3 — Authoring and immutable publication | Complete    | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.                                                       |
-| M4 — Devices and dual displays           | Partial     | Pairing, grants and leases committed on codex/feat/device-pairing; HTTP, gateway and simulator pending.                                                      |
-| M5 — Schedules and commands              | Partial     | Schedules, overrides, desired state, outbox, worker and studio board verified on M4's tables. Device delivery waits on M4's gateway.                         |
+| M4 — Devices and dual displays           | Complete    | Pairing, tickets, /devices gateway, verified release application, kiosk/display/simulator and revocation verified by the gate test.                          |
+| M5 — Schedules and commands              | Complete    | Conflict-safe schedules, overrides, monotonic desired state, outbox, worker and board; commands reach kiosks and are acknowledged.                           |
 | M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                                                                      |
 | M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                                                          |
 | M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                                                                      |
+
+## M4 devices finished — 2026-09-27
+
+Took over the stalled device line: the earlier session's uncommitted HTTP layer
+(registry, pairing and runtime tickets) is committed as-is, and its red-phase tests pass.
+Added the `/devices` Socket.IO gateway, device-scoped manifests and media, the kiosk,
+display and simulator pages, and the Devices studio page. See `M4-DEVICES.md`.
+
+| Check             | Result                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------- |
+| `pnpm check`      | Passes: format, lint, types, 197 unit tests at 94.63% coverage, contract drift, builds          |
+| Integration tests | 157 passed (29 files), including 4 new device-runtime socket and HTTP tests                     |
+| Live Playwright   | 6 passed, including the M4 gate: two isolated kiosks, display mirror, failed update, revocation |
+
+The main checkout still holds that session's uncommitted copies of these files; they
+are superseded by the commits on `claude/m5-schedules` and were left untouched.
 
 ## M5 schedules and commands — 2026-09-27
 
