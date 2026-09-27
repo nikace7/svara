@@ -7,7 +7,7 @@ import type { AnswerGenerator, SpeechSynthesizer } from '@svara/providers';
 export interface LiveTurnProviders {
   generator: AnswerGenerator;
   synthesizer: SpeechSynthesizer;
-  /** Grounding passages. Live mode does not yet read a published release. */
+  /** Passages retrieved for this turn from the release the caller chose. */
   passages: readonly { id: string; text: string }[];
 }
 

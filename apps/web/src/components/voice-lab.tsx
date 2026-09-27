@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { AudioLines, Clock3, Languages, Mic, Play, Square, Volume2 } from 'lucide-react';
 import { Button, FormField, StatusBadge } from '@svara/ui';
 import { GenerationOwner, LabAudio } from '@svara/audio';
 import type { AnswerPlayback, CaptureMeter } from '@svara/audio';
-import type { FixtureScenarioId, Locale, ProviderMode } from '@svara/contracts';
+import { releasePageSchema } from '@svara/contracts';
+import type { BotPage, FixtureScenarioId, Locale, ProviderMode } from '@svara/contracts';
 import { decodeAudioPacket, readVoiceStream } from '../lib/voice-stream';
-import { staffResponse } from '../lib/staff-api';
-import { useStaffSession } from './session-provider';
+import { errorMessage, StaffApiError, staffResponse } from '../lib/staff-api';
+import { useStaffRequest, useStaffSession } from './session-provider';
 
 type Phase = 'Ready' | 'Answering' | 'Completed' | 'Interrupted' | 'Failed';
 const scenarios: { id: FixtureScenarioId; label: string }[] = [
@@ -21,7 +23,42 @@ const scenarios: { id: FixtureScenarioId; label: string }[] = [
 
 export function VoiceLab({ mode }: { mode: ProviderMode }) {
   const live = mode === 'live';
-  const { csrfToken } = useStaffSession();
+  const { csrfToken, identity } = useStaffSession();
+  const send = useStaffRequest();
+  const [botId, setBotId] = useState('');
+  const [releaseId, setReleaseId] = useState('');
+  const membership = identity.membership.id;
+  // ponytail: first page of bots and newest 50 releases; add search when a workspace outgrows it.
+  const bots = useQuery({
+    queryKey: ['bots', membership, 'voice-lab'],
+    queryFn: ({ signal }) => send<BotPage>('/bots?page=1', { signal }),
+    enabled: live,
+  });
+  const chosenBot = botId || bots.data?.items[0]?.id || '';
+  const releases = useQuery({
+    queryKey: ['releases', membership, chosenBot, 'voice-lab'],
+    queryFn: async ({ signal }) =>
+      releasePageSchema.parse(
+        await send<unknown>(
+          `/bots/${chosenBot}/releases?${new URLSearchParams({ kind: 'ALL', page: '1', pageSize: '50' })}`,
+          { signal },
+        ),
+      ),
+    enabled: live && !!chosenBot,
+  });
+  const release =
+    releases.data?.items.find((item) => item.id === releaseId) ?? releases.data?.items[0];
+  const groundingHelp = bots.isError
+    ? errorMessage(bots.error)
+    : releases.isError
+      ? errorMessage(releases.error)
+      : bots.data && !bots.data.items.length
+        ? 'Create a bot and save a release before asking.'
+        : releases.data && !release
+          ? 'This bot has no saved releases. Save a preview or publish a version first.'
+          : release
+            ? "Answers use only this release's knowledge."
+            : 'Loading releases…';
   const [locale, setLocale] = useState<Locale>('en-US');
   const [scenario, setScenario] = useState<FixtureScenarioId>('supported_faq');
   const [typed, setTyped] = useState('');
@@ -117,6 +154,7 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
           locale,
           generation: generation.id,
           ...(text === undefined ? { scenario } : { text }),
+          ...(live && text !== undefined && release ? { releaseId: release.id } : {}),
         }),
         signal: AbortSignal.any([generation.signal, AbortSignal.timeout(live ? 130000 : 12000)]),
       });
@@ -162,11 +200,16 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
           setTotalMs(event.elapsedMs);
         }
       }
-    } catch {
+    } catch (reason) {
       playbackControl.abort();
       if (owner.current.accepts(generation.id)) {
         setPhase('Failed');
-        setError('The local voice stream stopped. Read any partial text or retry the scenario.');
+        // A refused request (unknown or expired release) says why; a broken stream cannot.
+        setError(
+          reason instanceof StaffApiError
+            ? reason.message
+            : 'The local voice stream stopped. Read any partial text or retry the scenario.',
+        );
       }
     }
   }
@@ -256,7 +299,7 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
           <strong>A local place to listen, read and interrupt.</strong>
           <p>
             {live
-              ? 'Typed questions reach real providers and play synthesized speech. Answers are grounded in synthetic campus passages only, and the microphone is still a local check.'
+              ? 'Typed questions reach real providers and play synthesized speech. Answers draw only on the release you choose, and the microphone is still a local check.'
               : 'Scripted answers use synthetic campus information. Live recognition and speech are pending provider setup.'}
           </p>
         </div>
@@ -320,6 +363,54 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
             </p>
           )}
           <div className="voice-divider" />
+          {live && (
+            <>
+              <div className="field">
+                <label htmlFor="voice-bot">Bot</label>
+                <select
+                  id="voice-bot"
+                  className="input"
+                  value={chosenBot}
+                  disabled={!bots.data?.items.length}
+                  onChange={(event) => {
+                    interrupt(true);
+                    setBotId(event.target.value);
+                    setReleaseId('');
+                  }}
+                >
+                  {bots.data?.items.map((bot) => (
+                    <option key={bot.id} value={bot.id}>
+                      {bot.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="voice-release">Grounding release</label>
+                <select
+                  id="voice-release"
+                  className="input"
+                  value={release?.id ?? ''}
+                  disabled={!releases.data?.items.length}
+                  aria-describedby="voice-release-help"
+                  onChange={(event) => {
+                    interrupt(true);
+                    setReleaseId(event.target.value);
+                  }}
+                >
+                  {releases.data?.items.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.kind === 'PREVIEW' ? 'Staff preview' : `Version ${item.version}`} ·{' '}
+                      {new Date(item.createdAt).toLocaleString()}
+                    </option>
+                  ))}
+                </select>
+                <p id="voice-release-help" className="field-help">
+                  {groundingHelp}
+                </p>
+              </div>
+            </>
+          )}
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -340,7 +431,7 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
             <Button
               type="submit"
               {...(live ? { variant: 'primary' as const } : {})}
-              disabled={busy}
+              disabled={busy || (live && !release)}
             >
               {live ? 'Ask' : 'Send text'}
             </Button>

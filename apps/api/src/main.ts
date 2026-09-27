@@ -17,11 +17,6 @@ loadWorkspaceEnvironment();
 const config = parseServerConfig(process.env);
 const dependencies = await createDependencies(config);
 const identity = new IdentityService(dependencies.database, config.AUTH_TOKEN_PEPPER);
-/** Synthetic campus passages until a published release grounds live answers. */
-const livePassages = [
-  { id: 'admissions', text: 'The demo admissions office is in Room A-101, open 10:00-16:00.' },
-  { id: 'library', text: 'The demo library is on the second floor of Block B.' },
-];
 function liveVoiceProviders(apiKey: string) {
   const gemini = {
     apiKey,
@@ -34,7 +29,6 @@ function liveVoiceProviders(apiKey: string) {
   return {
     generator: new GeminiAnswerGenerator(gemini),
     synthesizer: new GeminiSpeechSynthesizer(gemini),
-    passages: livePassages,
   };
 }
 const app = await createApplication({
