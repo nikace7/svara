@@ -362,3 +362,24 @@ commit acknowledgement must not delete retained output. If that database read al
 fails, leave generated files for orphan reconciliation. Native seeding compiles the
 image child first. CI defers demo seeding to Compose so inspected files are written
 to the same volume used by the API and browser walkthrough.
+
+## ADR 026 — Desired state and its command commit together; Redis only wakes
+
+Derive a device's desired release from current truth (override, then schedule, then
+idle) inside the same transaction as the staff change. Any change bumps a monotonic
+revision, supersedes undelivered commands and inserts the next command row. The
+command table is the outbox, and a trigger keeps desired and applied revisions from
+moving backwards.
+
+Guard overlaps with the device row lock plus the serializable staff transaction, not
+a GiST exclusion constraint. The application check has to name the conflicting
+same-organisation deployments anyway, and the constraint would need the
+`btree_gist` extension in every database. The race test proves the lock and
+serializable retry are enough.
+
+The worker reconciles current truth rather than replaying boundary events, and
+claims commands with `SKIP LOCKED`. Its next-attempt time doubles as the claim
+lease, so no separate lease column is needed. Redis messages carry IDs only and
+are just wake-ups; the next scan repairs a lost one. Device acknowledgements run
+under M4's live grant, are deduplicated by command ID, and never lower the
+applied revision.

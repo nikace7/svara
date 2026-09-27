@@ -8,11 +8,31 @@ Updated 2026-09-27. Evidence is local unless explicitly marked otherwise.
 | M1 — Bilingual voice feasibility         | Partial     | Live gate and lab live turns work, typed or spoken, grounded in a chosen release. Real-key browser evidence, hardware barge-in and repeated sampling remain. |
 | M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                                                                    |
 | M3 — Authoring and immutable publication | Complete    | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.                                                       |
-| M4 — Devices and dual displays           | Not started | Pairing, grants and release application pending.                                                                                                             |
-| M5 — Schedules and commands              | Not started | Conflict checks, outbox and reconciliation pending.                                                                                                          |
+| M4 — Devices and dual displays           | Partial     | Pairing, grants and leases committed on codex/feat/device-pairing; HTTP, gateway and simulator pending.                                                      |
+| M5 — Schedules and commands              | Partial     | Schedules, overrides, desired state, outbox, worker and studio board verified on M4's tables. Device delivery waits on M4's gateway.                         |
 | M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                                                                      |
 | M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                                                          |
 | M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                                                                      |
+
+## M5 schedules and commands — 2026-09-27
+
+Built on branch `claude/m5-schedules`, stacked on M4's three committed device commits
+because every M5 table references `Device`. See `M5-SCHEDULES.md` and ADR 026.
+Events, deployments, overrides, monotonic desired state and the command outbox commit
+together. The worker reconciles current truth and retries commands with backoff. The
+studio board (Events & Deployments) schedules, overrides, cancels and shows delivery
+history in the organisation's time zone.
+
+| Check             | Result                                                                                                               |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Unit tests        | 192 passed, 95.69% statement coverage (M4's two red contract tests excluded)                                         |
+| Integration tests | 148 passed, including 12 new schedule tests; M4's five red device-HTTP tests still fail with 404s                    |
+| Live Playwright   | 5 passed: schedule, conflict, override, delivery history and end override (axe), events at 360 px                    |
+| Gate checks       | Race: removing the overlap check fails the test. Boundaries, override expiry, restart and duplicate acks are covered |
+
+`pnpm check` cannot pass on this branch until M4's device HTTP layer lands. Its lint,
+type and test failures are confined to M4's own red-phase test files. Nothing reaches
+a real device yet.
 
 ## Spoken questions in the live lab — 2026-09-27
 
