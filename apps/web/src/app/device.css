@@ -1,0 +1,127 @@
+.device-screen {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+  padding: 16px;
+  background: var(--canvas);
+}
+.device-screen--center {
+  grid-template-rows: none;
+  place-content: center;
+  justify-items: center;
+}
+.device-pair {
+  width: min(420px, 100%);
+}
+.device-code,
+.device-code input {
+  font-family: var(--font-mono);
+  letter-spacing: 0.2em;
+  font-size: 22px;
+}
+.device-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+.device-bar strong,
+.device-bar-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.device-release,
+.device-idle {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  padding: 24px;
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+}
+.device-idle {
+  justify-items: center;
+  text-align: center;
+}
+.device-greeting h1 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(28px, 5vw, 56px);
+}
+.device-greeting [lang='ne'],
+.device-slide [lang='ne'] {
+  font-family: var(--font-nepali);
+}
+.device-slide {
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.device-slide img,
+.device-slide video {
+  width: 100%;
+  max-height: 60dvh;
+  object-fit: contain;
+  border-radius: var(--radius-control);
+}
+.device-slide figcaption {
+  display: grid;
+  gap: 6px;
+  font-size: clamp(16px, 2.4vw, 24px);
+}
+.device-capabilities {
+  display: grid;
+  gap: 8px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.device-challenge {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 14px;
+  margin: 20px 0 0;
+}
+.device-challenge dt {
+  color: var(--text-secondary);
+}
+.device-challenge dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.device-row strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.device-bench {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+}
+.device-bench iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+.device-bench--portrait iframe {
+  aspect-ratio: 9 / 16;
+  max-height: 80dvh;
+}
+.device-main {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  align-content: start;
+  gap: 12px;
+}

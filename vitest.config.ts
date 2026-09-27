@@ -31,6 +31,7 @@ export default defineConfig({
         'apps/api/src/local-access.ts',
         'apps/web/src/lib/voice-stream.ts',
         'apps/web/src/lib/zoned-time.ts',
+        'packages/contracts/src/runtime.ts',
         'packages/contracts/src/media.ts',
         'packages/contracts/src/presentations.ts',
         'packages/domain/src/media/storage.ts',

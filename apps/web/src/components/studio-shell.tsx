@@ -30,7 +30,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
     { label: 'Overview', icon: LayoutDashboard, href: '/studio' },
     { label: 'Bots', icon: Bot, href: '/studio/bots' },
     { label: 'Media', icon: Images, href: '/studio/media' },
-    { label: 'Devices', icon: Monitor },
+    { label: 'Devices', icon: Monitor, href: '/studio/devices' },
     { label: 'Events & Deployments', icon: CalendarDays, href: '/studio/schedule' },
     { label: 'Sessions', icon: FileText },
     { label: 'Analytics', icon: ChartNoAxesCombined },
@@ -110,11 +110,20 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+const crumbs = [
+  ['/studio/design-system', 'Component gallery'],
+  ['/studio/voice-lab', 'Voice lab'],
+  ['/studio/bots', 'Bots'],
+  ['/studio/settings', 'Settings'],
+  ['/studio/media', 'Media library'],
+  ['/studio/devices', 'Devices'],
+  ['/studio/simulator', 'Device simulator'],
+  ['/studio/schedule', 'Events & Deployments'],
+] as const;
+
 export function StudioShell({ children }: { children: ReactNode }) {
   const [navigationOpen, setNavigationOpen] = useState(false);
   const pathname = usePathname();
-  const gallery = pathname.endsWith('design-system');
-  const voiceLab = pathname.endsWith('voice-lab');
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
@@ -152,17 +161,7 @@ export function StudioShell({ children }: { children: ReactNode }) {
             <span className="breadcrumb">
               Studio <ChevronRight size={13} aria-hidden="true" />
               <strong>
-                {gallery
-                  ? 'Component gallery'
-                  : voiceLab
-                    ? 'Voice lab'
-                    : pathname.startsWith('/studio/bots')
-                      ? 'Bots'
-                      : pathname.endsWith('settings')
-                        ? 'Settings'
-                        : pathname.startsWith('/studio/media')
-                          ? 'Media library'
-                          : 'Overview'}
+                {crumbs.find(([prefix]) => pathname.startsWith(prefix))?.[1] ?? 'Overview'}
               </strong>
             </span>
           </div>
