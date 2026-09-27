@@ -41,6 +41,8 @@ jobs:
         env:
           MEDIA_INSPECTION_MODE: native
       - run: pnpm exec playwright install --with-deps chromium
+      # Live-mode lab journeys run on their own stub-provider stack against the test database.
+      - run: pnpm test:e2e:live
       - name: Verify production containers and browser journeys
         run: |
           pnpm infra:down
