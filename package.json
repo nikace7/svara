@@ -29,6 +29,7 @@
     "test:coverage": "vitest run --config vitest.config.ts --coverage",
     "test:integration": "tsx scripts/database.ts test && pnpm build:packages && pnpm --filter @svara/api build && pnpm --filter @svara/worker build && vitest run --config vitest.integration.config.ts",
     "test:e2e": "playwright test",
+    "test:e2e:live": "tsx scripts/database.ts test && playwright test -c playwright.live.config.ts",
     "test:integration:container": "docker compose --env-file .env.compose -f infra/compose.yaml -f infra/compose.demo.yaml exec -T api node --import tsx scripts/database.ts test && docker compose --env-file .env.compose -f infra/compose.yaml -f infra/compose.demo.yaml exec -T api node node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts",
     "test:container": "docker run --rm --network none svara-app:local node tests/runtime/preview-guard.mjs",
     "test:media:sandbox": "docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges:true --memory 512m --pids-limit 64 svara-app:local node tests/runtime/media-sandbox.mjs",

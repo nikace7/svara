@@ -169,6 +169,7 @@ pnpm audit                 # all dependency groups
 pnpm test:integration      # requires native infrastructure
 pnpm exec playwright install chromium
 pnpm test:e2e              # requires the complete running app
+pnpm test:e2e:live         # live-mode voice lab on its own stub-provider stack; run pnpm build first
 ```
 
 For the full Compose demo use `pnpm test:integration:container` instead of the native

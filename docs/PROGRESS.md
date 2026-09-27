@@ -14,6 +14,26 @@ Updated 2026-09-27. Evidence is local unless explicitly marked otherwise.
 | M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                                                       |
 | M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                                                                   |
 
+## Playwright coverage for the live lab — 2026-09-27
+
+`pnpm test:e2e:live` drives the live-mode voice lab in Chromium. The Compose demo is
+fixture mode, so the suite starts its own stack (`tests/e2e/live-stack.ts`): the built
+web app in live mode, the real API wiring against the test database, and a same-origin
+gateway on port 4330. Only Gemini is stubbed, and its stub answers from the top passage
+it receives, so release text can reach the page only if grounding worked. CI runs it in
+the native phase, before switching to the Compose stack.
+
+| Journey                         | Asserted                                                                                                  |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Grounded answer, both languages | Picker selects the new preview; the request carries its `releaseId`; English and Nepali answers quote it  |
+| Speech                          | Stub PCM plays through the real worklet queue to "Answer finished"                                        |
+| Empty, failed, refused          | No releases disables Ask; quota shows its alert; an intercepted 410 shows its message; no 360 px overflow |
+| Accessibility                   | axe finds no violations on the live lab                                                                   |
+
+Both journeys pass. A deliberate break (dropping the retrieved passages in the built API)
+fails the grounded journey on the missing room 12 text. The default `pnpm test:e2e` run
+ignores this spec, since it needs a live-mode stack.
+
 ## Live answers grounded in a chosen release — 2026-09-27
 
 Live lab turns no longer read two hardcoded campus sentences from `apps/api/src/main.ts`.
@@ -72,8 +92,8 @@ non-deterministic.
 
 **Not yet verified:** no browser run with a real key has been recorded, so actual
 speech playback in Chromium, autoplay behaviour and the answer/audio timing under
-real latency remain unobserved. That is the next evidence step, alongside Playwright
-coverage for the live path.
+real latency remain unobserved. That is the next evidence step; Playwright coverage
+for the live path followed on 2026-09-27.
 
 ## Live Gemini gate passed — 2026-09-25
 
