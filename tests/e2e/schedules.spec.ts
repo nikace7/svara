@@ -1,82 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { AxeBuilder } from '@axe-core/playwright';
 import type { APIRequestContext } from '@playwright/test';
-import { emptyBotDraft } from '../../packages/contracts/src/authoring.js';
-import { loadWorkspaceEnvironment } from '../../packages/config/src/server.js';
-import { createDatabase } from '../../packages/database/src/index.js';
-import { assertTestDatabase } from '../../packages/database/src/safety.js';
+import { publishedGuide } from './guide.js';
 import { test, expect } from './fixtures.js';
 
-/** A published bot and a registered kiosk in the signed-in owner's workspace. Device rows are
- * inserted directly until M4's device routes land; everything else goes through HTTP. */
 async function workspace(request: APIRequestContext, baseURL: string) {
-  const session = (await (await request.get('/api/v1/auth/session')).json()).data;
-  const headers = { Origin: baseURL, 'X-CSRF-Token': session.csrfToken };
-  const name = `Open house guide ${randomUUID().slice(0, 6)}`;
-  const bot = (await (await request.post('/api/v1/bots', { headers, data: { name } })).json()).data;
-  const saved = await request.patch(`/api/v1/bots/${bot.id}`, {
-    headers,
-    data: {
-      name,
-      description: '',
-      expectedRevision: bot.revision,
-      draft: {
-        ...emptyBotDraft(),
-        persona: 'Help open-house visitors.',
-        greeting: { en: 'Welcome.', ne: 'स्वागत छ।' },
-        fallback: { en: 'Please ask reception.', ne: 'स्वागत कक्षमा सोध्नुहोस्।' },
-      },
-    },
-  });
-  expect(saved.status()).toBe(200);
-  const created = (
-    await (
-      await request.post(`/api/v1/bots/${bot.id}/knowledge`, {
-        headers,
-        data: { title: 'Admissions', type: 'FAQ' },
-      })
-    ).json()
-  ).data;
-  const entry = (
-    await (
-      await request.patch(`/api/v1/knowledge/${created.id}`, {
-        headers,
-        data: {
-          type: 'FAQ',
-          title: 'Admissions',
-          question: { en: 'Where is admissions?', ne: 'भर्ना कहाँ छ?' },
-          content: { en: 'Room 12.', ne: 'कोठा १२।' },
-          expectedRevision: created.revision,
-        },
-      })
-    ).json()
-  ).data;
-  const approved = await request.post(`/api/v1/knowledge/${created.id}/approval`, {
-    headers,
-    data: { approved: true, expectedRevision: entry.revision },
-  });
-  expect(approved.status()).toBe(200);
-  const published = await request.post(`/api/v1/bots/${bot.id}/releases`, {
-    headers: { ...headers, 'Idempotency-Key': randomUUID() },
-    data: { expectedRevision: (await approved.json()).data.botRevision },
-  });
-  expect(published.status()).toBe(201);
-  loadWorkspaceEnvironment();
-  const url = process.env.TEST_DATABASE_URL ?? '';
-  assertTestDatabase(url, 'test');
-  const db = createDatabase(url);
-  try {
-    const kiosk = await db.device.create({
-      data: {
-        organisationId: session.identity.organisation.id,
-        name: `Lobby kiosk ${randomUUID().slice(0, 6)}`,
-        capabilities: { microphone: true, speaker: true, secondaryDisplay: false },
-      },
-    });
-    return { name, kiosk: kiosk.name };
-  } finally {
-    await db.$disconnect();
-  }
+  const guide = await publishedGuide(request, baseURL);
+  return { name: guide.name, kiosk: (await guide.device()).name };
 }
 
 test('schedules a release, explains a conflict, overrides it and ends the override', async ({
