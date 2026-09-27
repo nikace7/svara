@@ -19,9 +19,13 @@ local host and behind a staff session. Typed question → grounded answer subtit
 real 24 kHz speech playback. The page reports the mode it is actually running in;
 it no longer claims to be fixture-only when it is not.
 
-**Scope.** Typed questions only. The microphone stays a local capture check and is
-never uploaded, so `GeminiSpeechRecognizer` is not yet reachable from the browser.
-Scripted scenarios remain fixture-only and their control is disabled in live mode.
+**Scope.** Typed or spoken questions. "Ask by voice" records up to 15 seconds of the
+worklet's 16 kHz PCM16, releases the microphone, then sends the recording once as base64
+on the same turn request (the route alone accepts 700 KB). The server replays it to
+`GeminiSpeechRecognizer` as 100 ms frames before the stream opens, so failed recognition
+is a readable 502, provider quota a 503 and silence a 422; nothing is persisted. The
+separate microphone check still never uploads. Scripted scenarios remain fixture-only
+and their control is disabled in live mode.
 Answers are grounded in a release the operator picks in the lab (bot, then one of its
 saved releases). Each question is searched against that release's frozen knowledge under
 the caller's staff session; an unknown or foreign release is a 404 and an expired preview

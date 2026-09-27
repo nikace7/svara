@@ -75,6 +75,8 @@ export class LabAudio {
     signal: AbortSignal,
     meter: (value: CaptureMeter) => void,
     failed: () => void,
+    /** Receives each 100 ms PCM16 batch, for a recording that leaves the browser. */
+    frame?: (pcm: ArrayBuffer) => void,
   ): Promise<void> {
     if (this.capture && !this.capture.disposed) throw new Error('Microphone already active.');
     const run = this.createRun(signal);
@@ -119,6 +121,7 @@ export class LabAudio {
           return;
         }
         if (event.data.type !== 'pcm') return;
+        frame?.(event.data.pcm);
         const samples = decodePcm16(event.data.pcm);
         meter({
           seq: event.data.seq,

@@ -7,6 +7,7 @@ import type { FeasibilityEvent } from '../../packages/contracts/dist/index.js';
 import { emptyBotDraft } from '../../packages/contracts/src/authoring.js';
 import { BotService, KnowledgeService, ReleaseService } from '../../packages/domain/dist/index.js';
 import { GeminiError } from '../../packages/providers/dist/index.js';
+import type { RecognitionEvent } from '../../packages/providers/dist/index.js';
 import { staffFixture } from './staff-fixture.js';
 
 /** Stub providers: this suite proves the live HTTP path, not provider behaviour.
@@ -15,7 +16,26 @@ const answer = ['भर्ना कार्यालय कोठा A-101 म
 let quotaExhausted = false;
 let spoken = 0;
 let grounded: readonly { id: string; text: string }[] = [];
+let recognition: 'ok' | 'quota' | 'down' | 'silent' = 'ok';
+let heard = 0;
 const liveVoice = {
+  recognizer: {
+    async open(_context: unknown, emit: (event: RecognitionEvent) => void) {
+      heard = 0;
+      return {
+        write: ({ pcm }: { pcm: ArrayBuffer }) => {
+          heard += pcm.byteLength;
+        },
+        finish: async () => {
+          if (recognition === 'quota') emit({ type: 'error', code: 'PROVIDER_QUOTA' });
+          else if (recognition === 'down') emit({ type: 'error', code: 'STT_UNAVAILABLE' });
+          else
+            emit({ type: 'final', text: recognition === 'silent' ? '' : 'भर्ना कार्यालय कहाँ छ?' });
+        },
+        close() {},
+      };
+    },
+  },
   generator: {
     async *generate(input: { passages: readonly { id: string; text: string }[] }) {
       grounded = input.passages;
@@ -177,7 +197,7 @@ describe('live voice HTTP stream', () => {
     await post().set('Origin', 'https://evil.example').send(body).expect(403);
     await post().set('Host', 'evil.example').send(body).expect(403);
     await post()
-      .send({ ...body, text: 'x'.repeat(17000) })
+      .send({ ...body, text: 'x'.repeat(800_000) })
       .expect(413);
     await request(app.getHttpServer())
       .post('/api/v1/feasibility/turn')
@@ -216,6 +236,48 @@ describe('live voice HTTP stream', () => {
       expect(expired.body.error.code).toBe('PREVIEW_EXPIRED');
     } finally {
       now = started;
+    }
+  });
+
+  it('answers a recorded question through recognition and the chosen release', async () => {
+    const response = await post()
+      .send({
+        locale: 'ne-NP',
+        generation: 8,
+        audio: Buffer.alloc(8000).toString('base64'),
+        releaseId: release.id,
+      })
+      .expect(200);
+    const stream = events(response.text);
+    expect(heard).toBe(8000);
+    expect(stream[0]).toMatchObject({ type: 'transcript', text: 'भर्ना कार्यालय कहाँ छ?' });
+    expect(grounded.map((passage) => passage.id)).toEqual([entryId]);
+    expect(stream.at(-1)!.type).toBe('complete');
+  });
+
+  it('reports failed or silent recognition before any stream opens', async () => {
+    const body = { locale: 'en-US', generation: 9, releaseId: release.id };
+    const audio = Buffer.alloc(3200).toString('base64');
+    try {
+      for (const [state, status, code] of [
+        ['down', 502, 'STT_UNAVAILABLE'],
+        ['quota', 503, 'PROVIDER_QUOTA'],
+        ['silent', 422, 'NO_SPEECH'],
+      ] as const) {
+        recognition = state;
+        const failed = await post()
+          .send({ ...body, audio })
+          .expect(status);
+        expect(failed.body.error.code).toBe(code);
+        expect(failed.headers['content-type']).toContain('application/json');
+      }
+      recognition = 'ok';
+      // PCM16 is two bytes per sample; an odd recording is malformed, not silently trimmed.
+      await post()
+        .send({ ...body, audio: Buffer.alloc(3201).toString('base64') })
+        .expect(400);
+    } finally {
+      recognition = 'ok';
     }
   });
 

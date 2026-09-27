@@ -18,6 +18,7 @@ import {
   ReleaseService,
 } from '../../packages/domain/dist/index.js';
 import { GeminiError } from '../../packages/providers/dist/index.js';
+import type { RecognitionEvent } from '../../packages/providers/dist/index.js';
 
 const LIVE_ORIGIN = 'http://localhost:4330';
 const [GATEWAY, API, WEB] = [4330, 4110, 3011];
@@ -25,6 +26,20 @@ const [GATEWAY, API, WEB] = [4330, 4110, 3011];
 /** Answers from the top retrieved passage, so the page can only show release text if
  * grounding reached the model. A question mentioning quota exercises the failure path. */
 const liveVoice = {
+  /** Hears only what the browser actually sent: under half a second is treated as silence. */
+  recognizer: {
+    async open(_context: unknown, emit: (event: RecognitionEvent) => void) {
+      let bytes = 0;
+      return {
+        write: ({ pcm }: { pcm: ArrayBuffer }) => {
+          bytes += pcm.byteLength;
+        },
+        finish: async () =>
+          emit({ type: 'final', text: bytes >= 16000 ? 'Where is the admissions office?' : '' }),
+        close() {},
+      };
+    },
+  },
   generator: {
     async *generate(input: { question: string; passages: readonly { text: string }[] }) {
       if (/quota/i.test(input.question))

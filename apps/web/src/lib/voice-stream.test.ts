@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodeAudioPacket, readVoiceStream } from './voice-stream.js';
+import { decodeAudioPacket, encodeAudio, readVoiceStream } from './voice-stream.js';
 
 const make = (seq: number, type = 'answer', generation = 1) => ({
   v: 1,
@@ -17,6 +17,12 @@ async function read(response: Response) {
   for await (const event of readVoiceStream(response, 1)) values.push(event);
   return values;
 }
+describe('recorded audio encoding', () => {
+  it('encodes a recording larger than one chunk byte for byte', () => {
+    const bytes = Uint8Array.from({ length: 70000 }, (_, index) => (index * 31) % 256);
+    expect(Buffer.from(encodeAudio(bytes), 'base64').equals(Buffer.from(bytes))).toBe(true);
+  });
+});
 describe('audio packet decoding', () => {
   it('decodes bounded PCM and rejects anything the worklet cannot play', () => {
     const bytes = new Uint8Array([1, 0, 255, 127]);

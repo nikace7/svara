@@ -6,9 +6,9 @@ import { AudioLines, Clock3, Languages, Mic, Play, Square, Volume2 } from 'lucid
 import { Button, FormField, StatusBadge } from '@svara/ui';
 import { GenerationOwner, LabAudio } from '@svara/audio';
 import type { AnswerPlayback, CaptureMeter } from '@svara/audio';
-import { releasePageSchema } from '@svara/contracts';
+import { MAX_QUESTION_AUDIO_BYTES, releasePageSchema } from '@svara/contracts';
 import type { BotPage, FixtureScenarioId, Locale, ProviderMode } from '@svara/contracts';
-import { decodeAudioPacket, readVoiceStream } from '../lib/voice-stream';
+import { decodeAudioPacket, encodeAudio, readVoiceStream } from '../lib/voice-stream';
 import { errorMessage, StaffApiError, staffResponse } from '../lib/staff-api';
 import { useStaffRequest, useStaffSession } from './session-provider';
 
@@ -69,6 +69,9 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
   const [firstMs, setFirstMs] = useState<number | null>(null);
   const [totalMs, setTotalMs] = useState<number | null>(null);
   const [mic, setMic] = useState<'off' | 'starting' | 'active'>('off');
+  const [recording, setRecording] = useState(false);
+  // The spoken question being recorded; null whenever no recording is in progress.
+  const frames = useRef<Uint8Array[] | null>(null);
   const [meter, setMeter] = useState<CaptureMeter | null>(null);
   const [speaker, setSpeaker] = useState('Not tested');
   const [speakerBusy, setSpeakerBusy] = useState(false);
@@ -83,6 +86,8 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
     audioSignal.current = null;
     void audio.current?.stop();
     audio.current = null;
+    frames.current = null;
+    setRecording(false);
     setMic('off');
     setMeter(null);
     setSpeakerBusy(false);
@@ -113,6 +118,8 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
     };
     const suspend = () => {
       dispose();
+      frames.current = null;
+      setRecording(false);
       setMic('off');
       setMeter(null);
       setSpeakerBusy(false);
@@ -131,7 +138,7 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
     };
   }, []);
 
-  async function run(text?: string) {
+  async function run(input?: { text: string } | { audio: string }) {
     stopAudio();
     const generation = owner.current.begin();
     const playbackControl = new AbortController();
@@ -153,8 +160,8 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
         body: JSON.stringify({
           locale,
           generation: generation.id,
-          ...(text === undefined ? { scenario } : { text }),
-          ...(live && text !== undefined && release ? { releaseId: release.id } : {}),
+          ...(input ?? { scenario }),
+          ...(live && input && release ? { releaseId: release.id } : {}),
         }),
         signal: AbortSignal.any([generation.signal, AbortSignal.timeout(live ? 130000 : 12000)]),
       });
@@ -250,6 +257,66 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
       );
     }
   }
+  async function recordQuestion() {
+    const { session, controller } = prepareAudio();
+    const recorded: Uint8Array[] = [];
+    let bytes = 0;
+    frames.current = recorded;
+    setRecording(true);
+    setMic('starting');
+    try {
+      await session.startCapture(
+        controller.signal,
+        setMeter,
+        () => {
+          if (!controller.signal.aborted) {
+            stopAudio();
+            setError(
+              'Microphone disconnected or audio processing failed. Type the question instead.',
+            );
+          }
+        },
+        (pcm) => {
+          if (frames.current !== recorded) return;
+          recorded.push(new Uint8Array(pcm));
+          bytes += pcm.byteLength;
+          if (bytes >= MAX_QUESTION_AUDIO_BYTES) askRecorded();
+        },
+      );
+      if (!controller.signal.aborted) setMic('active');
+    } catch (reason) {
+      if (controller.signal.aborted) return;
+      stopAudio();
+      setError(
+        reason instanceof DOMException && reason.name === 'NotAllowedError'
+          ? 'Microphone permission denied. Type the question instead.'
+          : 'Microphone unavailable. Type the question instead.',
+      );
+    }
+  }
+  /** Releases the microphone first, then sends the recording once; nothing is kept. */
+  function askRecorded() {
+    const recorded = frames.current;
+    if (!recorded) return;
+    stopAudio();
+    const bytes = new Uint8Array(
+      Math.min(
+        MAX_QUESTION_AUDIO_BYTES,
+        recorded.reduce((total, frame) => total + frame.length, 0),
+      ),
+    );
+    let offset = 0;
+    for (const frame of recorded) {
+      const part = frame.subarray(0, bytes.length - offset);
+      bytes.set(part, offset);
+      offset += part.length;
+    }
+    if (!bytes.length) {
+      setError('No audio was recorded. Speak after pressing Ask by voice, or type the question.');
+      return;
+    }
+    void run({ audio: encodeAudio(bytes) });
+  }
   async function testSpeaker() {
     const { session, controller } = prepareAudio();
     setSpeakerBusy(true);
@@ -299,7 +366,7 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
           <strong>A local place to listen, read and interrupt.</strong>
           <p>
             {live
-              ? 'Typed questions reach real providers and play synthesized speech. Answers draw only on the release you choose, and the microphone is still a local check.'
+              ? 'Questions reach real providers and play synthesized speech. Type or record one; answers draw only on the release you choose.'
               : 'Scripted answers use synthetic campus information. Live recognition and speech are pending provider setup.'}
           </p>
         </div>
@@ -414,7 +481,7 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              if (typed.trim()) void run(typed.trim());
+              if (typed.trim()) void run({ text: typed.trim() });
             }}
           >
             <FormField
@@ -436,6 +503,29 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
               {live ? 'Ask' : 'Send text'}
             </Button>
           </form>
+          {live && (
+            <>
+              <div className="voice-actions">
+                <Button
+                  disabled={busy || !release || (mic !== 'off' && !recording)}
+                  onClick={() => {
+                    if (recording) askRecorded();
+                    else void recordQuestion();
+                  }}
+                >
+                  <Mic size={16} aria-hidden="true" />
+                  {recording ? 'Stop and ask' : 'Ask by voice'}
+                </Button>
+              </div>
+              <p className="field-help" aria-live="polite">
+                {!recording
+                  ? 'Records up to 15 seconds, sends it once for transcription and saves nothing.'
+                  : mic === 'starting'
+                    ? 'Waiting for microphone permission…'
+                    : `Recording · ${Math.floor(((meter?.seq ?? -1) + 1) / 10)} of 15 seconds. Press Stop and ask when you finish.`}
+              </p>
+            </>
+          )}
         </section>
         <section className="panel voice-conversation" aria-labelledby="subtitles-heading">
           <div className="panel-heading">
@@ -492,7 +582,7 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
           </div>
           <p className="field-help">
             {live
-              ? 'Real provider latency: recognition is skipped, and each sentence waits for its own speech request.'
+              ? 'Real provider latency: a spoken question adds one recognition request, and each sentence waits for its own speech request.'
               : 'Measured fixture timing includes deliberate replay delays. It is not live provider latency.'}
           </p>
         </section>
@@ -514,8 +604,8 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
           <div>
             <h3>Microphone · local only</h3>
             <p className="field-help">
-              Audio stays in this browser. This checks capture and PCM framing, not recognition;
-              spoken questions are not uploaded yet. Stops after 30 seconds.
+              This check stays in this browser and never uploads; it tests capture and PCM framing,
+              not recognition. Stops after 30 seconds.
             </p>
             <div className="voice-meter">
               <progress
@@ -575,7 +665,7 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
       </section>
       <p className="voice-footnote">
         {live
-          ? 'Local live lab · typed questions only · no microphone uploads · no saved transcripts · provider keys stay on the server'
+          ? 'Local live lab · typed or spoken questions · recordings sent once for transcription, never saved · provider keys stay on the server'
           : 'Local fixture lab · no microphone uploads · no saved transcripts · live English/Nepali validation pending'}
       </p>
     </>

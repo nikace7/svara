@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AUDIO_PACKET_BYTES,
   FeasibilityRequestSchema,
+  MAX_QUESTION_AUDIO_BYTES,
   FeasibilityEventSchema,
 } from './feasibility.js';
 
@@ -18,6 +19,20 @@ describe('local feasibility contracts', () => {
       { locale: 'en-US', generation: 1, text: 'x'.repeat(1001) },
       { locale: 'en-US', generation: 1, scenario: 'untrusted_action' },
       { locale: 'en-US', generation: 1, text: 'test', organisationId: 'other' },
+    ])
+      expect(FeasibilityRequestSchema.safeParse(invalid).success).toBe(false);
+  });
+  it('accepts one recorded question as bounded base64 audio and nothing alongside it', () => {
+    const audio = (bytes: number) => Buffer.alloc(bytes).toString('base64');
+    expect(
+      FeasibilityRequestSchema.safeParse({ locale: 'en-US', generation: 1, audio: audio(3200) })
+        .success,
+    ).toBe(true);
+    for (const invalid of [
+      { locale: 'en-US', generation: 1, audio: audio(3200), text: 'test' },
+      { locale: 'en-US', generation: 1, audio: audio(3200), scenario: 'supported_faq' },
+      { locale: 'en-US', generation: 1, audio: audio(MAX_QUESTION_AUDIO_BYTES + 3) },
+      { locale: 'en-US', generation: 1, audio: 'not base64!' },
     ])
       expect(FeasibilityRequestSchema.safeParse(invalid).success).toBe(false);
   });

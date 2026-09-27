@@ -121,3 +121,31 @@ test('empty, refused and failed turns stay readable on a phone', async ({
     true,
   );
 });
+
+test('asks by voice: one recording is transcribed, grounded and answered', async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  const { name, releaseId } = await guide(context.request, baseURL!, true);
+  await page.goto('/studio/voice-lab');
+  await page.getByLabel('Bot', { exact: true }).selectOption({ label: name });
+  await expect(page.getByLabel('Grounding release')).toHaveValue(releaseId!);
+  await page.getByRole('button', { name: 'Ask by voice', exact: true }).click();
+  await expect(page.getByText(/Recording · [1-9] of 15 seconds/)).toBeVisible();
+  const turn = page.waitForRequest('**/api/v1/feasibility/turn');
+  await page.getByRole('button', { name: 'Stop and ask', exact: true }).click();
+  const body = (await turn).postDataJSON();
+  expect(body).toMatchObject({ locale: 'en-US', releaseId });
+  expect(body.text).toBeUndefined();
+  // At least one second of 16 kHz PCM16 left the browser, once.
+  expect(Buffer.from(body.audio, 'base64').byteLength).toBeGreaterThanOrEqual(32000);
+  await expect(page.getByLabel('Question transcript')).toContainText(
+    'Where is the admissions office?',
+  );
+  await expect(page.getByLabel('Answer subtitles')).toContainText('Admissions is in room 12.');
+  await expect(page.getByRole('status').filter({ hasText: 'Completed' })).toBeVisible();
+  // The microphone was released before the upload, not left capturing.
+  await expect(page.getByRole('button', { name: 'Ask by voice', exact: true })).toBeEnabled();
+  await expect(page.getByText('Capturing', { exact: true })).toHaveCount(0);
+});

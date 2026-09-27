@@ -11,6 +11,14 @@ export function decodeAudioPacket(base64: string): ArrayBuffer {
   return bytes.buffer;
 }
 
+/** Base64 for a recorded question; chunked so large recordings stay off the call stack. */
+export function encodeAudio(bytes: Uint8Array): string {
+  let binary = '';
+  for (let offset = 0; offset < bytes.length; offset += 0x8000)
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  return btoa(binary);
+}
+
 export async function* readVoiceStream(
   response: Response,
   generation: number,
