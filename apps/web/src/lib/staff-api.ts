@@ -11,6 +11,8 @@ export class StaffApiError extends Error {
     readonly code: string,
     message: string,
     readonly fieldErrors: Record<string, string[]> = {},
+    /** Same-organisation deployments that blocked a schedule change. */
+    readonly conflictIds: string[] = [],
   ) {
     super(message);
   }
@@ -66,6 +68,9 @@ export async function staffResponse(
     'fieldErrors' in error && error.fieldErrors && typeof error.fieldErrors === 'object'
       ? (error.fieldErrors as Record<string, string[]>)
       : {},
+    'conflictIds' in error && Array.isArray(error.conflictIds)
+      ? error.conflictIds.filter((id): id is string => typeof id === 'string')
+      : [],
   );
 }
 

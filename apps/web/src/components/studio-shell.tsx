@@ -31,7 +31,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
     { label: 'Bots', icon: Bot, href: '/studio/bots' },
     { label: 'Media', icon: Images, href: '/studio/media' },
     { label: 'Devices', icon: Monitor },
-    { label: 'Events & Deployments', icon: CalendarDays },
+    { label: 'Events & Deployments', icon: CalendarDays, href: '/studio/schedule' },
     { label: 'Sessions', icon: FileText },
     { label: 'Analytics', icon: ChartNoAxesCombined },
     { label: 'Settings', icon: Settings2, href: '/studio/settings' },

@@ -16,6 +16,7 @@ import {
   IdentityService,
   KnowledgeService,
   ReleaseService,
+  ScheduleService,
 } from '../../packages/domain/dist/index.js';
 import { GeminiError } from '../../packages/providers/dist/index.js';
 import type { RecognitionEvent } from '../../packages/providers/dist/index.js';
@@ -74,6 +75,7 @@ const app = await createApplication({
   authoring: new BotService(identity),
   knowledge: new KnowledgeService(identity),
   releases: new ReleaseService(identity, { providerMode: 'live' }),
+  schedules: new ScheduleService(identity),
   liveVoice,
 });
 await app.listen(API, '127.0.0.1');
