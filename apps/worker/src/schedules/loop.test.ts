@@ -11,9 +11,12 @@ describe('schedule loop', () => {
       claim: vi.fn(async () => [] as (typeof command)[]),
     };
     const notify = vi.fn(async () => {});
-    const loop = new ScheduleLoop(outbox, notify);
+    const sweep = vi.fn(async () => 0);
+    const loop = new ScheduleLoop(outbox, notify, { sweep });
     for (let tick = 0; tick < 6; tick++) await loop.tick();
     expect(outbox.reconcileDue).toHaveBeenCalledTimes(2);
+    // Stale conversations end at startup and with every reconciliation.
+    expect(sweep).toHaveBeenCalledTimes(2);
     expect(outbox.expire).toHaveBeenCalledTimes(6);
     expect(notify).not.toHaveBeenCalled();
     outbox.claim.mockResolvedValueOnce([command]);
