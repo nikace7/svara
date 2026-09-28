@@ -96,13 +96,12 @@ async function showSlide(
 ): Promise<ToolEffect> {
   const slide = turn.snapshot.presentation?.slides.find((item) => item.id === call.args.slideId);
   if (!slide || !turn.deviceId) return rejected('UNKNOWN_SLIDE');
+  // Without a request, a slide goes where it was authored to appear.
   const requested = call.args.target;
   const target =
-    requested === 'PRIMARY' || requested === 'SECONDARY'
+    requested === 'PRIMARY' || requested === 'SECONDARY' || requested === 'BOTH'
       ? requested
-      : slide.target === 'SECONDARY'
-        ? 'SECONDARY'
-        : 'PRIMARY';
+      : slide.target;
   if (slide.target !== 'BOTH' && slide.target !== target) return rejected('WRONG_SCREEN');
   const state = await tx.desiredDeviceState.findUnique({ where: { deviceId: turn.deviceId } });
   if (!state || state.appliedReleaseId !== turn.releaseId || state.appliedRevision < 1)

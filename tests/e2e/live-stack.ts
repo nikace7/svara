@@ -11,13 +11,19 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApplication } from '../../apps/api/dist/app.js';
+import { ActiveTurns } from '../../apps/api/dist/conversations/stream.js';
 import { DeviceGateway } from '../../apps/api/dist/devices/gateway.js';
 import { ScheduleLoop } from '../../apps/worker/src/schedules/loop.js';
 import { loadWorkspaceEnvironment } from '../../packages/config/src/server.js';
 import { createDatabase } from '../../packages/database/src/index.js';
 import { assertTestDatabase } from '../../packages/database/src/safety.js';
 import {
+  AssistantLinkService,
   BotService,
+  ConversationService,
+  ConversationSessions,
+  expireStaleSessions,
+  PublicAssistants,
   IdentityService,
   KnowledgeService,
   CommandOutbox,
@@ -26,11 +32,12 @@ import {
   DeviceRuntime,
   DeviceService,
   MediaStorage,
+  PresentationService,
   ReleaseService,
   ScheduleService,
 } from '../../packages/domain/dist/index.js';
 import { GeminiError } from '../../packages/providers/dist/index.js';
-import type { RecognitionEvent } from '../../packages/providers/dist/index.js';
+import type { AnswerInput, RecognitionEvent } from '../../packages/providers/dist/index.js';
 
 const LIVE_ORIGIN = 'http://localhost:4330';
 const [GATEWAY, API, WEB] = [4330, 4110, 3011];
@@ -53,15 +60,51 @@ const liveVoice = {
     },
   },
   generator: {
-    async *generate(input: { question: string; passages: readonly { text: string }[] }) {
+    async *generate(input: AnswerInput) {
       if (/quota/i.test(input.question))
         throw new GeminiError('PROVIDER_QUOTA', 429, 'quota exhausted');
-      const top = input.passages[0]?.text.split('\n').at(-1);
-      yield top ? `From this release: ${top}` : 'This release has no answer to that.';
+      // A kiosk asking for a slide proposes the first listed one, then reports the outcome.
+      if (input.toolRound) {
+        const outcome = input.toolRound.results[0]?.result as { status?: string } | undefined;
+        yield `The slide request was ${String(outcome?.status ?? 'unknown').toLowerCase()}.`;
+        return;
+      }
+      const question = input.question.toLowerCase();
+      const slide =
+        input.slides?.find((item) =>
+          item.title
+            .toLowerCase()
+            .split(' ')
+            .some((word) => word.length > 4 && question.includes(word)),
+        ) ?? input.slides?.[0];
+      if (
+        slide &&
+        input.tools?.some((tool) => tool.name === 'show_slide') &&
+        /slide/i.test(input.question)
+      ) {
+        yield {
+          type: 'tool' as const,
+          callId: 'stub-slide',
+          name: 'show_slide',
+          args: { slide: slide.label },
+        };
+        return;
+      }
+      // A long answer gives the browser time to interrupt it.
+      if (/long/i.test(input.question)) {
+        for (let index = 1; index <= 8; index++)
+          yield `This is sentence ${index} of a long answer. `;
+        return;
+      }
+      const top = input.passages[0];
+      yield top
+        ? `From this release: ${top.text.split('\n').at(-1)} [${top.id}]`
+        : 'This release has no answer to that.';
     },
   },
   synthesizer: {
-    async *synthesize() {
+    async *synthesize(text: string) {
+      if (/long answer/.test(text)) await new Promise((done) => setTimeout(done, 700));
       // 0.3 s of quiet 440 Hz PCM16 at 24 kHz: several packets for the real worklet queue.
       const samples = new Int16Array(7200);
       for (let i = 0; i < samples.length; i++)
@@ -84,9 +127,16 @@ const gateway = new DeviceGateway({
   commands: new DeviceCommands(runtime),
 });
 // The stack has no worker or Redis: scan the outbox in-process and wake devices directly.
-const schedules = new ScheduleLoop(new CommandOutbox(db), (claimed) =>
-  gateway.wake(claimed.map((command) => command.deviceId)),
+const schedules = new ScheduleLoop(
+  new CommandOutbox(db),
+  (claimed) => gateway.wake(claimed.map((command) => command.deviceId)),
+  { sweep: () => expireStaleSessions(db) },
 );
+const conversations = new ConversationService(db, identity, runtime, {
+  providerMode: 'live',
+  pepper,
+});
+const media = await MediaStorage.open(mkdtempSync(join(tmpdir(), 'svara-e2e-media-')));
 const app = await createApplication({
   providerMode: 'live',
   localDocs: true,
@@ -95,21 +145,37 @@ const app = await createApplication({
   identity: { service: identity, origin: LIVE_ORIGIN, pepper, consumeLimit: async () => 0 },
   authoring: new BotService(identity),
   knowledge: new KnowledgeService(identity),
+  presentations: new PresentationService(identity),
   releases: new ReleaseService(identity, { providerMode: 'live' }),
   schedules: new ScheduleService(identity),
   devices: new DeviceService(identity, pepper),
   deviceGateway: gateway,
   runtime: {
     service: runtime,
-    releases: new DeviceReleases(
-      runtime,
-      await MediaStorage.open(mkdtempSync(join(tmpdir(), 'svara-e2e-media-'))),
-    ),
+    releases: new DeviceReleases(runtime, media),
     origin: LIVE_ORIGIN,
     pepper,
     consumeLimit: async () => 0,
   },
   liveVoice,
+  conversations: {
+    service: conversations,
+    sessions: new ConversationSessions(identity),
+    links: new AssistantLinkService(identity),
+    publics: new PublicAssistants(db, media, { pepper, providerMode: 'live' }),
+    streaming: {
+      service: conversations,
+      runner: {
+        service: conversations,
+        providers: liveVoice,
+        slides: { show: (deviceId, command) => gateway.showSlide(deviceId, command) },
+      },
+      active: new ActiveTurns(),
+    },
+    origin: LIVE_ORIGIN,
+    pepper,
+    consumeLimit: async () => 0,
+  },
 });
 await app.listen(API, '127.0.0.1');
 schedules.start();

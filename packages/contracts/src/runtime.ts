@@ -64,7 +64,7 @@ export const slideShowSchema = eventMetadataSchema.extend({
   commandId: z.uuid(),
   revision: z.number().int().positive(),
   slideId: z.uuid(),
-  target: z.enum(['PRIMARY', 'SECONDARY']),
+  target: slideTargetSchema,
 });
 export const deviceErrorEventSchema = eventMetadataSchema.extend({
   code: z.string().regex(/^[A-Z][A-Z0-9_]{1,63}$/),

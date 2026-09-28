@@ -6,8 +6,10 @@ import type { FormEvent } from 'react';
 import type { Socket } from 'socket.io-client';
 import { AudioLines, MonitorUp } from 'lucide-react';
 import { Button, FormField, StatusBadge } from '@svara/ui';
-import { DEVICE_EVENTS } from '@svara/contracts';
-import type { DesiredEvent, DisplayState } from '@svara/contracts';
+import { DEVICE_EVENTS, slideShowSchema } from '@svara/contracts';
+import type { DesiredEvent, DisplayState, ProviderMode } from '@svara/contracts';
+import { conversationApi } from '../lib/conversation';
+import { ConversationPanel } from './conversation-panel';
 import {
   DeviceRuntimeError,
   connectDevice,
@@ -95,22 +97,27 @@ function Slides({
   prepared,
   role,
   locale,
+  pinned,
 }: {
   prepared: PreparedRelease;
   role: DeviceRole;
   locale: 'en' | 'ne';
+  /** A slide a conversation asked for; it holds until released, then rotation resumes. */
+  pinned: string | null;
 }) {
   const target = role === 'PRIMARY' ? 'PRIMARY' : 'SECONDARY';
   const slides = prepared.release.slides.filter(
     (slide) => slide.target === target || slide.target === 'BOTH',
   );
   const [index, setIndex] = useState(0);
-  const slide = slides[index % Math.max(slides.length, 1)];
+  const chosen = slides.findIndex((slide) => slide.id === pinned);
+  const position = chosen >= 0 ? chosen : index % Math.max(slides.length, 1);
+  const slide = slides[position];
   useEffect(() => {
-    if (slides.length < 2 || !slide) return;
+    if (slides.length < 2 || !slide || chosen >= 0) return;
     const timer = setTimeout(() => setIndex((value) => value + 1), slide.durationSeconds * 1000);
     return () => clearTimeout(timer);
-  }, [slide, slides.length]);
+  }, [slide, slides.length, chosen]);
   if (!slide)
     return role === 'DISPLAY' ? (
       <p className="muted">This release has no slides for the second screen.</p>
@@ -118,7 +125,7 @@ function Slides({
   const asset = prepared.release.media.find((item) => item.id === slide.mediaId);
   const url = slide.mediaId ? prepared.urls[slide.mediaId] : undefined;
   return (
-    <figure className="device-slide" aria-label={`Slide ${(index % slides.length) + 1}`}>
+    <figure className="device-slide" aria-label={`Slide ${position + 1}`} data-slide={slide.id}>
       {url &&
         (asset?.mimeType === 'video/mp4' ? (
           <video src={url} muted autoPlay loop playsInline />
@@ -140,7 +147,14 @@ function Slides({
 }
 
 /** One paired window: the primary kiosk applies releases, a display mirrors what it applied. */
-export function DeviceScreen({ role }: { role: DeviceRole }) {
+export function DeviceScreen({
+  role,
+  providerMode = 'fixture',
+}: {
+  role: DeviceRole;
+  /** How the kiosk's conversations run; displays never start one. */
+  providerMode?: ProviderMode;
+}) {
   const [identity, setIdentity] = useState<DeviceIdentity | null | undefined>(undefined);
   const [notice, setNotice] = useState('');
   const [connection, setConnection] = useState<Connection>('connecting');
@@ -149,6 +163,7 @@ export function DeviceScreen({ role }: { role: DeviceRole }) {
   const [revision, setRevision] = useState(0);
   const [locale, setLocale] = useState<'en' | 'ne'>('en');
   const [popupBlocked, setPopupBlocked] = useState(false);
+  const [pinned, setPinned] = useState<string | null>(null);
   const current = useRef<PreparedRelease | null>(null);
   const applied = useRef<{ commandId: string | null; revision: number }>({
     commandId: null,
@@ -252,6 +267,32 @@ export function DeviceScreen({ role }: { role: DeviceRole }) {
     }
   }
 
+  // A requested slide holds for a minute, then the presentation rotates again.
+  useEffect(() => {
+    if (!pinned) return;
+    const timer = setTimeout(() => setPinned(null), 60_000);
+    return () => clearTimeout(timer);
+  }, [pinned]);
+
+  /** A conversation's slide command: show it if it is this window's, and (primary only)
+   * acknowledge whether the applied release actually has it. */
+  function showSlide(value: unknown, socket: Socket) {
+    const command = slideShowSchema.safeParse(value);
+    if (!command.success) return;
+    const { slideId, target, commandId, revision: stateRevision } = command.data;
+    const known = !!current.current?.release.slides.some((slide) => slide.id === slideId);
+    if (known && (target === 'BOTH' || (target === 'PRIMARY') === (role === 'PRIMARY')))
+      setPinned(slideId);
+    if (role === 'PRIMARY')
+      ack(
+        socket,
+        commandId,
+        stateRevision,
+        known ? 'APPLIED' : 'REJECTED',
+        known ? null : 'SLIDE_UNKNOWN',
+      );
+  }
+
   useEffect(() => {
     if (!identity) return;
     return connectDevice(role, identity.csrfToken, {
@@ -269,6 +310,7 @@ export function DeviceScreen({ role }: { role: DeviceRole }) {
           pending.current = { value: value as DesiredEvent, socket };
           void drain();
         }
+        if (name === DEVICE_EVENTS.slide) showSlide(value, socket);
       },
     });
     // The connection depends only on the paired identity and this window's role.
@@ -304,6 +346,14 @@ export function DeviceScreen({ role }: { role: DeviceRole }) {
     );
 
   const release = shown?.release;
+  const unavailable =
+    connection !== 'online'
+      ? 'Answers are unavailable until this kiosk is back online.'
+      : activity.kind === 'downloading'
+        ? 'This kiosk is updating. Answers resume when the update finishes.'
+        : identity.device.maintenanceMode
+          ? 'This kiosk is in maintenance.'
+          : null;
   return (
     <div className={`device-screen device-screen--${role.toLowerCase()}`}>
       <header className="device-bar" aria-label="Device status">
@@ -362,14 +412,29 @@ export function DeviceScreen({ role }: { role: DeviceRole }) {
           </p>
         )}
         {release ? (
-          <section className="device-release" aria-label="Current release">
+          <section
+            className={`device-release${role === 'PRIMARY' ? ' device-release--talk' : ''}`}
+            aria-label="Current release"
+          >
             <div className="device-greeting" lang={locale === 'ne' ? 'ne' : 'en'}>
               <p className="eyebrow">
                 {release.botName} · v{release.version}
               </p>
               {role === 'PRIMARY' && <h1>{release.greeting[locale]}</h1>}
             </div>
-            <Slides key={release.id} prepared={shown} role={role} locale={locale} />
+            <Slides key={release.id} prepared={shown} role={role} locale={locale} pinned={pinned} />
+            {role === 'PRIMARY' && (
+              // A new release is a new conversation: nothing carries over to the next visitor.
+              <ConversationPanel
+                key={`${release.id}:${revision}`}
+                api={conversationApi({ kind: 'device', csrfToken: identity.csrfToken })}
+                providerMode={providerMode}
+                greeting={release.greeting}
+                unavailable={unavailable}
+                onReset={() => setPinned(null)}
+                heading="Ask this kiosk"
+              />
+            )}
           </section>
         ) : (
           <section className="device-idle" aria-label="Current release">

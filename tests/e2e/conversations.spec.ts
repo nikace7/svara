@@ -1,0 +1,125 @@
+import { AxeBuilder } from '@axe-core/playwright';
+import { pairKiosk, publishedGuide } from './guide.js';
+import { test, expect } from './fixtures.js';
+
+test('a visitor talks through a public link in English and Nepali until it is turned off', async ({
+  context,
+  browser,
+  baseURL,
+}) => {
+  const guide = await publishedGuide(context.request, baseURL!);
+  const created = await context.request.post('/api/v1/assistant-links', {
+    headers: guide.headers,
+    data: { releaseId: guide.releaseId, label: 'Open day' },
+  });
+  expect(created.status()).toBe(201);
+  const link = (await created.json()).data as { id: string; slug: string; revision: number };
+
+  // A separate, signed-out profile: the visitor holds only the link-bound grant.
+  const visitorContext = await browser.newContext({ baseURL: baseURL! });
+  const visitor = await visitorContext.newPage();
+  await visitor.goto(`/assistant/${link.slug}`);
+  await expect(visitor.getByRole('heading', { name: guide.name })).toBeVisible();
+  await expect(visitor.getByText('Welcome to the open house.')).toBeVisible();
+  // The approved FAQ question is offered; its answer is not on the page until asked.
+  await expect(visitor.getByText('Room 12.')).toHaveCount(0);
+  await visitor.getByRole('button', { name: 'Where is admissions?' }).click();
+  const answer = visitor.locator('.conversation-answer').last();
+  await expect(answer).toContainText('From this release: Room 12.');
+  await expect(answer).toContainText('From: Admissions');
+
+  await visitor.getByRole('button', { name: 'नेपाली' }).click();
+  await visitor.getByLabel('आफ्नो प्रश्न लेख्नुहोस्').fill('भर्ना कहाँ छ?');
+  await visitor.getByRole('button', { name: 'सोध्नुहोस्', exact: true }).click();
+  await expect(visitor.locator('.conversation-answer').last()).toContainText(
+    'From this release: कोठा १२।',
+  );
+  expect((await new AxeBuilder({ page: visitor }).analyze()).violations).toEqual([]);
+
+  const disabled = await context.request.patch(`/api/v1/assistant-links/${link.id}`, {
+    headers: guide.headers,
+    data: {
+      releaseId: guide.releaseId,
+      label: 'Open day',
+      enabled: false,
+      expiresAt: null,
+      expectedRevision: link.revision,
+    },
+  });
+  expect(disabled.status()).toBe(200);
+  await visitor.getByLabel('आफ्नो प्रश्न लेख्नुहोस्').fill('अझै छ?');
+  await visitor.getByRole('button', { name: 'सोध्नुहोस्', exact: true }).click();
+  await expect(visitor.getByText('This assistant link is no longer available.')).toBeVisible();
+  await visitor.reload();
+  await expect(
+    visitor.getByRole('heading', { name: 'This assistant is not available' }),
+  ).toBeVisible();
+  await visitorContext.close();
+});
+
+test('a kiosk shows a requested slide on its display, stops a long answer and keeps a record', async ({
+  page,
+  context,
+  browser,
+  baseURL,
+}) => {
+  test.setTimeout(120_000);
+  const guide = await publishedGuide(context.request, baseURL!, { kiosk: true });
+  const lobby = await guide.device('Lobby kiosk');
+  const { context: kioskContext, kiosk } = await pairKiosk(page, browser, baseURL!, lobby.name);
+  const display = await kioskContext.newPage();
+  await display.goto('/display');
+  const override = await context.request.post(`/api/v1/devices/${lobby.id}/override`, {
+    headers: guide.headers,
+    data: { releaseId: guide.releaseId, minutes: 30 },
+  });
+  expect(override.status()).toBe(201);
+  const panel = kiosk.getByRole('region', { name: 'Ask this kiosk' });
+  await expect(panel).toBeVisible();
+  await expect(display.locator('.device-slide')).toContainText('Campus map');
+
+  // The model names a slide; the kiosk acknowledges it and the display follows.
+  await panel.getByLabel('Type your question').fill('Please show the admissions slide');
+  await panel.getByRole('button', { name: 'Ask', exact: true }).click();
+  await expect(panel.getByText('Slide: applied')).toBeVisible();
+  await expect(panel.locator('.conversation-answer').last()).toContainText(
+    'The slide request was applied.',
+  );
+  await expect(display.locator('.device-slide')).toContainText('Admissions steps');
+  await expect(kiosk.locator('.device-slide')).toContainText('Admissions steps');
+
+  // Stopping a long answer ends it at once: nothing later is shown.
+  await panel.getByLabel('Type your question').fill('Give me a long answer');
+  await panel.getByRole('button', { name: 'Ask', exact: true }).click();
+  await expect(panel.getByText('This is sentence 1 of a long answer.')).toBeVisible();
+  await panel.getByRole('button', { name: 'Stop speaking' }).click();
+  await expect(panel.getByText('Assistant · Interrupted')).toBeVisible();
+  await kiosk.waitForTimeout(2000);
+  await expect(panel.getByText('sentence 8 of a long answer')).toHaveCount(0);
+  expect((await new AxeBuilder({ page: kiosk }).analyze()).violations).toEqual([]);
+
+  // Staff see the kiosk's conversation: the slide outcome and the interrupted answer.
+  await page.goto('/studio/sessions');
+  await page.getByRole('row').filter({ hasText: lobby.name }).getByRole('link').first().click();
+  await expect(page.getByText('Tool show_slide: APPLIED · kiosk applied it')).toBeVisible();
+  await expect(page.getByText(/ANSWER · interrupted/)).toBeVisible();
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await kioskContext.close();
+});
+
+test('staff test a release in the playground and see what it cited', async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  const guide = await publishedGuide(context.request, baseURL!);
+  await page.goto('/studio/playground');
+  await page.getByLabel('Bot', { exact: true }).selectOption({ label: guide.name });
+  await page.getByLabel('Type your question').fill('Where is admissions?');
+  await page.getByRole('button', { name: 'Ask', exact: true }).click();
+  await expect(page.locator('.conversation-answer').last()).toContainText(
+    'From this release: Room 12.',
+  );
+  await expect(page.getByText(/Answered in \d+ ms · cited Admissions/)).toBeVisible();
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
