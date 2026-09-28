@@ -1,0 +1,208 @@
+.conversation {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+}
+.conversation-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+.segmented button {
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 0;
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+.segmented button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.conversation-demo {
+  font-size: 13px;
+}
+.conversation-log {
+  display: grid;
+  gap: 16px;
+  max-height: min(52dvh, 560px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.conversation-greeting {
+  font-family: var(--font-heading);
+  font-size: clamp(22px, 3.2vw, 32px);
+  line-height: 1.35;
+}
+.conversation-greeting:lang(ne) {
+  font-family: var(--font-nepali);
+}
+.conversation-turn {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.conversation-question,
+.conversation-answer {
+  display: grid;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+.conversation-question .eyebrow,
+.conversation-answer .eyebrow {
+  margin-bottom: 0;
+}
+.conversation-answer > p:first-of-type {
+  font-size: clamp(18px, 2.2vw, 24px);
+  line-height: 1.55;
+}
+.conversation-references {
+  font-size: 13px;
+  color: var(--accent);
+}
+.conversation-suggestions,
+.conversation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.conversation-suggestions .button {
+  white-space: normal;
+  text-align: left;
+}
+.conversation-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+.conversation-actions .button,
+.conversation-input .button {
+  min-height: 48px;
+}
+.assistant-page {
+  min-height: 100dvh;
+  padding: 24px 16px;
+  background: var(--canvas);
+  display: grid;
+  align-content: start;
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.assistant-page--center {
+  place-content: center;
+  text-align: center;
+  gap: 12px;
+}
+.assistant-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--accent);
+}
+.assistant-header h1 {
+  color: var(--text-primary);
+  font-size: clamp(24px, 4vw, 34px);
+}
+.assistant-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.assistant-slides {
+  display: grid;
+  gap: 16px;
+}
+.device-release--talk {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 460px);
+  align-items: start;
+}
+.device-release--talk .device-greeting {
+  grid-column: 1 / -1;
+}
+.playground-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+}
+.playground-inspector ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0 24px 24px;
+  list-style: none;
+  font-size: 13px;
+}
+.playground-inspector li {
+  overflow-wrap: anywhere;
+}
+.session-turn {
+  display: grid;
+  gap: 10px;
+  padding: 18px 24px;
+  border-top: 1px solid var(--border-subtle);
+}
+.session-turn dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.session-turn dd {
+  margin: 2px 0 0;
+  font-family: var(--font-code);
+  color: var(--text-primary);
+}
+.link-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-subtle);
+}
+.link-row code {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.link-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 900px) {
+  .assistant-body,
+  .device-release--talk,
+  .playground-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .link-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .conversation {
+    padding: 14px;
+  }
+  .conversation-input {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

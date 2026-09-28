@@ -1,26 +1,6 @@
 import { AxeBuilder } from '@axe-core/playwright';
-import type { Browser, Page } from '@playwright/test';
-import { publishedGuide } from './guide.js';
+import { pairKiosk, publishedGuide } from './guide.js';
 import { test, expect } from './fixtures.js';
-
-/** Pairs a fresh, isolated browser profile as a kiosk through the staff UI's code. */
-async function pairKiosk(staff: Page, browser: Browser, baseURL: string, name: string) {
-  await staff.goto('/studio/devices');
-  const row = staff.getByRole('listitem').filter({ hasText: name });
-  await row.getByRole('button', { name: /^(Re-)?[Pp]air$/ }).click();
-  const dialog = staff.getByRole('dialog', { name: `Pair ${name}` });
-  const code = (await dialog.getByLabel('Pairing code').textContent())!.trim();
-  const link = await dialog.getByRole('link').getAttribute('href');
-  await dialog.getByRole('button', { name: 'Close pairing' }).click();
-  const context = await browser.newContext({ baseURL });
-  const kiosk = await context.newPage();
-  await kiosk.goto(link!);
-  await kiosk.getByLabel('Pairing code').fill(code);
-  await kiosk.getByRole('button', { name: 'Pair kiosk' }).click();
-  await expect(kiosk.getByRole('banner')).toContainText(name);
-  await expect(kiosk.getByText('Online', { exact: true })).toBeVisible();
-  return { context, kiosk };
-}
 
 test('two isolated kiosks, a mirrored display, a failed update and revocation', async ({
   page,

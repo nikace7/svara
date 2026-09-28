@@ -72,7 +72,7 @@ const declarations: Record<string, ToolDeclaration> = {
     description: 'Show one of the listed slides on this kiosk.',
     parameters: {
       slide: { description: 'The slide label, for example S1.' },
-      target: { description: 'Which screen.', enum: ['PRIMARY', 'SECONDARY'] },
+      target: { description: 'Which screen.', enum: ['PRIMARY', 'SECONDARY', 'BOTH'] },
     },
     required: ['slide'],
   },
@@ -285,7 +285,11 @@ export async function* runConversationTurn(
                 ? result.slideId
                 : null,
             target:
-              result.target === 'PRIMARY' || result.target === 'SECONDARY' ? result.target : null,
+              result.target === 'PRIMARY' ||
+              result.target === 'SECONDARY' ||
+              result.target === 'BOTH'
+                ? result.target
+                : null,
           },
         });
         results.push({

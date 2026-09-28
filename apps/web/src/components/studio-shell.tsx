@@ -14,6 +14,7 @@ import {
   Images,
   LayoutDashboard,
   Menu,
+  MessagesSquare,
   Monitor,
   Settings2,
   X,
@@ -32,7 +33,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
     { label: 'Media', icon: Images, href: '/studio/media' },
     { label: 'Devices', icon: Monitor, href: '/studio/devices' },
     { label: 'Events & Deployments', icon: CalendarDays, href: '/studio/schedule' },
-    { label: 'Sessions', icon: FileText },
+    { label: 'Sessions', icon: FileText, href: '/studio/sessions' },
     { label: 'Analytics', icon: ChartNoAxesCombined },
     { label: 'Settings', icon: Settings2, href: '/studio/settings' },
   ];
@@ -85,6 +86,16 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
       <div className="sidebar-bottom">
         <Link
+          href="/studio/playground"
+          onClick={() => onNavigate?.()}
+          className="nav-item"
+          aria-label="Playground"
+          aria-current={path === '/studio/playground' ? 'page' : undefined}
+        >
+          <MessagesSquare size={18} aria-hidden="true" />
+          <span>Playground</span>
+        </Link>
+        <Link
           href="/studio/voice-lab"
           onClick={() => onNavigate?.()}
           className="nav-item"
@@ -119,6 +130,8 @@ const crumbs = [
   ['/studio/devices', 'Devices'],
   ['/studio/simulator', 'Device simulator'],
   ['/studio/schedule', 'Events & Deployments'],
+  ['/studio/playground', 'Playground'],
+  ['/studio/sessions', 'Sessions'],
 ] as const;
 
 export function StudioShell({ children }: { children: ReactNode }) {

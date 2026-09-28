@@ -117,7 +117,7 @@ export const turnEventSchema = z
         status: toolStatusSchema,
         reason: z.string().max(64).nullable(),
         slideId: z.uuid().nullable(),
-        target: z.enum(['PRIMARY', 'SECONDARY']).nullable(),
+        target: z.enum(['PRIMARY', 'SECONDARY', 'BOTH']).nullable(),
       })
       .optional(),
   })
