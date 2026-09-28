@@ -483,7 +483,10 @@ export class ConversationService {
           releaseId: session.releaseId,
           snapshotHash,
           snapshot,
-          tools: toolsFor(snapshot, scope.actorKind),
+          // A retried answer may explain an earlier slide change but never repeat it.
+          tools: toolsFor(snapshot, scope.actorKind).filter(
+            (tool) => tool !== 'show_slide' || !priorTools.some((prior) => prior.name === tool),
+          ),
           question,
           audio: input.audio ? Buffer.from(input.audio, 'base64') : null,
           history: history.reverse().flatMap((item) => [
