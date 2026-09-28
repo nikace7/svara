@@ -538,7 +538,60 @@ describe('conversation admission, turns, tools and public links', () => {
     expect(await usage()).toMatchObject({ reservedSeconds: 3330 });
   });
 
+  it('resumes only the same actor’s interrupted conversation, restoring its finished turns', async () => {
+    const { session } = await conversations.admit(staffActor(), {
+      locale: 'en-US',
+      releaseId: release.id,
+    });
+    const answered = await conversations.beginTurn(staffActor(), session.id, turn());
+    await conversations.finishTurn(answered, {
+      state: 'COMPLETED',
+      answer: 'Admissions is in room 12.',
+      citedEntryIds: [],
+      failureCode: null,
+      timings: {},
+    });
+    const cut = await conversations.beginTurn(
+      staffActor(),
+      session.id,
+      turn({ text: 'And fees?' }),
+    );
+    await conversations.finishTurn(cut, {
+      state: 'INTERRUPTED',
+      answer: 'Fees are',
+      citedEntryIds: [],
+      failureCode: null,
+      timings: {},
+    });
+    const station = await kiosk();
+    await expect(
+      conversations.admit(station.actor, { locale: 'en-US', resumeFrom: session.id }),
+    ).rejects.toMatchObject({ code: 'RESUME_UNAVAILABLE' });
+    const resumed = await conversations.admit(staffActor(), {
+      locale: 'en-US',
+      releaseId: release.id,
+      resumeFrom: session.id,
+    });
+    expect(resumed.session.resumedFromId).toBe(session.id);
+    expect(resumed.history).toEqual([
+      {
+        locale: 'en-US',
+        question: 'Where is admissions?',
+        answer: 'Admissions is in room 12.',
+        state: 'COMPLETED',
+      },
+      { locale: 'en-US', question: 'And fees?', answer: 'Fees are', state: 'INTERRUPTED' },
+    ]);
+    // The next answer is grounded in the restored, finished exchange only.
+    const next = await conversations.beginTurn(staffActor(), resumed.session.id, turn());
+    expect(next.history).toEqual([
+      { role: 'user', text: 'Where is admissions?' },
+      { role: 'assistant', text: 'Admissions is in room 12.' },
+    ]);
+  });
+
   it('lets staff inspect sessions and only owners and administrators delete transcripts', async () => {
+    now = new Date(now.getTime() + 1000);
     const { session } = await conversations.admit(staffActor(), {
       locale: 'en-US',
       releaseId: release.id,
