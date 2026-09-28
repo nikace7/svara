@@ -3,6 +3,7 @@ import type { Prisma } from '@svara/database';
 import { deviceSummarySchema } from '@svara/contracts';
 import type { DeviceSummary } from '@svara/contracts';
 import { IdentityError } from '../identity/errors.js';
+import { endSessions } from '../conversations/core.js';
 import { DeviceError } from './errors.js';
 
 export type Transaction = Prisma.TransactionClient;
@@ -34,7 +35,7 @@ export function checkPepper(pepper: string): void {
   if (pepper.length < 64) throw new Error('Devices require a configured token pepper.');
 }
 export function hashSecret(
-  purpose: 'pairing' | 'device-credential' | 'device-ticket',
+  purpose: 'pairing' | 'device-credential' | 'device-ticket' | 'visitor-grant',
   value: string,
   pepper: string,
 ): string {
@@ -104,4 +105,5 @@ export async function revokeAccess(
   await tx.deviceTicket.updateMany({ where, data: { revokedAt: now } });
   await tx.deviceCredential.updateMany({ where, data: { revokedAt: now } });
   await tx.pairingChallenge.updateMany({ where, data: { revokedAt: now } });
+  await endSessions(tx, { deviceId, organisationId }, 'DEVICE_REVOKED', now);
 }

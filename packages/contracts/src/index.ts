@@ -10,3 +10,4 @@ export * from './devices.js';
 export type { paths, components } from './http.generated.js';
 export * from './schedules.js';
 export * from './runtime.js';
+export * from './conversations.js';

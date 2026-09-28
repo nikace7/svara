@@ -27,6 +27,7 @@ model Organisation {
   mediaAssets MediaAsset[]
   devices Device[]
   events Event[]
+  dailyUsage DailyUsage[]
 }
 
 model Bot {
@@ -182,6 +183,8 @@ model Membership {
   idempotencyRecords IdempotencyRecord[]
   issuedPairings PairingChallenge[]
   createdDeployments Deployment[]
+  createdLinks AssistantLink[]
+  conversations ConversationSession[]
 
   @@unique([organisationId, userId])
   @@unique([id, organisationId])
@@ -311,6 +314,8 @@ model BotRelease {
   media ReleaseMedia[]
   idempotencyRecords IdempotencyRecord[]
   deployments Deployment[]
+  links AssistantLink[]
+  conversations ConversationSession[]
 
   @@unique([id, organisationId])
   @@unique([id, organisationId, snapshotHash])
@@ -404,6 +409,7 @@ model Device {
   deployments Deployment[]
   desiredState DesiredDeviceState?
   commands DeviceCommand[]
+  conversations ConversationSession[]
 
   @@unique([id, organisationId])
   @@index([organisationId, id])
@@ -588,7 +594,179 @@ model DeviceCommand {
   result String? @db.VarChar(16)
   reason String? @db.VarChar(64)
   device Device @relation(fields: [deviceId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  tool ToolExecution?
 
   @@index([status, nextAttemptAt])
   @@index([deviceId, organisationId, createdAt])
+}
+
+/// A pinned, revocable public entry point. Disabling it ends its sessions in the same transaction.
+model AssistantLink {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  slug String @unique @db.VarChar(32)
+  releaseId String @db.Uuid
+  label String @default("") @db.VarChar(120)
+  enabled Boolean @default(true)
+  expiresAt DateTime? @db.Timestamptz(3)
+  revision Int @default(1)
+  createdByMembershipId String @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  release BotRelease @relation(fields: [releaseId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  createdBy Membership @relation(fields: [createdByMembershipId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  grants VisitorGrant[]
+  sessions ConversationSession[]
+
+  @@unique([id, organisationId])
+  @@index([organisationId, createdAt])
+  @@index([releaseId, organisationId])
+  @@index([createdByMembershipId, organisationId])
+}
+
+/// A short-lived HttpOnly visitor cookie bound to one link. Only its hash is stored.
+model VisitorGrant {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  linkId String @db.Uuid
+  tokenHash String @unique @db.VarChar(43)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+  sessionCount Int @default(0)
+  turnCount Int @default(0)
+  link AssistantLink @relation(fields: [linkId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  sessions ConversationSession[]
+
+  @@unique([id, organisationId])
+  @@index([linkId, organisationId])
+  @@index([expiresAt])
+}
+
+enum ConversationActor {
+  STAFF
+  DEVICE
+  VISITOR
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ENDED
+}
+
+enum TurnState {
+  ANSWERING
+  COMPLETED
+  INTERRUPTED
+  FAILED
+}
+
+enum TurnInput {
+  TEXT
+  VOICE
+}
+
+/// One admitted conversation, pinned to a release. A CHECK constraint ties actorKind to exactly
+/// its actor columns. Active means ACTIVE and before both idleUntil and endsBy.
+model ConversationSession {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  releaseId String @db.Uuid
+  actorKind ConversationActor
+  membershipId String? @db.Uuid
+  deviceId String? @db.Uuid
+  linkId String? @db.Uuid
+  grantId String? @db.Uuid
+  resumedFromId String? @db.Uuid
+  locale String @db.VarChar(8)
+  providerMode String @db.VarChar(8)
+  status ConversationStatus @default(ACTIVE)
+  generation Int @default(0)
+  startedAt DateTime @db.Timestamptz(3)
+  idleUntil DateTime @db.Timestamptz(3)
+  endsBy DateTime @db.Timestamptz(3)
+  endedAt DateTime? @db.Timestamptz(3)
+  endReason String? @db.VarChar(32)
+  reservedSeconds Int @default(0)
+  settledSeconds Int?
+  transcriptDeletedAt DateTime? @db.Timestamptz(3)
+  release BotRelease @relation(fields: [releaseId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  member Membership? @relation(fields: [membershipId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  device Device? @relation(fields: [deviceId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  link AssistantLink? @relation(fields: [linkId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  grant VisitorGrant? @relation(fields: [grantId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  turns ConversationTurn[]
+
+  @@unique([id, organisationId])
+  @@index([organisationId, startedAt])
+  @@index([organisationId, status])
+  @@index([status, idleUntil])
+  @@index([releaseId, organisationId])
+  @@index([membershipId, organisationId])
+  @@index([deviceId, organisationId, startedAt])
+  @@index([linkId, organisationId])
+  @@index([grantId, organisationId])
+}
+
+/// Persisted incrementally: created when the question arrives, then completed, INTERRUPTED or
+/// FAILED when its answer stops. Deleting a transcript blanks text, never the row.
+model ConversationTurn {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  sessionId String @db.Uuid
+  ordinal Int
+  generation Int
+  clientMessageId String @db.Uuid
+  retryOfId String? @db.Uuid
+  inputKind TurnInput
+  locale String @db.VarChar(8)
+  transcript String @db.VarChar(2000)
+  answer String @default("") @db.VarChar(8000)
+  citedEntryIds String[] @default([]) @db.Uuid
+  state TurnState @default(ANSWERING)
+  failureCode String? @db.VarChar(32)
+  sttMs Int?
+  firstTextMs Int?
+  firstAudioMs Int?
+  totalMs Int?
+  createdAt DateTime @db.Timestamptz(3)
+  completedAt DateTime? @db.Timestamptz(3)
+  session ConversationSession @relation(fields: [sessionId, organisationId], references: [id, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  tools ToolExecution[]
+
+  @@unique([sessionId, ordinal])
+  @@unique([sessionId, clientMessageId])
+  @@unique([id, sessionId, organisationId])
+  @@index([organisationId, createdAt])
+}
+
+/// A validated tool call. The model never supplies organisation, session or device identity.
+model ToolExecution {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organisationId String @db.Uuid
+  sessionId String @db.Uuid
+  turnId String @db.Uuid
+  callId String @db.VarChar(64)
+  name String @db.VarChar(32)
+  arguments Json?
+  status String @db.VarChar(16)
+  reason String? @db.VarChar(64)
+  result Json?
+  commandId String? @unique @db.Uuid
+  createdAt DateTime @db.Timestamptz(3)
+  turn ConversationTurn @relation(fields: [turnId, sessionId, organisationId], references: [id, sessionId, organisationId], onDelete: Restrict, onUpdate: Restrict)
+  command DeviceCommand? @relation(fields: [commandId], references: [id], onDelete: SetNull, onUpdate: Restrict)
+
+  @@unique([turnId, callId])
+  @@index([sessionId, organisationId])
+}
+
+/// Live admission accounting per organisation and UTC day; locked on every admission.
+model DailyUsage {
+  organisationId String @db.Uuid
+  usageDate DateTime @db.Date
+  liveSessions Int @default(0)
+  reservedSeconds Int @default(0)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([organisationId, usageDate])
 }

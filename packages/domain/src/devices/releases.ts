@@ -13,7 +13,8 @@ import { parse } from './core.js';
 
 type Transaction = Prisma.TransactionClient;
 
-async function runtimeRelease(
+/** A published release as screens render it: greeting, slides and media, never knowledge. */
+export async function runtimeRelease(
   tx: Transaction,
   id: string,
   organisationId: string,
@@ -61,7 +62,7 @@ export class DeviceReleases {
       const releaseId = view === 'desired' ? state?.releaseId : state?.appliedReleaseId;
       const command = revision
         ? await tx.deviceCommand.findFirst({
-            where: { deviceId, organisationId, stateRevision: revision },
+            where: { deviceId, organisationId, stateRevision: revision, type: 'release.apply' },
             orderBy: { createdAt: 'desc' },
             select: { id: true },
           })
@@ -92,19 +93,27 @@ export class DeviceReleases {
         return referenced.media;
       },
     );
-    if (asset.state !== 'READY' || !asset.storageKey || !asset.mimeType || !asset.sha256)
-      throw new MediaError('MEDIA_NOT_READY');
-    const { handle, size } = await this.storage.read(asset.storageKey);
-    if (size !== asset.byteLength) {
-      await handle.close();
-      throw new MediaError('INTEGRITY_MISMATCH');
-    }
-    return {
-      handle,
-      byteLength: size,
-      sha256: asset.sha256,
-      mimeType: asset.mimeType,
-      filename: asset.filename,
-    };
+    return openReadyMedia(this.storage, asset);
   }
+}
+
+/** Opens a READY asset whose stored length still matches; the caller streams and closes it. */
+export async function openReadyMedia(
+  storage: MediaStorage,
+  asset: Prisma.MediaAssetGetPayload<object>,
+) {
+  if (asset.state !== 'READY' || !asset.storageKey || !asset.mimeType || !asset.sha256)
+    throw new MediaError('MEDIA_NOT_READY');
+  const { handle, size } = await storage.read(asset.storageKey);
+  if (size !== asset.byteLength) {
+    await handle.close();
+    throw new MediaError('INTEGRITY_MISMATCH');
+  }
+  return {
+    handle,
+    byteLength: size,
+    sha256: asset.sha256,
+    mimeType: asset.mimeType,
+    filename: asset.filename,
+  };
 }
