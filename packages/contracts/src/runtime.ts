@@ -14,6 +14,7 @@ export const DEVICE_EVENTS = {
   ack: 'command.ack',
   acked: 'command.acked',
   display: 'display.state',
+  slide: 'slide.show',
   error: 'device.error',
 } as const;
 
@@ -57,6 +58,14 @@ export const displayStateSchema = eventMetadataSchema.extend({
   revision: z.number().int().nonnegative(),
   releaseId: z.uuid().nullable(),
 });
+/** A conversation asked this kiosk to show one slide of its applied release. The primary
+ * acknowledges it with command.ack; a display only follows it. */
+export const slideShowSchema = eventMetadataSchema.extend({
+  commandId: z.uuid(),
+  revision: z.number().int().positive(),
+  slideId: z.uuid(),
+  target: z.enum(['PRIMARY', 'SECONDARY']),
+});
 export const deviceErrorEventSchema = eventMetadataSchema.extend({
   code: z.string().regex(/^[A-Z][A-Z0-9_]{1,63}$/),
   message: z.string(),
@@ -67,6 +76,7 @@ export type RuntimeManifest = z.infer<typeof runtimeManifestSchema>;
 export type DesiredEvent = z.infer<typeof desiredEventSchema>;
 export type DisplayState = z.infer<typeof displayStateSchema>;
 export type DeviceErrorEvent = z.infer<typeof deviceErrorEventSchema>;
+export type SlideShowEvent = z.infer<typeof slideShowSchema>;
 
 /** Worker → API wake-up on `<namespace>:device-commands`: IDs only, never a credential. */
 export const commandWakeupSchema = z

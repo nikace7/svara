@@ -147,6 +147,21 @@ export class DeviceGateway {
         await this.desired(socket);
   }
 
+  /** A conversation's slide command reaches every window of this kiosk; only the primary acks. */
+  async showSlide(
+    deviceId: string,
+    command: { id: string; stateRevision: number; slideId: string; target: string },
+  ): Promise<void> {
+    this.devices?.to(`device:${deviceId}`).emit(DEVICE_EVENTS.slide, {
+      ...meta(),
+      commandId: command.id,
+      revision: command.stateRevision,
+      slideId: command.slideId,
+      target: command.target,
+    });
+    await Promise.resolve();
+  }
+
   /** Revocation, disabling or re-pairing takes effect on connected windows immediately. */
   disconnect(deviceId: string): void {
     this.devices

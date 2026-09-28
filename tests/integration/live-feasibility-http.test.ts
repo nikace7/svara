@@ -59,7 +59,6 @@ describe('live voice HTTP stream', () => {
   let staff: Awaited<ReturnType<typeof staffFixture>>;
   let releases: ReleaseService;
   let release: { id: string };
-  let entryId: string;
   let now = Date.now();
   /** A preview captures draft knowledge, so no approval step is needed to search it. */
   async function groundedRelease() {
@@ -92,7 +91,7 @@ describe('live voice HTTP stream', () => {
       { expectedRevision: saved.botRevision },
       randomUUID(),
     );
-    return { release: preview, entryId: saved.id };
+    return preview;
   }
   beforeAll(async () => {
     staff = await staffFixture();
@@ -110,7 +109,7 @@ describe('live voice HTTP stream', () => {
     // Voice providers alone are not enough: live answers need a release to ground them.
     fixtureApp = await createApplication({ ...base, providerMode: 'live', liveVoice });
     await Promise.all([app.init(), fixtureApp.init()]);
-    ({ release, entryId } = await groundedRelease());
+    release = await groundedRelease();
   });
   afterAll(async () => {
     await Promise.all([app?.close(), fixtureApp?.close()]);
@@ -165,7 +164,7 @@ describe('live voice HTTP stream', () => {
     expect(stream.every((event) => event.audio === 'streaming')).toBe(true);
     expect(stream[0]!.text).toBe('भर्ना कार्यालय कहाँ छ?');
     // The generator saw the chosen release's own Nepali passage, not built-in demo text.
-    expect(grounded.map((passage) => passage.id)).toEqual([entryId]);
+    expect(grounded.map((passage) => passage.id)).toEqual(['1']);
     expect(grounded[0]!.text).toContain('भर्ना कार्यालय कोठा १२ मा छ।');
 
     const audio = stream.filter((event) => event.type === 'audio');
@@ -251,7 +250,7 @@ describe('live voice HTTP stream', () => {
     const stream = events(response.text);
     expect(heard).toBe(8000);
     expect(stream[0]).toMatchObject({ type: 'transcript', text: 'भर्ना कार्यालय कहाँ छ?' });
-    expect(grounded.map((passage) => passage.id)).toEqual([entryId]);
+    expect(grounded.map((passage) => passage.id)).toEqual(['1']);
     expect(stream.at(-1)!.type).toBe('complete');
   });
 

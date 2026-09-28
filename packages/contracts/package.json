@@ -12,6 +12,10 @@
       "types": "./src/schedule-openapi.ts",
       "default": "./dist/schedule-openapi.js"
     },
+    "./conversation-openapi": {
+      "types": "./src/conversation-openapi.ts",
+      "default": "./dist/conversation-openapi.js"
+    },
     ".": {
       "types": "./src/index.ts",
       "default": "./dist/index.js"
