@@ -36,3 +36,16 @@ export { CommandOutbox, DeviceCommands } from './schedules/outbox.js';
 export type { ClaimedCommand } from './schedules/outbox.js';
 export { ScheduleError } from './schedules/errors.js';
 export type { ScheduleErrorCode } from './schedules/errors.js';
+export { ConversationService } from './conversations/service.js';
+export type {
+  BotTool,
+  ConversationActor,
+  ToolCallInput,
+  ToolOutcome,
+  TurnContext,
+  TurnFinish,
+} from './conversations/service.js';
+export { AssistantLinkService, PublicAssistants } from './conversations/links.js';
+export { ConversationError } from './conversations/errors.js';
+export type { ConversationErrorCode } from './conversations/errors.js';
+export { ConversationSessions } from './conversations/sessions.js';

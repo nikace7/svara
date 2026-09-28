@@ -68,7 +68,8 @@ export class CommandOutbox {
         (ClaimedCommand & { attempts: number; sentAt: Date | null })[]
       >`
         SELECT "id", "deviceId", "organisationId", "attempts", "sentAt" FROM "DeviceCommand"
-          WHERE "status" IN ('QUEUED', 'SENT') AND "nextAttemptAt" <= ${now} AND "expiresAt" > ${now}
+          WHERE "type" = 'release.apply' AND "status" IN ('QUEUED', 'SENT')
+            AND "nextAttemptAt" <= ${now} AND "expiresAt" > ${now}
           ORDER BY "nextAttemptAt" LIMIT ${limit} FOR UPDATE SKIP LOCKED`;
       for (const row of rows)
         await tx.deviceCommand.update({
@@ -107,7 +108,7 @@ export class DeviceCommands {
       });
       if (!state) return { commandId: null, revision: 0, releaseId: null, deploymentId: null };
       const command = await tx.deviceCommand.findFirst({
-        where: { deviceId: current.deviceId, stateRevision: state.revision },
+        where: { deviceId: current.deviceId, stateRevision: state.revision, type: 'release.apply' },
         orderBy: { createdAt: 'desc' },
         select: { id: true },
       });
@@ -163,7 +164,7 @@ export class DeviceCommands {
             : {}),
         },
       });
-      if (ack.result === 'APPLIED') {
+      if (ack.result === 'APPLIED' && command.type === 'release.apply') {
         const payload = command.payload as { releaseId?: string | null };
         await tx.desiredDeviceState.updateMany({
           where: { deviceId: current.deviceId, appliedRevision: { lt: command.stateRevision } },

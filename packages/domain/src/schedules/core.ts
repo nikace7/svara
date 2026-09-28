@@ -1,6 +1,7 @@
 import type { Prisma } from '@svara/database';
 import { SCHEDULE_LIMITS } from '@svara/contracts';
 import type { CommandSummary, DesiredState, DeploymentSummary } from '@svara/contracts';
+import { endSessions } from '../conversations/core.js';
 
 type Transaction = Prisma.TransactionClient;
 interface Interval {
@@ -127,6 +128,8 @@ export async function reconcileDevice(
   )
     return false;
   const revision = (current?.revision ?? 0) + 1;
+  if ((current?.releaseId ?? null) !== releaseId)
+    await endSessions(tx, { deviceId, organisationId }, 'RELEASE_CHANGED', now);
   await tx.desiredDeviceState.upsert({
     where: { deviceId },
     create: { deviceId, organisationId, revision, releaseId, deploymentId, updatedAt: now },
