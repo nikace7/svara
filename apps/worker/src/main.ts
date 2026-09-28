@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { loadWorkspaceEnvironment, parseServerConfig } from '@svara/config/server';
 import {
   CommandOutbox,
+  expireStaleSessions,
   createDependencies,
   MediaJobs,
   MediaStorage,
@@ -21,12 +22,17 @@ const mediaQueue = new MediaQueueRuntime(config.REDIS_URL, jobs, inspector.check
   prefix: `${config.WORKER_NAMESPACE}:media`,
 });
 // Wake-ups carry IDs only; the API's device connections read the command from PostgreSQL.
-const schedules = new ScheduleLoop(new CommandOutbox(dependencies.database), async (commands) => {
-  await dependencies.redis.publish(
-    `${config.WORKER_NAMESPACE}:device-commands`,
-    JSON.stringify(commands.map(({ id, deviceId }) => ({ commandId: id, deviceId }))),
-  );
-});
+// The same tick ends abandoned conversations, including after an API crash or restart.
+const schedules = new ScheduleLoop(
+  new CommandOutbox(dependencies.database),
+  async (commands) => {
+    await dependencies.redis.publish(
+      `${config.WORKER_NAMESPACE}:device-commands`,
+      JSON.stringify(commands.map(({ id, deviceId }) => ({ commandId: id, deviceId }))),
+    );
+  },
+  { sweep: () => expireStaleSessions(dependencies.database) },
+);
 let closing = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
 

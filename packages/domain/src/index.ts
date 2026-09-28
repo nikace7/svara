@@ -37,6 +37,7 @@ export type { ClaimedCommand } from './schedules/outbox.js';
 export { ScheduleError } from './schedules/errors.js';
 export type { ScheduleErrorCode } from './schedules/errors.js';
 export { ConversationService } from './conversations/service.js';
+export { expireStaleSessions } from './conversations/core.js';
 export type {
   BotTool,
   ConversationActor,

@@ -1,4 +1,4 @@
-import type { Prisma } from '@svara/database';
+import type { Prisma, PrismaClient } from '@svara/database';
 import type { BotDraft, ConversationSession, ReleaseSnapshot } from '@svara/contracts';
 
 type Transaction = Prisma.TransactionClient;
@@ -90,4 +90,21 @@ export async function endSessions(
     });
   }
   return sessions.map((session) => session.id);
+}
+
+/** Worker sweep: stale sessions end and keep their whole reservation, because nothing verified
+ * when they stopped using providers. Returns how many ended. */
+export async function expireStaleSessions(db: PrismaClient, now = new Date()): Promise<number> {
+  const ended = await db.$transaction(
+    (tx) =>
+      endSessions(
+        tx,
+        { OR: [{ endsBy: { lte: now } }, { idleUntil: { lte: now } }] },
+        'EXPIRED',
+        now,
+        'reserved',
+      ),
+    { isolationLevel: 'ReadCommitted', maxWait: 5000, timeout: 10000 },
+  );
+  return ended.length;
 }

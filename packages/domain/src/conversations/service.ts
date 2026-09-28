@@ -22,7 +22,7 @@ import { searchRelease } from '../authoring/release-search.js';
 import { bearerPattern, hashSecret } from '../devices/core.js';
 import type { DeviceRuntime } from '../devices/runtime.js';
 import type { IdentityService } from '../identity/service.js';
-import { endSessions, sessionView, toolsFor, usageDay } from './core.js';
+import { endSessions, expireStaleSessions, sessionView, toolsFor, usageDay } from './core.js';
 import { runTool, toolOutcome } from './tools.js';
 import type { ToolEffect } from './tools.js';
 import { ConversationError } from './errors.js';
@@ -687,18 +687,8 @@ export class ConversationService {
     );
   }
 
-  /** Worker sweep: stale sessions end and keep their whole reservation. */
-  async expireStale(): Promise<number> {
-    const now = this.clock();
-    const ended = await this.transaction((tx) =>
-      endSessions(
-        tx,
-        { OR: [{ endsBy: { lte: now } }, { idleUntil: { lte: now } }] },
-        'EXPIRED',
-        now,
-        'reserved',
-      ),
-    );
-    return ended.length;
+  /** Worker sweep; see expireStaleSessions. */
+  expireStale(): Promise<number> {
+    return expireStaleSessions(this.db, this.clock());
   }
 }

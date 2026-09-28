@@ -19,7 +19,12 @@ export class ScheduleLoop {
   constructor(
     private readonly outbox: Outbox,
     private readonly notify: (commands: ClaimedCommand[]) => Promise<void>,
-    private readonly options: { scanMs?: number; reconcileEvery?: number } = {},
+    private readonly options: {
+      scanMs?: number;
+      reconcileEvery?: number;
+      /** Runs with each reconciliation: ends conversations past their idle or absolute limit. */
+      sweep?: () => Promise<unknown>;
+    } = {},
   ) {}
 
   start(): void {
@@ -41,7 +46,10 @@ export class ScheduleLoop {
     const reconcileEvery =
       this.options.reconcileEvery ??
       SCHEDULE_LIMITS.reconcileMilliseconds / SCHEDULE_LIMITS.commandScanMilliseconds;
-    if (this.ticks++ % reconcileEvery === 0) await this.outbox.reconcileDue();
+    if (this.ticks++ % reconcileEvery === 0) {
+      await this.outbox.reconcileDue();
+      await this.options.sweep?.();
+    }
     await this.outbox.expire();
     const claimed = await this.outbox.claim();
     if (claimed.length) await this.notify(claimed);
