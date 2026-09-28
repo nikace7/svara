@@ -49,3 +49,5 @@ export { AssistantLinkService, PublicAssistants } from './conversations/links.js
 export { ConversationError } from './conversations/errors.js';
 export type { ConversationErrorCode } from './conversations/errors.js';
 export { ConversationSessions } from './conversations/sessions.js';
+export { runConversationTurn } from './conversations/turn.js';
+export type { ConversationProviders, SlideChannel, TurnRunner } from './conversations/turn.js';
