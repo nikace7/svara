@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { AUDIO_PACKET_BYTES } from '@svara/contracts';
 import type { FeasibilityEvent, FeasibilityRequest } from '@svara/contracts';
-import { GeminiError, SentenceSegments } from '@svara/providers';
+import { extractCitations, GeminiError, SentenceSegments } from '@svara/providers';
 import type {
   AnswerGenerator,
   RecognitionEvent,
@@ -119,8 +119,10 @@ export async function* runLiveTurn(
       segment++;
     };
     const emit = async function* (sentences: string[]) {
-      for (const sentence of sentences) {
+      for (const cited of sentences) {
         signal.throwIfAborted();
+        // The lab shows no references, so passage labels are dropped from subtitles and speech.
+        const sentence = extractCitations(cited).text;
         // A whitespace-only drain is not an answer and must not be sent to speech.
         if (!sentence.trim()) continue;
         spoke = true;
@@ -133,6 +135,8 @@ export async function* runLiveTurn(
       context,
     )) {
       signal.throwIfAborted();
+      // The lab offers no tools, so a proposed call is ignored rather than executed.
+      if (typeof delta !== 'string') continue;
       yield* emit(splitter.push(delta));
     }
     yield* emit(splitter.finish());

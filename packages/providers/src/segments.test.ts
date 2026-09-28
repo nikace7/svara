@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SentenceSegments, synthesizeOrdered } from './segments.js';
+import { extractCitations, SentenceSegments, synthesizeOrdered } from './segments.js';
 
 describe('English/Nepali synthesis segmentation', () => {
   it('recognizes both scripts without losing text', () => {
@@ -54,5 +54,22 @@ describe('ordered synthesis with backpressure', () => {
     await expect(
       synthesizeOrdered(['First.', 'Second.'], synth, controller.signal).next(),
     ).rejects.toMatchObject({ name: 'AbortError' });
+  });
+});
+
+describe('citation labels', () => {
+  it('strips bracketed labels and reports them without touching other text', () => {
+    expect(extractCitations('Admissions is in room 12 [1].')).toEqual({
+      text: 'Admissions is in room 12.',
+      labels: ['1'],
+    });
+    expect(extractCitations('कोठा १२ मा छ। [2, 3]')).toEqual({
+      text: 'कोठा १२ मा छ।',
+      labels: ['2', '3'],
+    });
+    expect(extractCitations('Room [A-101] is open.')).toEqual({
+      text: 'Room [A-101] is open.',
+      labels: [],
+    });
   });
 });
