@@ -58,3 +58,15 @@ export async function* synthesizeOrdered(
     segment++;
   }
 }
+
+/** Removes bracketed passage labels such as [2] or [1, 3] and reports the labels cited. */
+export function extractCitations(sentence: string): { text: string; labels: string[] } {
+  const labels: string[] = [];
+  const text = sentence
+    .replace(/\s*\[(\d{1,2}(?:\s*,\s*\d{1,2})*)\]/g, (_match, list: string) => {
+      labels.push(...list.split(',').map((label) => label.trim()));
+      return '';
+    })
+    .replace(/ {2,}/g, ' ');
+  return { text, labels };
+}

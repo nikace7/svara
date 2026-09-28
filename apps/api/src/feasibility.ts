@@ -63,8 +63,8 @@ async function ground(
     // Search takes 500 characters; the model still receives the whole question.
     query: question.slice(0, 500),
   });
-  return found.passages.map((passage) => ({
-    id: passage.entryId,
+  return found.passages.map((passage, index) => ({
+    id: String(index + 1),
     text: [passage.title, passage.question, passage.text].filter(Boolean).join('\n'),
   }));
 }

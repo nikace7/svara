@@ -1,4 +1,62 @@
 import type { FeasibilityRequest } from '@svara/contracts';
+import type { AnswerChunk, AnswerGenerator, AnswerInput, ProviderContext } from './index.js';
+
+/**
+ * Demo mode without a provider: quotes the top approved passage verbatim, labelled as demo
+ * output, and proposes show_slide when the question names a slide. It never composes facts.
+ */
+export class FixtureAnswerGenerator implements AnswerGenerator {
+  async *generate(input: AnswerInput, context: ProviderContext): AsyncIterable<AnswerChunk> {
+    await Promise.resolve();
+    context.signal.throwIfAborted();
+    const nepali = context.locale === 'ne-NP';
+    const prefix = nepali ? 'डेमो मोड:' : 'Demo mode:';
+    if (input.toolRound) {
+      const status = input.toolRound.results
+        .map((result) => (result.result as { status?: string } | null)?.status)
+        .find(Boolean);
+      yield status === 'APPLIED'
+        ? nepali
+          ? `${prefix} स्लाइड पर्दामा देखाइएको छ।`
+          : `${prefix} the slide is on screen.`
+        : status === 'PENDING'
+          ? nepali
+            ? `${prefix} स्लाइड पर्दामा पठाइएको छ।`
+            : `${prefix} the slide was sent to the screen.`
+          : nepali
+            ? `${prefix} त्यो स्लाइड देखाउन सकिएन।`
+            : `${prefix} that slide could not be shown.`;
+      return;
+    }
+    const question = input.question.toLocaleLowerCase();
+    const slide = input.tools?.some((tool) => tool.name === 'show_slide')
+      ? input.slides?.find((item) =>
+          item.title
+            .toLocaleLowerCase()
+            .split(/\s+/)
+            .some((word) => word.length >= 4 && question.includes(word)),
+        )
+      : undefined;
+    if (slide) {
+      yield {
+        type: 'tool',
+        callId: 'fixture-show-slide',
+        name: 'show_slide',
+        args: { slide: slide.label },
+      };
+      return;
+    }
+    const passage = input.passages[0];
+    if (!passage) {
+      yield nepali
+        ? `${prefix} यस संस्करणमा यसको स्वीकृत उत्तर छैन।`
+        : `${prefix} this release has no approved answer to that.`;
+      return;
+    }
+    const content = passage.text.split('\n').at(-1)!.trim().slice(0, 220);
+    yield `${prefix} ${content} [${passage.id}]`;
+  }
+}
 
 /** Original synthetic content. No recorded/synthesized speech clip is supplied. */
 export function fixtureScenario(request: FeasibilityRequest): {

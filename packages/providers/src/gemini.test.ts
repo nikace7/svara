@@ -248,6 +248,87 @@ describe('GeminiAnswerGenerator', () => {
     );
     expect(deltas.join('')).toBe('Hello');
   });
+
+  it('offers declared tools, yields complete calls and answers from their outcomes', async () => {
+    const call = {
+      functionCall: { id: 'fc-1', name: 'show_slide', args: { slide: 'S1' } },
+      thoughtSignature: 'sig',
+    };
+    const first = fakeFetch(() => sse({ candidates: [{ content: { parts: [call] } }] }));
+    const input = {
+      question: 'Show the admissions slide',
+      passages: [{ id: '1', text: 'Admissions is in room 12.' }],
+      history: [],
+      instructions: 'Greet visitors warmly.',
+      slides: [{ label: 'S1', title: 'Admissions steps' }],
+      tools: [
+        {
+          name: 'show_slide',
+          description: 'Show a slide.',
+          parameters: { slide: { description: 'Slide label' } },
+          required: ['slide'],
+        },
+      ],
+    };
+    const chunks = await collect(
+      new GeminiAnswerGenerator(options(first.fetch)).generate(input, context()),
+    );
+    expect(chunks).toEqual([
+      { type: 'tool', callId: 'fc-1', name: 'show_slide', args: { slide: 'S1' }, raw: call },
+    ]);
+    const request = body(first.calls[0]!);
+    expect(request['tools']).toEqual([
+      {
+        functionDeclarations: [
+          {
+            name: 'show_slide',
+            description: 'Show a slide.',
+            parameters: {
+              type: 'OBJECT',
+              properties: { slide: { type: 'STRING', description: 'Slide label' } },
+              required: ['slide'],
+            },
+          },
+        ],
+      },
+    ]);
+    const system = JSON.stringify(request['systemInstruction']);
+    expect(system).toContain('Persona: Greet visitors warmly.');
+    expect(system).toContain('S1: Admissions steps');
+    expect(system).toContain('[1] Admissions is in room 12.');
+    // The second round echoes the call verbatim, reports the outcome and offers no tools.
+    const second = fakeFetch(() => sse(chunk('It is on screen [1].')));
+    const answer = await collect(
+      new GeminiAnswerGenerator(options(second.fetch)).generate(
+        {
+          ...input,
+          toolRound: {
+            calls: [chunks[0] as never],
+            results: [{ callId: 'fc-1', name: 'show_slide', result: { status: 'APPLIED' } }],
+          },
+        },
+        context(),
+      ),
+    );
+    expect(answer).toEqual(['It is on screen [1].']);
+    const followUp = body(second.calls[0]!);
+    expect(followUp['tools']).toBeUndefined();
+    expect((followUp['contents'] as unknown[]).slice(-2)).toEqual([
+      { role: 'model', parts: [call] },
+      {
+        role: 'user',
+        parts: [
+          {
+            functionResponse: {
+              name: 'show_slide',
+              id: 'fc-1',
+              response: { result: { status: 'APPLIED' } },
+            },
+          },
+        ],
+      },
+    ]);
+  });
 });
 
 describe('GeminiSpeechSynthesizer', () => {
