@@ -1,18 +1,36 @@
 # Implementation progress
 
-Updated 2026-09-27. Evidence is local unless explicitly marked otherwise.
+Updated 2026-09-28. Evidence is local unless explicitly marked otherwise.
 
-| Milestone                                | State       | Evidence / remaining work                                                                                                                                    |
-| ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.                                                 |
-| M1 — Bilingual voice feasibility         | Partial     | Live gate and lab live turns work, typed or spoken, grounded in a chosen release. Real-key browser evidence, hardware barge-in and repeated sampling remain. |
-| M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                                                                    |
-| M3 — Authoring and immutable publication | Complete    | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.                                                       |
-| M4 — Devices and dual displays           | Complete    | Pairing, tickets, /devices gateway, verified release application, kiosk/display/simulator and revocation verified by the gate test.                          |
-| M5 — Schedules and commands              | Complete    | Conflict-safe schedules, overrides, monotonic desired state, outbox, worker and board; commands reach kiosks and are acknowledged.                           |
-| M6 — Conversations and public assistant  | Not started | Grounding, tools, admission and visitor grants pending.                                                                                                      |
-| M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                                                          |
-| M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                                                                      |
+| Milestone                                | State       | Evidence / remaining work                                                                                                                                                                                       |
+| ---------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.                                                                                                    |
+| M1 — Bilingual voice feasibility         | Partial     | Live gate and lab live turns work, typed or spoken, grounded in a chosen release. Real-key browser evidence, hardware barge-in and repeated sampling remain.                                                    |
+| M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                                                                                                                       |
+| M3 — Authoring and immutable publication | Complete    | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.                                                                                                          |
+| M4 — Devices and dual displays           | Complete    | Pairing, tickets, /devices gateway, verified release application, kiosk/display/simulator and revocation verified by the gate test.                                                                             |
+| M5 — Schedules and commands              | Complete    | Conflict-safe schedules, overrides, monotonic desired state, outbox, worker and board; commands reach kiosks and are acknowledged.                                                                              |
+| M6 — Conversations and public assistant  | Complete    | Scoped admission and limits, grounded cited turns, validated tools, kiosk slides, public links and visitor grants, playground and sessions verified by the gate tests. Live tool calling awaits a real-key run. |
+| M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                                                                                                             |
+| M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                                                                                                                         |
+
+## M6 conversations and public assistant — 2026-09-28
+
+Built on branch `claude/m6-conversations` from `main` after M4 and M5 were
+fast-forwarded. See `M6-CONVERSATIONS.md` and ADR 027, which records the deliberate
+departures: HTTP turn streams instead of a `/voice` socket, and PostgreSQL-serialized
+admission instead of a Redis lease.
+
+| Check             | Result                                                                                                                       |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm check`      | Passes: format, lint, types, 216 unit tests at 95.84% statement coverage, contract drift, builds                             |
+| Integration tests | 168 passed (31 files), including 11 conversation tests and HTTP tests with a real socket acknowledging a slide               |
+| Live Playwright   | 9 passed, including the M6 gate: bilingual visitor until the link is disabled, kiosk slide on its display, interrupt, record |
+
+Not run here: the Docker demo stack and the base Playwright suite, whose stack on
+port 4320 is built from the main checkout. Live Gemini tool calling has only been
+exercised against recorded request and response shapes, not with a real key; it joins
+M1's pending real-key evidence.
 
 ## M4 devices finished — 2026-09-27
 

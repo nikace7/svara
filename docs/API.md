@@ -178,6 +178,28 @@ return 422 `RELEASE_NOT_READY` with actionable `fieldErrors`. Expired previews r
 410 `PREVIEW_EXPIRED` for new queries; their GET history remains available. Foreign
 IDs return 404. See `RELEASES.md` and generated OpenAPI for retention and response shapes.
 
+## Conversations and public links
+
+| Route                                                   | Behavior                                                                  |
+| ------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `POST /api/v1/voice-sessions`                           | Staff admission for a chosen release; 201 with session, history and tools |
+| `POST /api/v1/runtime/voice-sessions`                   | Kiosk admission for its fully applied release; 409 `NOT_READY` otherwise  |
+| `POST /api/v1/public/assistants/:slug/voice-sessions`   | Visitor admission under the link-bound grant                              |
+| `POST …/voice-sessions/:id/turns`                       | NDJSON turn stream (protocol v1); body up to 700 KB for recorded audio    |
+| `POST …/voice-sessions/:id/interrupt`, `…/end`          | Advance the generation and stop the answer; end the session               |
+| `GET /api/v1/public/assistants/:slug`                   | Greeting, slides, media manifest and FAQ suggestions; never knowledge     |
+| `POST /api/v1/public/assistants/:slug/grants`           | Set the HttpOnly visitor cookie; return only its CSRF token               |
+| `GET /api/v1/public/assistants/:slug/media/:id/content` | Media referenced by that link's pinned release only                       |
+| `GET /api/v1/sessions`, `GET /api/v1/sessions/:id`      | Staff history (cursor pages) and a session record                         |
+| `DELETE /api/v1/sessions/:id`                           | Owners and administrators: blank transcript and tool payloads             |
+| `GET, POST /api/v1/assistant-links`, `PATCH /…/:id`     | List, create and update links; disabling ends their sessions              |
+
+Each audience checks its own cookie, the exact Host and Origin, CSRF and JSON on
+mutations. Unknown, disabled and expired links are the same 404. Failures use the safe
+error envelope. `CONCURRENCY_LIMIT` and `DAILY_LIMIT` are 429 with `Retry-After`;
+`SESSION_ENDED`, `STALE_GENERATION` and `DUPLICATE_MESSAGE` are 409. See
+`M6-CONVERSATIONS.md` and the generated OpenAPI for shapes.
+
 ## Temporary M1 experiment
 
 `POST /api/v1/feasibility/turn` is registered only when the API is explicitly local

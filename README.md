@@ -173,6 +173,21 @@ worklet source so the compiled public worklet modules are refreshed.
 
 See [M4 devices](docs/M4-DEVICES.md) and [M5 schedules](docs/M5-SCHEDULES.md).
 
+## Talk to a kiosk or a public link
+
+1. Open **Playground** (bottom of the navigation), choose a bot and release, and ask a
+   question. **What happened** lists what was heard, the tools used and the passages
+   cited. Without a live key this is labelled demo mode and quotes approved text only.
+2. A paired kiosk with an applied release shows **Ask this kiosk** beside its slides.
+   Asking for a slide by name shows it on the kiosk and, when authored for it, on the
+   display. **Stop speaking** ends an answer at once.
+3. In **Settings → Public assistant links**, create a link for a published release and
+   open it in another browser profile. Turning it off ends its open conversations.
+4. **Sessions** lists every conversation with its answers, tool and kiosk outcomes and
+   measured timings.
+
+See [M6 conversations](docs/M6-CONVERSATIONS.md) and ADR 027.
+
 ## Verification
 
 ```sh

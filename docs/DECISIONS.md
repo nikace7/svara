@@ -383,3 +383,31 @@ lease, so no separate lease column is needed. Redis messages carry IDs only and
 are just wake-ups; the next scan repairs a lost one. Device acknowledgements run
 under M4's live grant, are deduplicated by command ID, and never lower the
 applied revision.
+
+## ADR 027 — Conversation turns stream over HTTP; admission serializes in PostgreSQL
+
+The blueprint streams voice over a `/voice` Socket.IO namespace, admits sessions with a
+Redis lease, and ticket-authenticates each connection. This edition deliberately departs
+in three places:
+
+- **Turns are HTTP NDJSON streams.** The Gemini recognizer buffers an utterance and
+  transcribes it on finish (see M1), so streaming 100 ms frames over a socket would add a
+  protocol without reducing latency. Each turn is one authenticated POST carrying the
+  recorded question once. The response is the event stream the voice lab already
+  validates. Generation numbers, the per-event database check and client-side
+  generation ownership give the same stale-audio guarantees. The socket namespace
+  returns with streaming recognition and hands-free barge-in.
+- **Each actor keeps its own cookie and route family:** staff, device and visitor. No
+  voice ticket is needed. A browser that is both staff-signed-in and a paired kiosk (the
+  simulator) can never mix identities.
+- **Admission serializes on the organisation's `DailyUsage` row for the day.** The same
+  transaction counts active sessions and checks live allowances, so limits survive a
+  Redis restart and need no compensation step. A partial unique index keeps one open
+  session per actor. The ceiling is admission throughput per organisation, which is
+  far above kiosk scale.
+
+Tool calls are validated in the same transaction that records them. The model sees
+short passage and slide labels, never identifiers it could choose; the server maps
+labels back and re-checks them against the pinned release. Slide commands share the
+device-command table for their audit trail but are neither retried nor snapshotted, and
+never touch the applied release revision.
