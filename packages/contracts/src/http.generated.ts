@@ -863,6 +863,310 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/voice-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["voicesessions_admit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voice-sessions/{id}/turns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["voicesessions_turn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voice-sessions/{id}/interrupt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["voicesessions_interrupt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voice-sessions/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["voicesessions_end"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runtime/voice-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["runtimevoice_admit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runtime/voice-sessions/{id}/turns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["runtimevoice_turn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runtime/voice-sessions/{id}/interrupt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["runtimevoice_interrupt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runtime/voice-sessions/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["runtimevoice_end"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/assistants/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["publicassistants_config"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/assistants/{slug}/grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["publicassistants_grant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/assistants/{slug}/media/{id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["publicassistants_media"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/assistants/{slug}/voice-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["publicassistants_admit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/assistants/{slug}/voice-sessions/{id}/turns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["publicassistants_turn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/assistants/{slug}/voice-sessions/{id}/interrupt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["publicassistants_interrupt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/assistants/{slug}/voice-sessions/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["publicassistants_end"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["sessions_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["sessions_get"];
+        put?: never;
+        post?: never;
+        delete: operations["sessions_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assistant-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["assistantlinks_list"];
+        put?: never;
+        post: operations["assistantlinks_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assistant-links/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["assistantlinks_save"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -5621,6 +5925,1176 @@ export interface operations {
             };
             /** @description Too many outstanding unconsumed tickets. */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    voicesessions_admit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    locale: "en-US" | "ne-NP";
+                    /** Format: uuid */
+                    releaseId?: string;
+                    /** Format: uuid */
+                    resumeFrom?: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            session: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                releaseId: string;
+                                /** @enum {string} */
+                                actorKind: "STAFF" | "DEVICE" | "VISITOR";
+                                /** @enum {string} */
+                                locale: "en-US" | "ne-NP";
+                                /** @enum {string} */
+                                providerMode: "fixture" | "live";
+                                /** @enum {string} */
+                                status: "ACTIVE" | "ENDED";
+                                generation: number;
+                                /** Format: date-time */
+                                startedAt: string;
+                                /** Format: date-time */
+                                idleUntil: string;
+                                /** Format: date-time */
+                                endsBy: string;
+                                /** Format: date-time */
+                                endedAt: string | null;
+                                endReason: string | null;
+                                /** Format: uuid */
+                                resumedFromId: string | null;
+                            };
+                            history: {
+                                /** @enum {string} */
+                                locale: "en-US" | "ne-NP";
+                                question: string;
+                                answer: string;
+                                /** @enum {string} */
+                                state: "ANSWERING" | "COMPLETED" | "INTERRUPTED" | "FAILED";
+                            }[];
+                            tools: string[];
+                        };
+                    };
+                };
+            };
+            /** @description Concurrency or daily live allowance reached. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    voicesessions_turn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    generation: number;
+                    /** Format: uuid */
+                    clientMessageId: string;
+                    /** @enum {string} */
+                    locale: "en-US" | "ne-NP";
+                    text?: string;
+                    /** Format: base64 */
+                    audio?: string;
+                    /** Format: uuid */
+                    retryOf?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description NDJSON turn events (protocol v1). 409 before streaming for an ended session, a stale generation or a repeated message. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    voicesessions_interrupt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    generation: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            releaseId: string;
+                            /** @enum {string} */
+                            actorKind: "STAFF" | "DEVICE" | "VISITOR";
+                            /** @enum {string} */
+                            locale: "en-US" | "ne-NP";
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            /** @enum {string} */
+                            status: "ACTIVE" | "ENDED";
+                            generation: number;
+                            /** Format: date-time */
+                            startedAt: string;
+                            /** Format: date-time */
+                            idleUntil: string;
+                            /** Format: date-time */
+                            endsBy: string;
+                            /** Format: date-time */
+                            endedAt: string | null;
+                            endReason: string | null;
+                            /** Format: uuid */
+                            resumedFromId: string | null;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    voicesessions_end: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            releaseId: string;
+                            /** @enum {string} */
+                            actorKind: "STAFF" | "DEVICE" | "VISITOR";
+                            /** @enum {string} */
+                            locale: "en-US" | "ne-NP";
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            /** @enum {string} */
+                            status: "ACTIVE" | "ENDED";
+                            generation: number;
+                            /** Format: date-time */
+                            startedAt: string;
+                            /** Format: date-time */
+                            idleUntil: string;
+                            /** Format: date-time */
+                            endsBy: string;
+                            /** Format: date-time */
+                            endedAt: string | null;
+                            endReason: string | null;
+                            /** Format: uuid */
+                            resumedFromId: string | null;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    runtimevoice_admit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    locale: "en-US" | "ne-NP";
+                    /** Format: uuid */
+                    releaseId?: string;
+                    /** Format: uuid */
+                    resumeFrom?: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            session: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                releaseId: string;
+                                /** @enum {string} */
+                                actorKind: "STAFF" | "DEVICE" | "VISITOR";
+                                /** @enum {string} */
+                                locale: "en-US" | "ne-NP";
+                                /** @enum {string} */
+                                providerMode: "fixture" | "live";
+                                /** @enum {string} */
+                                status: "ACTIVE" | "ENDED";
+                                generation: number;
+                                /** Format: date-time */
+                                startedAt: string;
+                                /** Format: date-time */
+                                idleUntil: string;
+                                /** Format: date-time */
+                                endsBy: string;
+                                /** Format: date-time */
+                                endedAt: string | null;
+                                endReason: string | null;
+                                /** Format: uuid */
+                                resumedFromId: string | null;
+                            };
+                            history: {
+                                /** @enum {string} */
+                                locale: "en-US" | "ne-NP";
+                                question: string;
+                                answer: string;
+                                /** @enum {string} */
+                                state: "ANSWERING" | "COMPLETED" | "INTERRUPTED" | "FAILED";
+                            }[];
+                            tools: string[];
+                        };
+                    };
+                };
+            };
+            /** @description NOT_READY until the desired release is applied. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    runtimevoice_turn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    generation: number;
+                    /** Format: uuid */
+                    clientMessageId: string;
+                    /** @enum {string} */
+                    locale: "en-US" | "ne-NP";
+                    text?: string;
+                    /** Format: base64 */
+                    audio?: string;
+                    /** Format: uuid */
+                    retryOf?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description NDJSON turn events (protocol v1). 409 before streaming for an ended session, a stale generation or a repeated message. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    runtimevoice_interrupt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    generation: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            releaseId: string;
+                            /** @enum {string} */
+                            actorKind: "STAFF" | "DEVICE" | "VISITOR";
+                            /** @enum {string} */
+                            locale: "en-US" | "ne-NP";
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            /** @enum {string} */
+                            status: "ACTIVE" | "ENDED";
+                            generation: number;
+                            /** Format: date-time */
+                            startedAt: string;
+                            /** Format: date-time */
+                            idleUntil: string;
+                            /** Format: date-time */
+                            endsBy: string;
+                            /** Format: date-time */
+                            endedAt: string | null;
+                            endReason: string | null;
+                            /** Format: uuid */
+                            resumedFromId: string | null;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    runtimevoice_end: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            releaseId: string;
+                            /** @enum {string} */
+                            actorKind: "STAFF" | "DEVICE" | "VISITOR";
+                            /** @enum {string} */
+                            locale: "en-US" | "ne-NP";
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            /** @enum {string} */
+                            status: "ACTIVE" | "ENDED";
+                            generation: number;
+                            /** Format: date-time */
+                            startedAt: string;
+                            /** Format: date-time */
+                            idleUntil: string;
+                            /** Format: date-time */
+                            endsBy: string;
+                            /** Format: date-time */
+                            endedAt: string | null;
+                            endReason: string | null;
+                            /** Format: uuid */
+                            resumedFromId: string | null;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    publicassistants_config: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            slug: string;
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            release: {
+                                /** Format: uuid */
+                                id: string;
+                                version: number;
+                                botName: string;
+                                greeting: {
+                                    en: string;
+                                    ne: string;
+                                };
+                                slides: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    position: number;
+                                    title: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    body: {
+                                        en: string;
+                                        ne: string;
+                                    };
+                                    /** Format: uuid */
+                                    mediaId: string | null;
+                                    /** @enum {string} */
+                                    target: "PRIMARY" | "SECONDARY" | "BOTH";
+                                    durationSeconds: number;
+                                }[];
+                                media: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    filename: string;
+                                    /** @enum {string} */
+                                    mimeType: "image/jpeg" | "image/png" | "video/mp4";
+                                    sha256: string;
+                                    byteLength: number;
+                                    width: number;
+                                    height: number;
+                                    durationSeconds: number | null;
+                                }[];
+                            };
+                            suggestions: {
+                                en: string[];
+                                ne: string[];
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Unknown, disabled and expired links look the same. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    publicassistants_grant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sets the HttpOnly visitor cookie and returns only its CSRF token. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            csrfToken: string;
+                            /** Format: date-time */
+                            expiresAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description At most ten grants per IP per minute. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    publicassistants_media: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Not referenced by this link’s release. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    publicassistants_admit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    locale: "en-US" | "ne-NP";
+                    /** Format: uuid */
+                    releaseId?: string;
+                    /** Format: uuid */
+                    resumeFrom?: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            session: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                releaseId: string;
+                                /** @enum {string} */
+                                actorKind: "STAFF" | "DEVICE" | "VISITOR";
+                                /** @enum {string} */
+                                locale: "en-US" | "ne-NP";
+                                /** @enum {string} */
+                                providerMode: "fixture" | "live";
+                                /** @enum {string} */
+                                status: "ACTIVE" | "ENDED";
+                                generation: number;
+                                /** Format: date-time */
+                                startedAt: string;
+                                /** Format: date-time */
+                                idleUntil: string;
+                                /** Format: date-time */
+                                endsBy: string;
+                                /** Format: date-time */
+                                endedAt: string | null;
+                                endReason: string | null;
+                                /** Format: uuid */
+                                resumedFromId: string | null;
+                            };
+                            history: {
+                                /** @enum {string} */
+                                locale: "en-US" | "ne-NP";
+                                question: string;
+                                answer: string;
+                                /** @enum {string} */
+                                state: "ANSWERING" | "COMPLETED" | "INTERRUPTED" | "FAILED";
+                            }[];
+                            tools: string[];
+                        };
+                    };
+                };
+            };
+        };
+    };
+    publicassistants_turn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    generation: number;
+                    /** Format: uuid */
+                    clientMessageId: string;
+                    /** @enum {string} */
+                    locale: "en-US" | "ne-NP";
+                    text?: string;
+                    /** Format: base64 */
+                    audio?: string;
+                    /** Format: uuid */
+                    retryOf?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description NDJSON turn events (protocol v1). 409 before streaming for an ended session, a stale generation or a repeated message. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    publicassistants_interrupt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    generation: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            releaseId: string;
+                            /** @enum {string} */
+                            actorKind: "STAFF" | "DEVICE" | "VISITOR";
+                            /** @enum {string} */
+                            locale: "en-US" | "ne-NP";
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            /** @enum {string} */
+                            status: "ACTIVE" | "ENDED";
+                            generation: number;
+                            /** Format: date-time */
+                            startedAt: string;
+                            /** Format: date-time */
+                            idleUntil: string;
+                            /** Format: date-time */
+                            endsBy: string;
+                            /** Format: date-time */
+                            endedAt: string | null;
+                            endReason: string | null;
+                            /** Format: uuid */
+                            resumedFromId: string | null;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    publicassistants_end: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            releaseId: string;
+                            /** @enum {string} */
+                            actorKind: "STAFF" | "DEVICE" | "VISITOR";
+                            /** @enum {string} */
+                            locale: "en-US" | "ne-NP";
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            /** @enum {string} */
+                            status: "ACTIVE" | "ENDED";
+                            generation: number;
+                            /** Format: date-time */
+                            startedAt: string;
+                            /** Format: date-time */
+                            idleUntil: string;
+                            /** Format: date-time */
+                            endsBy: string;
+                            /** Format: date-time */
+                            endedAt: string | null;
+                            endReason: string | null;
+                            /** Format: uuid */
+                            resumedFromId: string | null;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    sessions_list: {
+        parameters: {
+            query?: {
+                status?: "ACTIVE" | "ENDED";
+                actorKind?: "STAFF" | "DEVICE" | "VISITOR";
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            releaseId: string;
+                            /** @enum {string} */
+                            actorKind: "STAFF" | "DEVICE" | "VISITOR";
+                            /** @enum {string} */
+                            locale: "en-US" | "ne-NP";
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            /** @enum {string} */
+                            status: "ACTIVE" | "ENDED";
+                            generation: number;
+                            /** Format: date-time */
+                            startedAt: string;
+                            /** Format: date-time */
+                            idleUntil: string;
+                            /** Format: date-time */
+                            endsBy: string;
+                            /** Format: date-time */
+                            endedAt: string | null;
+                            endReason: string | null;
+                            /** Format: uuid */
+                            resumedFromId: string | null;
+                            botName: string;
+                            releaseVersion: number | null;
+                            deviceName: string | null;
+                            linkLabel: string | null;
+                            turns: number;
+                            transcriptDeleted: boolean;
+                        }[];
+                        page: {
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            releaseId: string;
+                            /** @enum {string} */
+                            actorKind: "STAFF" | "DEVICE" | "VISITOR";
+                            /** @enum {string} */
+                            locale: "en-US" | "ne-NP";
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            /** @enum {string} */
+                            status: "ACTIVE" | "ENDED";
+                            generation: number;
+                            /** Format: date-time */
+                            startedAt: string;
+                            /** Format: date-time */
+                            idleUntil: string;
+                            /** Format: date-time */
+                            endsBy: string;
+                            /** Format: date-time */
+                            endedAt: string | null;
+                            endReason: string | null;
+                            /** Format: uuid */
+                            resumedFromId: string | null;
+                            botName: string;
+                            releaseVersion: number | null;
+                            deviceName: string | null;
+                            linkLabel: string | null;
+                            turns: number;
+                            transcriptDeleted: boolean;
+                            turnList: {
+                                /** Format: uuid */
+                                id: string;
+                                ordinal: number;
+                                /** @enum {string} */
+                                locale: "en-US" | "ne-NP";
+                                /** @enum {string} */
+                                inputKind: "TEXT" | "VOICE";
+                                question: string;
+                                answer: string;
+                                /** @enum {string} */
+                                state: "ANSWERING" | "COMPLETED" | "INTERRUPTED" | "FAILED";
+                                failureCode: string | null;
+                                citedEntryIds: string[];
+                                /** Format: uuid */
+                                retryOfId: string | null;
+                                timings: {
+                                    sttMs: number | null;
+                                    firstTextMs: number | null;
+                                    firstAudioMs: number | null;
+                                    totalMs: number | null;
+                                };
+                                /** Format: date-time */
+                                createdAt: string;
+                                tools: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                    /** @enum {string} */
+                                    status: "DONE" | "APPLIED" | "PENDING" | "REJECTED" | "FAILED";
+                                    reason: string | null;
+                                    arguments: unknown;
+                                    result: unknown;
+                                    /** Format: uuid */
+                                    commandId: string | null;
+                                    commandStatus: string | null;
+                                    /** Format: date-time */
+                                    createdAt: string;
+                                }[];
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+    };
+    sessions_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removes transcript text, citations and tool payloads; owners and administrators. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            releaseId: string;
+                            /** @enum {string} */
+                            actorKind: "STAFF" | "DEVICE" | "VISITOR";
+                            /** @enum {string} */
+                            locale: "en-US" | "ne-NP";
+                            /** @enum {string} */
+                            providerMode: "fixture" | "live";
+                            /** @enum {string} */
+                            status: "ACTIVE" | "ENDED";
+                            generation: number;
+                            /** Format: date-time */
+                            startedAt: string;
+                            /** Format: date-time */
+                            idleUntil: string;
+                            /** Format: date-time */
+                            endsBy: string;
+                            /** Format: date-time */
+                            endedAt: string | null;
+                            endReason: string | null;
+                            /** Format: uuid */
+                            resumedFromId: string | null;
+                            botName: string;
+                            releaseVersion: number | null;
+                            deviceName: string | null;
+                            linkLabel: string | null;
+                            turns: number;
+                            transcriptDeleted: boolean;
+                            turnList: {
+                                /** Format: uuid */
+                                id: string;
+                                ordinal: number;
+                                /** @enum {string} */
+                                locale: "en-US" | "ne-NP";
+                                /** @enum {string} */
+                                inputKind: "TEXT" | "VOICE";
+                                question: string;
+                                answer: string;
+                                /** @enum {string} */
+                                state: "ANSWERING" | "COMPLETED" | "INTERRUPTED" | "FAILED";
+                                failureCode: string | null;
+                                citedEntryIds: string[];
+                                /** Format: uuid */
+                                retryOfId: string | null;
+                                timings: {
+                                    sttMs: number | null;
+                                    firstTextMs: number | null;
+                                    firstAudioMs: number | null;
+                                    totalMs: number | null;
+                                };
+                                /** Format: date-time */
+                                createdAt: string;
+                                tools: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                    /** @enum {string} */
+                                    status: "DONE" | "APPLIED" | "PENDING" | "REJECTED" | "FAILED";
+                                    reason: string | null;
+                                    arguments: unknown;
+                                    result: unknown;
+                                    /** Format: uuid */
+                                    commandId: string | null;
+                                    commandStatus: string | null;
+                                    /** Format: date-time */
+                                    createdAt: string;
+                                }[];
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+    };
+    assistantlinks_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            slug: string;
+                            /** Format: uuid */
+                            releaseId: string;
+                            botName: string;
+                            releaseVersion: number;
+                            label: string;
+                            enabled: boolean;
+                            /** Format: date-time */
+                            expiresAt: string | null;
+                            revision: number;
+                            activeSessions: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    assistantlinks_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    releaseId: string;
+                    /** @default  */
+                    label?: string;
+                    /**
+                     * Format: date-time
+                     * @default null
+                     */
+                    expiresAt?: string | null;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            slug: string;
+                            /** Format: uuid */
+                            releaseId: string;
+                            botName: string;
+                            releaseVersion: number;
+                            label: string;
+                            enabled: boolean;
+                            /** Format: date-time */
+                            expiresAt: string | null;
+                            revision: number;
+                            activeSessions: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    assistantlinks_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    releaseId: string;
+                    label: string;
+                    enabled: boolean;
+                    /** Format: date-time */
+                    expiresAt: string | null;
+                    expectedRevision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            slug: string;
+                            /** Format: uuid */
+                            releaseId: string;
+                            botName: string;
+                            releaseVersion: number;
+                            label: string;
+                            enabled: boolean;
+                            /** Format: date-time */
+                            expiresAt: string | null;
+                            revision: number;
+                            activeSessions: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                        };
+                    };
+                };
+            };
+            /** @description The link changed; the error includes currentRevision. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description expectedRevision is required. */
+            428: {
                 headers: {
                     [name: string]: unknown;
                 };

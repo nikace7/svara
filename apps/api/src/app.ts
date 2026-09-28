@@ -56,6 +56,16 @@ import {
 } from './schedules/controller.js';
 import type { ScheduleHttpService } from './schedules/controller.js';
 import { scheduleFailure } from './schedules/errors.js';
+import {
+  AssistantLinksController,
+  PublicAssistantsController,
+  RuntimeVoiceController,
+  SessionsController,
+  VoiceSessionsController,
+} from './conversations/controller.js';
+import { CONVERSATION_BOUNDARY, ConversationBoundary } from './conversations/boundary.js';
+import type { ConversationHttpOptions } from './conversations/boundary.js';
+import { conversationFailure } from './conversations/errors.js';
 import { MEDIA_SERVICE, MediaController } from './media/controller.js';
 import type { MediaHttpService } from './media/controller.js';
 import { createFeasibilityHandler } from './feasibility.js';
@@ -97,6 +107,8 @@ export interface ApplicationOptions {
   schedules?: ScheduleHttpService;
   devices?: DeviceHttpService;
   runtime?: DeviceRuntimeHttpOptions;
+  /** Staff playground, kiosk and public-link conversations, session history and links. */
+  conversations?: ConversationHttpOptions;
   /** Attached to the HTTP server; staff changes that revoke access disconnect its sockets. */
   deviceGateway?: DeviceGateway;
   trustedProxyHops?: 0 | 1;
@@ -159,6 +171,16 @@ class SafeExceptionFilter implements ExceptionFilter {
     }
     const parserType =
       exception instanceof Error && 'type' in exception ? exception.type : undefined;
+    const conversation = conversationFailure(exception);
+    if (conversation) {
+      if (conversation.retryAfter)
+        response.setHeader('Retry-After', String(conversation.retryAfter));
+      response.status(conversation.status).json({
+        error: conversation.error,
+        requestId: response.getHeader('x-request-id'),
+      });
+      return;
+    }
     const schedule = scheduleFailure(exception);
     if (schedule) {
       response.status(schedule.status).json({
@@ -403,6 +425,15 @@ export function createOpenApiDocument(app: NestExpressApplication) {
         },
         'device',
       )
+      .addCookieAuth(
+        'svara-visitor',
+        {
+          type: 'apiKey',
+          in: 'cookie',
+          description: 'Link-bound HttpOnly visitor grant; __Host-svara-visitor on HTTPS.',
+        },
+        'visitor',
+      )
       .build(),
     {
       operationIdFactory: (controller, method) =>
@@ -440,6 +471,11 @@ export async function createApplication(
       DeviceScheduleController,
       DevicesController,
       DeviceRuntimeController,
+      VoiceSessionsController,
+      RuntimeVoiceController,
+      PublicAssistantsController,
+      SessionsController,
+      AssistantLinksController,
     ],
     providers: [
       { provide: OPTIONS, useValue: options },
@@ -452,6 +488,7 @@ export async function createApplication(
       { provide: SCHEDULE_SERVICE, useValue: options.schedules ?? null },
       { provide: DEVICE_SERVICE, useValue: devices },
       { provide: RUNTIME_BOUNDARY, useValue: new DeviceRuntimeBoundary(options.runtime) },
+      { provide: CONVERSATION_BOUNDARY, useValue: new ConversationBoundary(options.conversations) },
       StaffGuard,
     ],
   })
@@ -472,13 +509,14 @@ export async function createApplication(
       /^\/api\/v1\/(?:bots|knowledge)(?:\/|\?|$)/.test(request.url ?? '') &&
       /^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] ?? ''),
   });
-  // A recorded question is up to 15 s of base64 PCM (640,000 characters); only the local
-  // voice turn accepts that much.
+  // A recorded question is up to 15 s of base64 PCM (640,000 characters); only voice turns
+  // accept that much.
   app.useBodyParser('json', {
     limit: '700kb',
     type: (request) =>
-      /^\/api\/v1\/feasibility\/turn(?:\?|$)/.test(request.url ?? '') &&
-      /^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] ?? ''),
+      /^\/api\/v1\/(?:feasibility\/turn|(?:runtime\/|public\/assistants\/[a-z0-9]{12,32}\/)?voice-sessions\/[0-9a-f-]{36}\/turns)(?:\?|$)/.test(
+        request.url ?? '',
+      ) && /^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] ?? ''),
   });
   app.useBodyParser('json', { limit: '16kb' });
   app.useGlobalPipes(

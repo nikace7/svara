@@ -674,6 +674,19 @@ export class ConversationService {
     });
   }
 
+  /** Whether this turn may keep speaking: its session is open and no newer generation exists. */
+  async stillCurrent(turn: TurnContext): Promise<boolean> {
+    const session = await this.db.conversationSession.findUnique({
+      where: { id: turn.sessionId },
+      select: { status: true, generation: true, endsBy: true },
+    });
+    return (
+      session?.status === 'ACTIVE' &&
+      session.generation === turn.generation &&
+      session.endsBy > this.clock()
+    );
+  }
+
   /** Worker sweep: stale sessions end and keep their whole reservation. */
   async expireStale(): Promise<number> {
     const now = this.clock();

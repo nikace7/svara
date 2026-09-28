@@ -1,5 +1,6 @@
 import { loadWorkspaceEnvironment, parseServerConfig } from '@svara/config/server';
 import {
+  FixtureAnswerGenerator,
   GeminiAnswerGenerator,
   GeminiSpeechRecognizer,
   GeminiSpeechSynthesizer,
@@ -19,10 +20,15 @@ import {
   ScheduleService,
   MediaService,
   MediaStorage,
+  AssistantLinkService,
+  ConversationService,
+  ConversationSessions,
+  PublicAssistants,
 } from '@svara/domain';
 import { commandWakeupSchema } from '@svara/contracts';
 import { createApplication } from './app.js';
 import { DeviceGateway } from './devices/gateway.js';
+import { ActiveTurns } from './conversations/stream.js';
 
 loadWorkspaceEnvironment();
 const config = parseServerConfig(process.env);
@@ -50,6 +56,13 @@ const gateway = new DeviceGateway({
   runtime: deviceRuntime,
   commands: new DeviceCommands(deviceRuntime),
 });
+// Configuration already requires a key in live mode, so live never falls back to demo mode.
+const liveKey = config.PROVIDER_MODE === 'live' ? config.GEMINI_API_KEY : undefined;
+const conversationMode = liveKey ? 'live' : 'fixture';
+const conversations = new ConversationService(dependencies.database, identity, deviceRuntime, {
+  providerMode: conversationMode,
+  pepper: config.AUTH_TOKEN_PEPPER,
+});
 const app = await createApplication({
   providerMode: config.PROVIDER_MODE,
   localDocs: config.APP_ENV === 'local',
@@ -76,6 +89,29 @@ const app = await createApplication({
   releases: new ReleaseService(identity, { providerMode: config.PROVIDER_MODE }),
   schedules: new ScheduleService(identity),
   media: new MediaService(identity, dependencies.database, storage),
+  conversations: {
+    service: conversations,
+    sessions: new ConversationSessions(identity),
+    links: new AssistantLinkService(identity),
+    publics: new PublicAssistants(dependencies.database, storage, {
+      pepper: config.AUTH_TOKEN_PEPPER,
+      providerMode: conversationMode,
+    }),
+    streaming: {
+      service: conversations,
+      runner: {
+        service: conversations,
+        providers: liveKey
+          ? liveVoiceProviders(liveKey)
+          : { generator: new FixtureAnswerGenerator() },
+        slides: { show: (deviceId, command) => gateway.showSlide(deviceId, command) },
+      },
+      active: new ActiveTurns(),
+    },
+    origin: config.APP_ORIGIN,
+    pepper: config.AUTH_TOKEN_PEPPER,
+    consumeLimit: createStaffLimiter(dependencies.redis, config.AUTH_TOKEN_PEPPER),
+  },
   ...(config.APP_ENV === 'local' ? { feasibilityOrigin: config.APP_ORIGIN } : {}),
   ...(config.APP_ENV === 'local' && config.PROVIDER_MODE === 'live' && config.GEMINI_API_KEY
     ? { liveVoice: liveVoiceProviders(config.GEMINI_API_KEY) }

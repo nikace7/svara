@@ -313,8 +313,9 @@ export async function* runConversationTurn(
                 (label) => passages.find((passage) => passage.id === label)?.entryId,
               );
               if (entries.some((entry) => !entry)) throw new InvalidCitation();
-              if (!text.trim()) continue;
+              // A label can arrive as its own fragment after the sentence it supports.
               for (const entry of entries) cited.add(entry!);
+              if (!text.trim()) continue;
               spoke = true;
               yield* say(text);
             }
@@ -368,6 +369,8 @@ export async function* runConversationTurn(
     failure = providerCode(error);
     yield event('error', failureText[failure as TurnErrorCode], { code: failure as TurnErrorCode });
   } finally {
+    // Neither completed nor failed: cancelled, or its stream was closed by the listener.
+    if (state === 'FAILED' && failure === null) state = 'INTERRUPTED';
     if (state === 'COMPLETED' && speechFailed && providers.synthesizer) failure = 'TTS_UNAVAILABLE';
     await service.finishTurn(turn, {
       state,

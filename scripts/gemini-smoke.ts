@@ -52,6 +52,8 @@ async function runLocale(locale: Locale) {
       { question: questions[locale], passages, history: [] },
       context,
     )) {
+      // No tools are offered, so only text is expected.
+      if (typeof delta !== 'string') continue;
       if (!('firstToken' in timings)) timings['firstToken'] = performance.now() - started;
       segments.push(...splitter.push(delta));
     }
