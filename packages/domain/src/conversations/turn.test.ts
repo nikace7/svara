@@ -174,6 +174,19 @@ describe('conversation turns', () => {
     expect(finished[0]).toMatchObject({ state: 'COMPLETED', citedEntryIds: [] });
   });
 
+  it('drops ungrounded words on a kiosk with slides but no evidence, answering the fallback', async () => {
+    const { runner, requests, finished } = harness([['Admissions is in room 99.']], {
+      passages: [],
+    });
+    const events = await run(context({ tools: ['show_slide'] }), runner);
+    // The model is still asked, in case the question is a slide request.
+    expect(requests).toHaveLength(1);
+    expect(events.filter((event) => event.type === 'answer').map((event) => event.text)).toEqual([
+      'Please ask reception.',
+    ]);
+    expect(finished[0]).toMatchObject({ answer: 'Please ask reception.', citedEntryIds: [] });
+  });
+
   it('runs a proposed slide change after its round, waits for the ack, then answers', async () => {
     const call = { type: 'tool' as const, callId: 'c1', name: 'show_slide', args: { slide: 'S1' } };
     const { runner, tools, shown, requests } = harness([[call], ['It is on screen.']], {

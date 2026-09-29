@@ -91,7 +91,8 @@ test('a kiosk shows a requested slide on its display, stops a long answer and ke
   await expect(kiosk.locator('.device-slide')).toContainText('Admissions steps');
 
   // Stopping a long answer ends it at once: nothing later is shown.
-  await panel.getByLabel('Type your question').fill('Give me a long answer');
+  // Answerable from the release, so the (stub) model's words are grounded and spoken.
+  await panel.getByLabel('Type your question').fill('Where is admissions? Give me a long answer.');
   await panel.getByRole('button', { name: 'Ask', exact: true }).click();
   await expect(panel.getByText('This is sentence 1 of a long answer.')).toBeVisible();
   await panel.getByRole('button', { name: 'Stop speaking' }).click();
