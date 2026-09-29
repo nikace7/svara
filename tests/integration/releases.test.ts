@@ -155,6 +155,20 @@ describe('immutable release assembly on PostgreSQL', () => {
     expect(result.passages[0]?.entryId).toBe(faq.id);
   });
 
+  it('freezes knowledge in the order it was written, so suggestions follow the author', async () => {
+    const bot = await readyBot();
+    const written = [];
+    for (let index = 0; index < 6; index += 1) written.push((await entry(bot.id)).id);
+    const release = await releases.publish(
+      staff.owner.token,
+      bot.id,
+      { expectedRevision: await revision(bot.id) },
+      randomUUID(),
+    );
+    // Random UUIDs match this order by chance once in 720 runs.
+    expect(release.snapshot.knowledge.map((row) => row.id)).toEqual(written);
+  });
+
   it('reports actionable readiness without writing releases and rejects stale validation', async () => {
     const blank = await bots.create(staff.owner.token, { name: 'Incomplete guide' });
     const readiness = await releases.validate(staff.owner.token, blank.id, {
