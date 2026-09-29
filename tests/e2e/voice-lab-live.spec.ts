@@ -61,7 +61,9 @@ test('answers from the chosen release in both languages and plays the speech', a
 }) => {
   const { name, releaseId } = await guide(context.request, baseURL!, true);
   await page.goto('/studio/voice-lab');
-  await expect(page.getByText('Live providers', { exact: true })).toBeVisible();
+  await expect(
+    page.locator('#main-content').getByText('Live providers', { exact: true }),
+  ).toBeVisible();
   await page.getByLabel('Bot', { exact: true }).selectOption({ label: name });
   await expect(page.getByLabel('Grounding release')).toHaveValue(releaseId!);
   await expect(page.getByText("Answers use only this release's knowledge.")).toBeVisible();
