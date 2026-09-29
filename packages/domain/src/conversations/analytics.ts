@@ -74,6 +74,11 @@ export async function analyticsOverview(tx: Transaction, s: Scope): Promise<Anal
       AND x."createdAt" >= ${s.from} AND x."createdAt" <= ${s.to}
       AND (${s.locale}::text IS NULL OR t."locale" = ${s.locale})
     GROUP BY 1`;
+  const audit = await tx.$queryRaw<{ key: string; n: number }[]>`
+    SELECT "action" AS key, count(*)::int AS n FROM "AuditEntry"
+    WHERE "organisationId" = ${s.organisationId}::uuid
+      AND "createdAt" >= ${s.from} AND "createdAt" <= ${s.to}
+    GROUP BY 1`;
   const sum = (rows: { n: number }[]) => rows.reduce((total, row) => total + row.n, 0);
   return {
     scope: scopeView(s),
@@ -101,6 +106,7 @@ export async function analyticsOverview(tx: Transaction, s: Scope): Promise<Anal
         tools.map((row) => ({ key: row.status, n: row.n })),
       ),
     },
+    audit: byKey(audit),
   };
 }
 

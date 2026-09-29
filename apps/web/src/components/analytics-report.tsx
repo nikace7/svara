@@ -224,6 +224,16 @@ export function AnalyticsReport({ mode: serverMode }: { mode: ProviderMode }) {
               empty="No tool calls in this period."
             />
           </section>
+          <section className="panel analytics-panel" aria-labelledby="analytics-audit">
+            <h2 id="analytics-audit">Recorded changes</h2>
+            <p className="muted">From the audit log, for live and demo alike.</p>
+            <Counts
+              rows={Object.entries(counts.audit)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([action, count]) => [action.replaceAll(/[._]/g, ' '), count])}
+              empty="No audited changes in this period."
+            />
+          </section>
         </div>
       )}
     </>
