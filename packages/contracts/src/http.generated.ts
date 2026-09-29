@@ -1135,6 +1135,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/analytics/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["analytics_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/latency": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["analytics_latency"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/assistant-links": {
         parameters: {
             query?: never;
@@ -6942,6 +6974,116 @@ export interface operations {
                                     /** Format: date-time */
                                     createdAt: string;
                                 }[];
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+    };
+    analytics_overview: {
+        parameters: {
+            query?: {
+                days?: number;
+                locale?: "en-US" | "ne-NP";
+                mode?: "live" | "fixture";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recorded counts for exactly one provider mode; live is the default. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            scope: {
+                                /** @enum {string} */
+                                mode: "fixture" | "live";
+                                /** @enum {string|null} */
+                                locale: "en-US" | "ne-NP" | null;
+                                /** Format: date-time */
+                                from: string;
+                                /** Format: date-time */
+                                to: string;
+                            };
+                            sessions: {
+                                total: number;
+                                byActor: {
+                                    [key: string]: number;
+                                };
+                                byEndReason: {
+                                    [key: string]: number;
+                                };
+                            };
+                            turns: {
+                                total: number;
+                                voice: number;
+                                byState: {
+                                    [key: string]: number;
+                                };
+                                byFailure: {
+                                    [key: string]: number;
+                                };
+                            };
+                            tools: {
+                                total: number;
+                                byStatus: {
+                                    [key: string]: number;
+                                };
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+    analytics_latency: {
+        parameters: {
+            query?: {
+                days?: number;
+                locale?: "en-US" | "ne-NP";
+                mode?: "live" | "fixture";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Measured distributions; percentiles are null below the minimum sample size. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            scope: {
+                                /** @enum {string} */
+                                mode: "fixture" | "live";
+                                /** @enum {string|null} */
+                                locale: "en-US" | "ne-NP" | null;
+                                /** Format: date-time */
+                                from: string;
+                                /** Format: date-time */
+                                to: string;
+                            };
+                            minimumSamples: number;
+                            metrics: {
+                                /** @enum {string} */
+                                metric: "sttMs" | "firstTextMs" | "firstAudioMs" | "totalMs" | "slideAckMs";
+                                samples: number;
+                                missing: number;
+                                p50: number | null;
+                                p90: number | null;
+                                p95: number | null;
+                                max: number | null;
                             }[];
                         };
                     };

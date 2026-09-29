@@ -57,6 +57,7 @@ import {
 import type { ScheduleHttpService } from './schedules/controller.js';
 import { scheduleFailure } from './schedules/errors.js';
 import {
+  AnalyticsController,
   AssistantLinksController,
   PublicAssistantsController,
   RuntimeVoiceController,
@@ -475,6 +476,7 @@ export async function createApplication(
       RuntimeVoiceController,
       PublicAssistantsController,
       SessionsController,
+      AnalyticsController,
       AssistantLinksController,
     ],
     providers: [

@@ -331,6 +331,43 @@ export class SessionsController {
   }
 }
 
+@Controller('analytics')
+@ApiTags('Conversations')
+@ApiCookieAuth('staff')
+@UseGuards(StaffGuard)
+export class AnalyticsController {
+  constructor(
+    @Inject(AUTH_BOUNDARY) private readonly staff: StaffBoundary,
+    @Inject(CONVERSATION_BOUNDARY) private readonly boundary: ConversationBoundary,
+  ) {}
+  @Get('overview')
+  @ApiQuery({ name: 'mode', enum: ['live', 'fixture'], required: false })
+  @ApiQuery({ name: 'locale', enum: ['en-US', 'ne-NP'], required: false })
+  @ApiQuery({ name: 'days', type: Number, minimum: 1, maximum: 90, required: false })
+  @ApiOkResponse({
+    schema: schemas.analyticsOverview,
+    description: 'Recorded counts for exactly one provider mode; live is the default.',
+  })
+  async overview(@Req() request: Request, @Query() value: unknown) {
+    return {
+      data: await this.boundary.settings.sessions.overview(this.staff.token(request), value),
+    };
+  }
+  @Get('latency')
+  @ApiQuery({ name: 'mode', enum: ['live', 'fixture'], required: false })
+  @ApiQuery({ name: 'locale', enum: ['en-US', 'ne-NP'], required: false })
+  @ApiQuery({ name: 'days', type: Number, minimum: 1, maximum: 90, required: false })
+  @ApiOkResponse({
+    schema: schemas.analyticsLatency,
+    description: 'Measured distributions; percentiles are null below the minimum sample size.',
+  })
+  async latency(@Req() request: Request, @Query() value: unknown) {
+    return {
+      data: await this.boundary.settings.sessions.latency(this.staff.token(request), value),
+    };
+  }
+}
+
 @Controller('assistant-links')
 @ApiTags('Public assistant')
 @ApiCookieAuth('staff')
