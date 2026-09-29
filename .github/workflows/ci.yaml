@@ -40,6 +40,15 @@ jobs:
       - run: pnpm test:integration
         env:
           MEDIA_INSPECTION_MODE: native
+      # The fixed bilingual evaluation in demo mode; --live needs a key and never runs here.
+      - run: pnpm eval:conversations
+      - name: Save evaluation results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: evaluation
+          path: artifacts/evaluation/
+          if-no-files-found: ignore
       - run: pnpm exec playwright install --with-deps chromium
       # Live-mode lab journeys run on their own stub-provider stack against the test database.
       - run: pnpm test:e2e:live
