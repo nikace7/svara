@@ -5,32 +5,20 @@ Svara is an independent implementation using synthetic organisations and content
 
 ## Build status
 
-**M0 — workspace and component foundation is implemented.** The local studio,
-component gallery, NestJS health API, worker heartbeat, PostgreSQL schema, safe
-setup/seed, generated contracts and Docker stack run together.
+Milestones M0–M8 are built and verified locally; M1's live voice evidence is partial.
+Everything runs without a provider account in clearly labelled demo mode, and a free
+Google AI Studio key switches on live answers and speech. [Progress](docs/PROGRESS.md)
+has the milestone table and test evidence.
 
-**M1's local fixture lab is implemented.** The bilingual lab includes scripted
-English/Nepali subtitles, typed fallback, interruption, measured fixture timings,
-microphone capture and PCM speaker checks. Live recognition/generation/synthesis
-and their bilingual quality gate remain pending provider setup. The professional
-light theme uses white surfaces and a subtle lavender gradient.
-
-**M2 identity is implemented:** register/sign in, scoped cookie sessions,
-organisation settings, team invitations, recovery links, role changes and workspace
-switching work through the browser and API. Demo staff credentials are generated
-locally; an explicit local recovery command revokes sessions and preserves roles.
-See [identity scope](docs/M2-IDENTITY.md), [free provider account setup](docs/FREE-DEMO-SETUP.md)
-and [progress and verification](docs/PROGRESS.md).
-
-**M3 bot drafts, knowledge, media and presentations are implemented:** scoped search, bilingual editing,
-revision conflicts, read-only roles, archive/restore, FAQ/reference approval and
-release inclusion. The media library supports streaming uploads, durable inspection,
-private image/video previews and confirmed removal. Presentation authoring adds ordered
-bilingual slides, screen targets, ready media attachments and real draft previews.
-Immutable previews, numbered publication, retry recovery and frozen bilingual
-knowledge inspection are implemented. Setup adds three fictional guides, inspected
-map artwork and a published campus example while preserving existing edits.
-See [authoring scope](docs/M3-AUTHORING.md) and [demo walkthrough](docs/DEMO-CONTENT.md).
+- **Evidence:** [evaluation](docs/EVALUATION.md) (fixed bilingual set, acceptance
+  matrix, limitations), [demo walkthrough and screenshots](docs/DEMO.md) and the
+  [case study](docs/CASE_STUDY.md).
+- **Scope by area:** [voice](docs/M1-VOICE.md), [identity](docs/M2-IDENTITY.md),
+  [authoring](docs/M3-AUTHORING.md), [devices](docs/M4-DEVICES.md),
+  [schedules](docs/M5-SCHEDULES.md), [conversations](docs/M6-CONVERSATIONS.md) and
+  [operations](docs/M7-OPERATIONS.md).
+- **Not yet proven:** live conversation quality and latency with a real key, fluent Nepali
+  review, and a CI run on GitHub.
 
 ## Architecture
 
@@ -210,6 +198,8 @@ pnpm test:integration      # requires native infrastructure
 pnpm exec playwright install chromium
 pnpm test:e2e              # requires the complete running app
 pnpm test:e2e:live         # voice lab, schedules and kiosks on a stub-provider stack; run pnpm build first
+pnpm eval:conversations    # fixed bilingual evaluation in demo mode (add --live with a key)
+pnpm screenshots:handoff   # the seven handoff screenshots in demo mode; run pnpm build first
 ```
 
 For the full Compose demo use `pnpm test:integration:container` instead of the native
@@ -225,9 +215,3 @@ The GitHub Actions workflow is ready for a future remote; it has not been run on
 GitHub or published. See [contributing](CONTRIBUTING.md),
 [operations](docs/OPERATIONS.md), [API contracts](docs/API.md), and
 [dependency decisions](docs/DEPENDENCIES.md).
-
-The next authoring increment connects the [immutable release domain](docs/RELEASES.md)
-to staff API routes and studio readiness/history controls. Release capture and
-retrieval already have database integration tests; the Voice lab still uses fixture
-scenarios. [Provider setup instructions](docs/FREE-DEMO-SETUP.md) let you prepare your
-own accounts while continuing to use the demo without keys.
