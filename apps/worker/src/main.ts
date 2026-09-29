@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { loadWorkspaceEnvironment, parseServerConfig } from '@svara/config/server';
 import {
+  applyRetention,
   CommandOutbox,
   expireStaleSessions,
   createDependencies,
@@ -35,6 +36,24 @@ const schedules = new ScheduleLoop(
 );
 let closing = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
+let retentionTimer: ReturnType<typeof setTimeout> | undefined;
+let retaining: Promise<void> | undefined;
+
+/** Retention at startup and hourly; each pass is idempotent, so a missed hour costs nothing.
+ * ponytail: one worker process; add a lease if several workers ever run. */
+function retain(): void {
+  if (closing) return;
+  retaining = applyRetention(dependencies.database)
+    .then((outcome) => {
+      if (outcome.transcripts || outcome.records)
+        console.info(JSON.stringify({ event: 'worker.retention.applied', ...outcome }));
+    })
+    .catch(() => console.error(JSON.stringify({ event: 'worker.retention.failed' })))
+    .finally(() => {
+      retaining = undefined;
+      if (!closing) retentionTimer = setTimeout(retain, 3_600_000);
+    });
+}
 
 async function ready(): Promise<Readiness> {
   const infrastructure = await dependencies.ready();
@@ -96,6 +115,7 @@ async function shutdown(): Promise<void> {
   if (closing) return;
   closing = true;
   clearTimeout(timer);
+  clearTimeout(retentionTimer);
   server.close();
   const deadline = setTimeout(() => {
     console.error(JSON.stringify({ event: 'worker.shutdown.timeout' }));
@@ -103,7 +123,7 @@ async function shutdown(): Promise<void> {
   }, 25_000);
   deadline.unref();
   try {
-    await Promise.all([mediaQueue.close(), schedules.close()]);
+    await Promise.all([mediaQueue.close(), schedules.close(), retaining]);
   } finally {
     await dependencies.close();
     clearTimeout(deadline);
@@ -125,6 +145,7 @@ server.on('error', () => {
 server.listen(config.WORKER_PORT, config.BIND_HOST);
 mediaQueue.start();
 schedules.start();
+retain();
 await heartbeat();
 console.info(
   JSON.stringify({
@@ -137,6 +158,7 @@ console.info(
       'media-cleanup',
       'desired-state-reconciliation',
       'command-outbox',
+      'retention',
     ],
   }),
 );

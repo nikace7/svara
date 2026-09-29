@@ -52,3 +52,5 @@ export type { ConversationErrorCode } from './conversations/errors.js';
 export { ConversationSessions } from './conversations/sessions.js';
 export { runConversationTurn } from './conversations/turn.js';
 export type { ConversationProviders, SlideChannel, TurnRunner } from './conversations/turn.js';
+export { applyRetention, RETENTION } from './retention.js';
+export type { RetentionOutcome } from './retention.js';

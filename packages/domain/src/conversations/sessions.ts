@@ -2,7 +2,7 @@ import type { Prisma } from '@svara/database';
 import { resourceIdSchema, sessionListQuerySchema } from '@svara/contracts';
 import type { Locale, SessionDetail, SessionSummary, ToolStatus } from '@svara/contracts';
 import type { IdentityService } from '../identity/service.js';
-import { endSessions, sessionView } from './core.js';
+import { blankTranscripts, endSessions, sessionView } from './core.js';
 import { ConversationError } from './errors.js';
 
 type Transaction = Prisma.TransactionClient;
@@ -131,10 +131,7 @@ export class ConversationSessions {
     };
   }
 
-  /**
-   * Removes what was said and every tool payload. Device commands keep only their IDs and
-   * outcome, so the display timeline survives without any conversation text.
-   */
+  /** Ends the session and removes its transcript and tool payloads (see `blankTranscripts`). */
   async deleteTranscript(token: string, id: string): Promise<SessionDetail> {
     parse(resourceIdSchema, id);
     return this.identity.asStaff(token, 'delete_transcripts', async (tx, { member }) => {
@@ -145,18 +142,7 @@ export class ConversationSessions {
       if (!session) throw new ConversationError('NOT_FOUND');
       const now = this.clock();
       await endSessions(tx, { id }, 'TRANSCRIPT_DELETED', now);
-      await tx.conversationTurn.updateMany({
-        where: { sessionId: id },
-        data: { transcript: '', answer: '', citedEntryIds: [] },
-      });
-      // The payload keeps only the slide and screen; it never held conversation text.
-      await tx.$executeRaw`UPDATE "DeviceCommand" SET "payload" = jsonb_build_object('slideId', "payload"->'slideId', 'target', "payload"->'target')
-        WHERE "id" IN (SELECT "commandId" FROM "ToolExecution" WHERE "sessionId" = ${id}::uuid AND "commandId" IS NOT NULL)`;
-      await tx.$executeRaw`UPDATE "ToolExecution" SET "arguments" = NULL, "result" = NULL WHERE "sessionId" = ${id}::uuid`;
-      await tx.conversationSession.update({
-        where: { id },
-        data: { transcriptDeletedAt: now },
-      });
+      await blankTranscripts(tx, [id], now);
       await tx.auditEntry.create({
         data: {
           organisationId: member.organisationId,
