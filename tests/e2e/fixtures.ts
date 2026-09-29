@@ -25,18 +25,22 @@ async function registerOwner(playwright: PlaywrightWorkerArgs['playwright'], bas
   }
 }
 
-// One synthetic owner per spec file; real quotas stay enabled. Per test would spend the
-// per-IP sign-in quota (30 per 10 minutes); per worker, one session carries the whole run
-// past its request quota (180 per minute).
-const owners = new Map<string, Promise<StaffState>>();
+// Real quotas stay enabled, so owners rotate through a small pool by spec file. The run
+// already spends ~23 of the 30 sign-ins per IP per 10 minutes on the flows that test
+// sign-in, and one owner for the whole run would pass 180 requests per minute on its
+// session. Files run one at a time, so consecutive files land on different sessions.
+const POOL_SIZE = 3;
+const pool: Promise<StaffState>[] = [];
+const slots = new Map<string, number>();
 
 export const test = base.extend<{ staffState: StaffState }>({
   staffState: async ({ playwright, baseURL }, use, testInfo) => {
-    let owner = owners.get(testInfo.file);
-    if (!owner) {
-      owner = registerOwner(playwright, String(baseURL));
-      owners.set(testInfo.file, owner);
+    let slot = slots.get(testInfo.file);
+    if (slot === undefined) {
+      slot = slots.size % POOL_SIZE;
+      slots.set(testInfo.file, slot);
     }
+    const owner = (pool[slot] ??= registerOwner(playwright, String(baseURL)));
     await use(await owner);
   },
   storageState: async ({ staffState }, use) => {
