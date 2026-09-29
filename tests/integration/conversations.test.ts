@@ -745,6 +745,9 @@ describe('conversation admission, turns, tools and public links', () => {
     );
     expect(fixture.sessions.byActor.STAFF).toBeGreaterThan(0);
     expect(fixture.turns.byState.COMPLETED).toBeGreaterThanOrEqual(5);
+    // Audited changes are counted by action only, whatever the provider mode.
+    expect(fixture.audit['conversation.transcript.deleted']).toBeGreaterThanOrEqual(1);
+    expect(live.audit).toEqual(fixture.audit);
 
     // Percentiles are real recorded values (percentile_disc), computed from the same rows.
     const latency = await sessions.latency(token, { mode: 'fixture', days: '1' });

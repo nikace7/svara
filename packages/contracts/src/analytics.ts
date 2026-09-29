@@ -45,6 +45,8 @@ export const analyticsOverviewSchema = z.strictObject({
     byFailure: z.record(z.string(), count),
   }),
   tools: z.strictObject({ total: count, byStatus: z.record(toolStatusSchema, count) }),
+  /** Audited changes by action in the window, for every mode: counts only, never who or what. */
+  audit: z.record(z.string(), count),
 });
 
 /** Percentiles are measured values (percentile_disc), null while samples are insufficient.

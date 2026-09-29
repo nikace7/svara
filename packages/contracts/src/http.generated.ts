@@ -7037,6 +7037,9 @@ export interface operations {
                                     [key: string]: number;
                                 };
                             };
+                            audit: {
+                                [key: string]: number;
+                            };
                         };
                     };
                 };
