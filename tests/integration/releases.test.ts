@@ -5,6 +5,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { emptyBotDraft } from '../../packages/contracts/src/authoring.js';
+import { demoAuthoringBundles } from '../../fixtures/authoring.js';
 import { parseServerConfig } from '../../packages/config/src/server.js';
 import { IdentityService } from '../../packages/domain/src/identity/service.js';
 import { BotService } from '../../packages/domain/src/authoring/bots.js';
@@ -14,6 +15,7 @@ import {
   ReleaseService,
   releaseSnapshotHash,
 } from '../../packages/domain/src/authoring/releases.js';
+import { searchRelease } from '../../packages/domain/src/authoring/release-search.js';
 import { MediaService } from '../../packages/domain/src/media/service.js';
 import { MediaStorage } from '../../packages/domain/src/media/storage.js';
 import { MediaJobs } from '../../packages/domain/src/media/jobs.js';
@@ -153,6 +155,135 @@ describe('immutable release assembly on PostgreSQL', () => {
       query: 'Where is admissions reception?',
     });
     expect(result.passages[0]?.entryId).toBe(faq.id);
+  });
+
+  it('matches content words, not question shape or Nepali postpositions', async () => {
+    const bot = await readyBot();
+    for (const [title, question, content] of [
+      [
+        'Library location',
+        { en: 'Where is the library?', ne: 'पुस्तकालय कहाँ छ?' },
+        { en: 'The library is in room 21.', ne: 'पुस्तकालय कोठा २१ मा छ।' },
+      ],
+      [
+        'Admissions office',
+        { en: 'Where is the admissions office?', ne: 'भर्ना कार्यालय कहाँ छ?' },
+        {
+          en: 'The admissions desk is in room 12, beside the entrance lobby.',
+          ne: 'भर्ना कक्ष प्रवेशद्वारको लबी नजिकैको कोठा १२ मा छ।',
+        },
+      ],
+    ] as const) {
+      const created = await knowledge.create(staff.owner.token, bot.id, { title, type: 'FAQ' });
+      const saved = await knowledge.save(staff.owner.token, created.id, {
+        expectedRevision: created.revision,
+        title,
+        type: 'FAQ',
+        question,
+        content,
+      });
+      await knowledge.approve(staff.owner.token, saved.id, {
+        expectedRevision: saved.revision,
+        approved: true,
+      });
+    }
+    const release = await releases.publish(
+      staff.owner.token,
+      bot.id,
+      { expectedRevision: await revision(bot.id) },
+      randomUUID(),
+    );
+    const top = async (locale: 'en' | 'ne', query: string) =>
+      (await releases.search(staff.owner.token, release.id, { locale, query })).passages.map(
+        (passage) => passage.title,
+      );
+    // Shares only "is the" with the library question; nothing about fees was written.
+    expect(await top('en', 'What is the tuition fee?')).toEqual([]);
+    expect(await top('en', 'Where is the canteen?')).toEqual([]);
+    expect(await top('en', 'Which room has the library?')).toEqual(['Library location']);
+    // "कक्षको" must reach "कक्ष"; the question words "कति हो" carry no meaning.
+    expect((await top('ne', 'भर्ना कक्षको कोठा नम्बर कति हो?'))[0]).toBe('Admissions office');
+    expect(await top('ne', 'क्यान्टिन कहाँ छ?')).toEqual([]);
+    // Visitor turns pass raw text: the exact-question bonus must still apply.
+    const stored = await staff.db.botRelease.findUniqueOrThrow({ where: { id: release.id } });
+    const raw = await staff.db.$transaction((tx) =>
+      searchRelease(
+        tx,
+        stored.organisationId,
+        release.id,
+        stored.snapshotHash,
+        'en',
+        '  WHERE IS THE LIBRARY? ',
+      ),
+    );
+    expect(raw.passages[0]).toMatchObject({ title: 'Library location' });
+    expect(raw.passages[0]!.score).toBeGreaterThanOrEqual(3);
+    // Whole words survive: the virama and vowel signs are not punctuation.
+    const [terms] = await staff.db.$queryRaw<{ ne: string; en: string }[]>`
+      SELECT svara_search_terms('भर्ना कक्षको कोठा नम्बर कति हो?', 'ne') AS ne,
+        svara_search_terms('what''s the step-free route?', 'en') AS en`;
+    expect(terms).toEqual({ ne: 'भर्ना कक्ष कोठा नम्बर', en: 'step free route' });
+  });
+
+  it('finds held-out paraphrases in the demo guide and nothing for unrelated questions', async () => {
+    // Written before the content-word change was tuned; none is in fixtures/evaluation.ts.
+    // Known misses, left out on purpose (synonyms trigrams cannot bridge; docs/EVALUATION.md):
+    // "What papers do I need to apply?", "Is the campus wheelchair accessible?",
+    // "आवेदन दिन के के कागजात चाहिन्छ?".
+    const cases: Array<['en' | 'ne', string, string | null]> = [
+      ['en', 'Where do I find the admissions desk?', 'Admissions office'],
+      ['en', 'Which room has the library?', 'Library location'],
+      ['en', 'What are the reception opening hours?', 'Reception hours'],
+      ['en', 'Where is the courtyard presentation room?', 'Presentation room'],
+      ['en', 'How much does the course cost?', null],
+      ['en', 'Where is the canteen?', null],
+      ['en', 'What is the exam schedule?', null],
+      ['ne', 'भर्ना कक्ष कुन कोठामा छ?', 'Admissions office'],
+      ['ne', 'पुस्तकालय कुन कोठा हो?', 'Library location'],
+      ['ne', 'स्वागत कक्ष कति बजे खुल्छ?', 'Reception hours'],
+      ['ne', 'प्रस्तुति कक्ष कहाँ छ?', 'Presentation room'],
+      ['ne', 'क्यान्टिन कहाँ छ?', null],
+      ['ne', 'परीक्षाको समय कति हो?', null],
+    ];
+    const bot = await readyBot();
+    const guide = demoAuthoringBundles(new Uint8Array()).at(0)!.bots.at(0)!;
+    for (const item of guide.knowledge) {
+      const created = await knowledge.create(staff.owner.token, bot.id, {
+        title: item.title,
+        type: item.type,
+      });
+      const saved = await knowledge.save(staff.owner.token, created.id, {
+        expectedRevision: created.revision,
+        title: item.title,
+        type: item.type,
+        question: item.question,
+        content: item.content,
+      });
+      if (!item.selected) {
+        await knowledge.select(staff.owner.token, saved.id, {
+          expectedRevision: saved.revision,
+          selected: false,
+        });
+        continue;
+      }
+      await knowledge.approve(staff.owner.token, saved.id, {
+        expectedRevision: saved.revision,
+        approved: true,
+      });
+    }
+    const release = await releases.publish(
+      staff.owner.token,
+      bot.id,
+      { expectedRevision: await revision(bot.id) },
+      randomUUID(),
+    );
+    const found = [];
+    for (const [locale, query] of cases)
+      found.push(
+        (await releases.search(staff.owner.token, release.id, { locale, query })).passages[0]
+          ?.title ?? null,
+      );
+    expect(found).toEqual(cases.map(([, , expected]) => expected));
   });
 
   it('freezes knowledge in the order it was written, so suggestions follow the author', async () => {

@@ -336,6 +336,8 @@ model ReleaseKnowledge {
   content String @db.VarChar(8000)
   searchText String @default(dbgenerated())
   normalizedQuestion String @default(dbgenerated())
+  searchTerms String @default(dbgenerated())
+  questionTerms String @default(dbgenerated())
   searchVector Unsupported("tsvector")? @default(dbgenerated())
   release BotRelease @relation(fields: [releaseId, organisationId, snapshotHash], references: [id, organisationId, snapshotHash], onDelete: Cascade, onUpdate: Restrict, map: "ReleaseKnowledge_release_fkey")
 
