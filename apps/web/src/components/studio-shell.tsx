@@ -45,7 +45,9 @@ function Navigation({ mode, onNavigate }: { mode: ProviderMode; onNavigate?: () 
         Svara<span className="wordmark-dot">.</span>
       </Link>
       <div className="workspace-label">
-        <span className="workspace-icon">S</span>
+        <span className="workspace-icon" aria-hidden="true">
+          {identity.organisation.name.charAt(0).toUpperCase()}
+        </span>
         <div>
           <strong>{identity.organisation.name}</strong>
           <span>Voice & Device Studio</span>

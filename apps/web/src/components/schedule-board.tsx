@@ -101,8 +101,13 @@ function Timeline({ deviceId }: { deviceId: string }) {
             {command.status.toLowerCase()}
           </StatusBadge>
           <span>
-            Revision {command.stateRevision} · {command.releaseId ? 'apply release' : 'go idle'} ·{' '}
-            {command.attempts === 1 ? '1 delivery' : `${command.attempts} deliveries`}
+            Revision {command.stateRevision} ·{' '}
+            {command.type === 'slide.show'
+              ? 'show slide'
+              : command.releaseId
+                ? 'apply release'
+                : 'go idle'}{' '}
+            · {command.attempts === 1 ? '1 delivery' : `${command.attempts} deliveries`}
           </span>
           <time dateTime={command.createdAt}>
             {formatZoned(command.createdAt, identity.organisation.timezone)}
