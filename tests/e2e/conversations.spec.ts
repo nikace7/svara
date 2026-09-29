@@ -123,3 +123,36 @@ test('staff test a release in the playground and see what it cited', async ({
   await expect(page.getByText(/Answered in \d+ ms · cited Admissions/)).toBeVisible();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
+
+test('analytics show measured live timings and keep demo results separate', async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  const guide = await publishedGuide(context.request, baseURL!);
+  await page.goto('/studio/playground');
+  await page.getByLabel('Bot', { exact: true }).selectOption({ label: guide.name });
+  await page.getByLabel('Type your question').fill('Where is admissions?');
+  await page.getByRole('button', { name: 'Ask', exact: true }).click();
+  await expect(page.getByText(/Answered in \d+ ms/)).toBeVisible();
+
+  await page.getByRole('link', { name: 'Analytics' }).click();
+  await expect(page.getByRole('heading', { name: 'Analytics', level: 1 })).toBeVisible();
+  await expect(page.getByText('Live results')).toBeVisible();
+  const timing = page.getByRole('region', { name: 'Response timing' });
+  // Typed questions were never recognised: unavailable, not a zero-millisecond result.
+  await expect(timing.getByRole('row', { name: /Speech recognised/ })).toContainText(
+    'Unavailable: nothing measured',
+  );
+  await expect(timing.getByRole('row', { name: /Whole answer/ })).toContainText(/samples/);
+  await expect(page.getByRole('heading', { name: /^Questions · [1-9]/ })).toBeVisible();
+  await page.screenshot({ path: 'artifacts/screenshots/m7-analytics-live.png', fullPage: true });
+
+  await page.getByLabel('Results').selectOption('fixture');
+  await expect(page.getByText('Demo results')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Questions · 0' })).toBeVisible();
+  await expect(timing.getByRole('row', { name: /Whole answer/ })).toContainText(
+    'Unavailable: nothing measured',
+  );
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
