@@ -29,14 +29,18 @@ export class FixtureAnswerGenerator implements AnswerGenerator {
       return;
     }
     const question = input.question.toLocaleLowerCase();
-    const slide = input.tools?.some((tool) => tool.name === 'show_slide')
-      ? input.slides?.find((item) =>
-          item.title
-            .toLocaleLowerCase()
-            .split(/\s+/)
-            .some((word) => word.length >= 4 && question.includes(word)),
-        )
-      : undefined;
+    // Only an explicit request to show something may move a screen; a question that merely
+    // shares a word with a slide title ("campus", "स्वागत") is answered, not acted on.
+    const asksToShow = /\b(show|display)\b|देखाउ/.test(question);
+    const slide =
+      asksToShow && input.tools?.some((tool) => tool.name === 'show_slide')
+        ? input.slides?.find((item) =>
+            item.title
+              .toLocaleLowerCase()
+              .split(/\s+/)
+              .some((word) => word.length >= 4 && question.includes(word)),
+          )
+        : undefined;
     if (slide) {
       yield {
         type: 'tool',
