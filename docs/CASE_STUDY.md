@@ -65,7 +65,8 @@ and [evaluation](EVALUATION.md).
 - Live conversation quality, latency under real provider load, and hands-free barge-in on
   real hardware.
 - Review of the Nepali answers and speech by a fluent speaker.
-- A green CI run on GitHub: the workflow exists, but the repository has no remote.
+- A green CI run on GitHub: the workflow is pushed, but GitHub has not started a job yet
+  because the account's Actions billing is blocked.
 - Production deployment: the product runs locally and in Docker Compose on one machine.
 
 ## For the author: the original CRV work

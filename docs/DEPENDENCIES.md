@@ -45,8 +45,9 @@ Keep the overrides until a compatible Prisma update resolves both transitively;
 rerun migrations, integration tests and contract generation when updating them.
 
 CI runs the dependency audit and all GitHub Actions are pinned to resolved commit
-SHAs. Dependabot configuration is ready for a future GitHub remote; no remote or
-hosted update job has been created in this local-only initialization.
+SHAs. Dependabot runs on the GitHub repository. Its pull requests #2–#5 were merged on
+2026-09-27 and #6–#11 on 2026-09-29, the latter with the lockfile regenerated against the
+current `main`.
 
 ## Presentation checkpoint — 2026-09-12
 

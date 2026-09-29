@@ -12,7 +12,7 @@ Updated 2026-09-29. Evidence is local unless explicitly marked otherwise.
 | M5 — Schedules and commands              | Complete | Conflict-safe schedules, overrides, monotonic desired state, outbox, worker and board; commands reach kiosks and are acknowledged.                                                                                                             |
 | M6 — Conversations and public assistant  | Complete | Scoped admission and limits, grounded cited turns, validated tools, kiosk slides, public links and visitor grants, playground and sessions verified by the gate tests. Live tool calling awaits a real-key run.                                |
 | M7 — Analytics and operations            | Complete | Mode-separated measured analytics with audit counts, 30-day transcript retention, verified backup/restore into a separate database, guarded demo reset, failure journeys and three-width Nepali layouts. Operations socket deferred (ADR 028). |
-| M8 — Evidence and handoff                | Complete | Fixed 40-case bilingual evaluation through the real pipeline, acceptance matrix, seven demo-mode screenshots, walkthrough, case study and CI workflow. The `--live` evaluation, fluent Nepali review and a GitHub CI run remain.               |
+| M8 — Evidence and handoff                | Complete | Fixed 40-case bilingual evaluation through the real pipeline, acceptance matrix, seven demo-mode screenshots, walkthrough, case study and the evaluation step in CI. The `--live` evaluation, fluent Nepali review and a GitHub CI run remain. |
 
 ## M8 evidence and handoff — 2026-09-29
 
@@ -39,8 +39,14 @@ Fixed along the way:
 - the workspace mark was a fixed "S".
 
 Open findings: en-15 and ne-12 retrieval misses (see `EVALUATION.md`). Not run here: the
-`--live` evaluation (no key in this session), a fluent Nepali review, and CI on GitHub (no
-remote).
+`--live` evaluation (no key in this session), a fluent Nepali review, and CI on GitHub.
+
+Afterwards, 2026-09-29: `main` was pushed to `nikace7/svara` with all six open Dependabot
+pull requests (#6–#11) merged. Each merge regenerated the lockfile, and the ui package's
+React peer requirement was raised to 19.3.0. `pnpm check`, integration (170) and live
+Playwright (13) passed on the result. The duplicate `ci.yml` added in M8 was removed and
+its evaluation step moved into `ci.yaml`. GitHub has not started any CI job: the
+account's Actions billing is blocked.
 
 ## M7 analytics, resilience and operations — 2026-09-29
 

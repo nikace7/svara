@@ -199,7 +199,12 @@ at a short path, or the CI workflow, is the remaining check.
 
 ## 6. Continuous integration
 
-`.github/workflows/ci.yml` runs `pnpm check` in one job. A second job runs the integration
-suite and this evaluation against PostgreSQL 17 and Redis 7 service containers, with
-ffmpeg, fixture providers and no keys. The YAML parses. **It has never run on GitHub**:
-the repository has no remote.
+`.github/workflows/ci.yaml` ("Verify Svara") runs on every push to `main` and on pull
+requests: dependency audit, `pnpm check`, the integration suite, this evaluation (its
+results are uploaded as the `evaluation` artifact), the live-mode Playwright journeys, then
+the Compose containers and their browser journeys. Fixture providers only, no keys.
+
+**It has not completed on GitHub yet.** The repository is at `nikace7/svara`, but every run
+so far stopped before its first step because the account's Actions billing is blocked
+("recent account payments have failed or your spending limit needs to be increased"). The
+same commands pass locally.
