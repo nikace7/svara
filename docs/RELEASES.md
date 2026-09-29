@@ -106,8 +106,11 @@ English uses a generated full-text vector plus trigram matching; Nepali uses exa
 FAQ/phrase matching and trigrams without English stemming. Canonical normalization
 preserves Devanagari marks and numbers, collapsing only whitespace and case.
 PostgreSQL generates normalized projection fields from frozen text so callers
-cannot supply unrelated search text. GIN indexes cover text vectors and trigrams;
-the similarity threshold is transaction-local at 0.25.
+cannot supply unrelated search text. Fuzzy matching compares content words only:
+`svara_search_terms` drops punctuation and function or question words, and strips one
+attached Nepali postposition, on both the stored text and the query (ADR 030). GIN indexes
+cover text vectors and the content-word trigrams; the similarity threshold is
+transaction-local at 0.25.
 
 Exact FAQ questions rank above exact phrases and fuzzy/full-text matches. Full-text
 rank is normalized to prevent repetition in a long note overpowering that priority.

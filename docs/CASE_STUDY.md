@@ -49,16 +49,16 @@ A bilingual English/Nepali visitor assistant with a staff studio for browser kio
 All of it can be reproduced from this repository. Details are in [progress](PROGRESS.md)
 and [evaluation](EVALUATION.md).
 
-| Area                 | Evidence                                                                                                                                                                                              |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Size                 | About 26,000 lines of application TypeScript and 14,700 lines of tests; over 200 commits since 2026-09-08. There are 29 ADRs.                                                                         |
-| Unit tests           | Run by `pnpm check` with statement coverage above 95% (see progress for the latest count).                                                                                                            |
-| Integration tests    | Against real PostgreSQL 17 and Redis: tenant isolation, revision conflicts, schedule races, pairing limits, command acknowledgement, admission limits, tool validation, retention.                    |
-| Browser tests        | Playwright on a self-contained stack: pairing and revocation, schedules and overrides, kiosk slide commands, public links in both languages, failure journeys, layouts at three widths and 200% zoom. |
-| Conversation quality | 40-case fixed bilingual set: en 14/14 answerable, ne 13/14; 0 invented claims and 0 unauthorized slide changes. Demo mode measures retrieval and grounding, not a language model.                     |
-| Live provider        | One real-key gate (2026-09-25): English and Nepali question → grounded answer → speech → transcript. A browser run with a real key and the live evaluation are still pending.                         |
-| Screenshots          | Seven captures of real screens in labelled demo mode; see [demo](DEMO.md).                                                                                                                            |
-| Acceptance criteria  | 23 of 28 covered by automated tests; 5 partial, each with its gap stated (A01, A13, A24, A25, A28).                                                                                                   |
+| Area                 | Evidence                                                                                                                                                                                                          |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Size                 | About 26,000 lines of application TypeScript and 14,700 lines of tests; over 200 commits since 2026-09-08. There are 30 ADRs.                                                                                     |
+| Unit tests           | Run by `pnpm check` with statement coverage above 95% (see progress for the latest count).                                                                                                                        |
+| Integration tests    | Against real PostgreSQL 17 and Redis: tenant isolation, revision conflicts, schedule races, pairing limits, command acknowledgement, admission limits, tool validation, retention.                                |
+| Browser tests        | Playwright on a self-contained stack: pairing and revocation, schedules and overrides, kiosk slide commands, public links in both languages, failure journeys, layouts at three widths and 200% zoom.             |
+| Conversation quality | 40-case fixed bilingual set: en 14/14 answerable, ne 14/14, unsupported questions 6/6 safe; 0 invented claims and 0 unauthorized slide changes. Demo mode measures retrieval and grounding, not a language model. |
+| Live provider        | One real-key gate (2026-09-25): English and Nepali question → grounded answer → speech → transcript. A browser run with a real key and the live evaluation are still pending.                                     |
+| Screenshots          | Seven captures of real screens in labelled demo mode; see [demo](DEMO.md).                                                                                                                                        |
+| Acceptance criteria  | 23 of 28 covered by automated tests; 5 partial, each with its gap stated (A01, A13, A24, A25, A28).                                                                                                               |
 
 ## What is not proven
 
