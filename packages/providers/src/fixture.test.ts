@@ -57,6 +57,22 @@ describe('demo-mode answers', () => {
     expect(await run({ question: 'Show admissions', slides })).toEqual([
       'Demo mode: this release has no approved answer to that.',
     ]);
+    // Sharing a word with a slide title is not a request to show it.
+    expect(await run({ question: 'Where is admissions?', slides, tools: [showSlide] })).toEqual([
+      'Demo mode: this release has no approved answer to that.',
+    ]);
+    expect(
+      await run(
+        {
+          question: 'भर्ना स्लाइड देखाउनुहोस्',
+          slides: [{ label: 'S2', title: 'भर्ना चरण' }],
+          tools: [showSlide],
+        },
+        'ne-NP',
+      ),
+    ).toEqual([
+      { type: 'tool', callId: 'fixture-show-slide', name: 'show_slide', args: { slide: 'S2' } },
+    ]);
     const round = (status: string) => ({
       calls: [],
       results: [{ callId: 'x', name: 'show_slide', result: { status } }],
