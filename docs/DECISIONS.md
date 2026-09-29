@@ -438,3 +438,25 @@ command can overwrite `svara_dev`.
 Audit visibility is a count of actions per window on the analytics page. It returns no
 actor, target or payload, so it cannot leak who did what to users who may inspect
 conversations.
+
+## ADR 029 — Evidence runs through the product; demo mode is measured as what it is
+
+The fixed bilingual evaluation (`pnpm eval:conversations`) and the handoff screenshots
+(`pnpm screenshots:handoff`) both drive the real product instead of a test double. The
+evaluation asks as a paired kiosk through admission, retrieval, the turn runner and tool
+validation, and scores the stored turn rows. The screenshots build the demo through the
+HTTP API on the test stack, started in fixture mode, so the mode label in each capture is
+the mode that produced it. Nothing is staged in the page, and every defect the captures
+show is fixed in the product or listed as a gap in `docs/DEMO.md`.
+
+Demo-mode numbers measure retrieval, grounding, fallback and tool authority, and are
+reported that way. They are not presented as model quality. `--live` runs the same set
+against the configured model when a key is available. Quality misses are reported;
+unauthorized slides and invented claims fail the run. Cases change only with a note in
+`docs/EVALUATION.md`.
+
+The first run showed that a kiosk with slides but no matching knowledge still spoke the
+model's first-round text. The turn runner now keeps only a slide request from a round
+without evidence and answers with the authored fallback. A proposed tool is still
+validated against the release and reported as applied only on the kiosk's
+acknowledgement.
