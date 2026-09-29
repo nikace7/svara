@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",
-    "lucide-react": "0.577.0"
+    "lucide-react": "1.47.0"
   },
   "peerDependencies": {
     "react": "19.3.0",
