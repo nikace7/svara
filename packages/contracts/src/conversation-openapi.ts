@@ -13,6 +13,11 @@ import {
   sessionSummarySchema,
   visitorGrantSchema,
 } from './conversations.js';
+import {
+  analyticsLatencySchema,
+  analyticsOverviewSchema,
+  analyticsQuerySchema,
+} from './analytics.js';
 
 const input = (schema: z.ZodType) => z.toJSONSchema(schema, { target: 'openapi-3.0', io: 'input' });
 const output = (schema: z.ZodType) =>
@@ -39,4 +44,7 @@ export const conversationApiSchemas = {
   links: output(z.array(assistantLinkSchema)),
   publicAssistant: output(publicAssistantSchema),
   grant: output(visitorGrantSchema),
+  analyticsQuery: input(analyticsQuerySchema),
+  analyticsOverview: output(analyticsOverviewSchema),
+  analyticsLatency: output(analyticsLatencySchema),
 };

@@ -14,7 +14,10 @@ import type { TurnStreaming } from './stream.js';
 export const CONVERSATION_BOUNDARY = Symbol('conversation-boundary');
 export interface ConversationHttpOptions {
   service: Pick<ConversationService, 'admit' | 'interrupt' | 'end'>;
-  sessions: Pick<ConversationSessions, 'list' | 'get' | 'deleteTranscript'>;
+  sessions: Pick<
+    ConversationSessions,
+    'list' | 'get' | 'deleteTranscript' | 'overview' | 'latency'
+  >;
   links: Pick<AssistantLinkService, 'list' | 'create' | 'save'>;
   publics: Pick<PublicAssistants, 'config' | 'grant' | 'media'>;
   streaming: TurnStreaming;

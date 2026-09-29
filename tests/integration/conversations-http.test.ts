@@ -271,6 +271,22 @@ describe('conversation HTTP: playground, kiosk and public link', () => {
     expect(ended.body.error.code).toBe('SESSION_ENDED');
     const page = await request(server()).get('/api/v1/sessions?limit=5').set(staffHeaders());
     expect(page.body.data[0]).toMatchObject({ id: session.id, status: 'ENDED' });
+    const overview = await request(server())
+      .get('/api/v1/analytics/overview?mode=fixture&days=1')
+      .set(staffHeaders())
+      .expect(200);
+    expect(overview.body.data.scope).toMatchObject({ mode: 'fixture', locale: null });
+    expect(overview.body.data.turns.total).toBeGreaterThan(0);
+    const latency = await request(server())
+      .get('/api/v1/analytics/latency?locale=ne-NP')
+      .set(staffHeaders())
+      .expect(200);
+    expect(latency.body.data.scope.mode).toBe('live');
+    await request(server())
+      .get('/api/v1/analytics/latency?mode=mixed')
+      .set(staffHeaders())
+      .expect(400);
+    await request(server()).get('/api/v1/analytics/overview').set(host()).expect(401);
   });
 
   it('lets a paired kiosk ask for a slide and reports APPLIED only after its acknowledgement', async () => {

@@ -1,6 +1,14 @@
 import type { Prisma } from '@svara/database';
 import { resourceIdSchema, sessionListQuerySchema } from '@svara/contracts';
-import type { Locale, SessionDetail, SessionSummary, ToolStatus } from '@svara/contracts';
+import type {
+  AnalyticsLatency,
+  AnalyticsOverview,
+  Locale,
+  SessionDetail,
+  SessionSummary,
+  ToolStatus,
+} from '@svara/contracts';
+import { analyticsLatency, analyticsOverview, analyticsScope } from './analytics.js';
 import type { IdentityService } from '../identity/service.js';
 import { blankTranscripts, endSessions, sessionView } from './core.js';
 import { ConversationError } from './errors.js';
@@ -129,6 +137,28 @@ export class ConversationSessions {
         })),
       })),
     };
+  }
+
+  /** Recorded counts for one provider mode, optional locale and window. */
+  async overview(token: string, value: unknown): Promise<AnalyticsOverview> {
+    return this.identity.asStaff(
+      token,
+      'inspect',
+      (tx, { member }) =>
+        analyticsOverview(tx, analyticsScope(value, member.organisationId, this.clock())),
+      false,
+    );
+  }
+
+  /** Measured timing distributions; insufficient samples report no percentiles. */
+  async latency(token: string, value: unknown): Promise<AnalyticsLatency> {
+    return this.identity.asStaff(
+      token,
+      'inspect',
+      (tx, { member }) =>
+        analyticsLatency(tx, analyticsScope(value, member.organisationId, this.clock())),
+      false,
+    );
   }
 
   /** Ends the session and removes its transcript and tool payloads (see `blankTranscripts`). */

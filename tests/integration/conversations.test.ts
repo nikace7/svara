@@ -708,4 +708,73 @@ describe('conversation admission, turns, tools and public links', () => {
       }),
     ).toBe(1);
   });
+
+  it('reports only recorded counts and measured percentiles, one provider mode at a time', async () => {
+    now = new Date(now.getTime() + 1000);
+    const { session } = await conversations.admit(staffActor(), {
+      locale: 'en-US',
+      releaseId: release.id,
+    });
+    for (const totalMs of [500, 100, 400, 200, 300]) {
+      const context = await conversations.beginTurn(staffActor(), session.id, turn());
+      await conversations.finishTurn(context, {
+        state: 'COMPLETED',
+        answer: 'Admissions is in room 12.',
+        citedEntryIds: [],
+        failureCode: null,
+        timings: { firstTextMs: totalMs / 2, totalMs },
+      });
+    }
+    const token = staff.owner.token;
+    const organisationId = staff.owner.identity.organisation.id;
+    const turnsIn = (providerMode: string) =>
+      staff.db.conversationTurn.findMany({
+        where: { organisationId, state: { not: 'ANSWERING' }, session: { providerMode } },
+      });
+
+    const fixture = await sessions.overview(token, { mode: 'fixture' });
+    const live = await sessions.overview(token, {});
+    expect(live.scope.mode).toBe('live');
+    expect(fixture.turns.total).toBe(
+      await staff.db.conversationTurn.count({
+        where: { organisationId, session: { providerMode: 'fixture' } },
+      }),
+    );
+    expect(live.sessions.total).toBe(
+      await staff.db.conversationSession.count({ where: { organisationId, providerMode: 'live' } }),
+    );
+    expect(fixture.sessions.byActor.STAFF).toBeGreaterThan(0);
+    expect(fixture.turns.byState.COMPLETED).toBeGreaterThanOrEqual(5);
+
+    // Percentiles are real recorded values (percentile_disc), computed from the same rows.
+    const latency = await sessions.latency(token, { mode: 'fixture', days: '1' });
+    const recorded = (await turnsIn('fixture'))
+      .map((row) => row.totalMs)
+      .filter((value): value is number => value !== null)
+      .sort((a, b) => a - b);
+    const at = (p: number) => recorded[Math.ceil(p * recorded.length) - 1];
+    expect(latency.metrics.find((metric) => metric.metric === 'totalMs')).toEqual({
+      metric: 'totalMs',
+      samples: recorded.length,
+      missing: (await turnsIn('fixture')).length - recorded.length,
+      p50: at(0.5),
+      p90: at(0.9),
+      p95: at(0.95),
+      max: recorded.at(-1),
+    });
+    // Typed questions never had recognition to measure: unavailable, not zero.
+    expect(latency.metrics.find((metric) => metric.metric === 'sttMs')).toMatchObject({
+      samples: 0,
+      p50: null,
+      max: null,
+    });
+    const nepali = await sessions.latency(token, { mode: 'fixture', locale: 'ne-NP' });
+    expect(nepali.metrics.every((metric) => metric.p50 === null)).toBe(true);
+    await expect(sessions.overview(token, { mode: 'both' })).rejects.toMatchObject({
+      code: 'INVALID_INPUT',
+    });
+    await expect(sessions.latency(token, { days: '0' })).rejects.toMatchObject({
+      code: 'INVALID_INPUT',
+    });
+  });
 });
