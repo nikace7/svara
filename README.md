@@ -204,7 +204,9 @@ pnpm screenshots:handoff   # the seven handoff screenshots in demo mode; run pnp
 
 For the full Compose demo use `pnpm test:integration:container` instead of the native
 integration command. `pnpm test:container` verifies production preview denial in a
-separate container with networking disabled. `pnpm screenshots` captures the actual
+separate container with networking disabled. `pnpm test:e2e` runs against the real staff
+quotas from one IP, on one worker: a run spends about 26 of the 30 sign-ins allowed per
+10 minutes, so wait that long before running the whole suite again. `pnpm screenshots` captures the actual
 overview at five viewport sizes in ignored `artifacts/screenshots/`.
 
 `pnpm contracts:generate` updates OpenAPI and HTTP types; `pnpm contracts:check`
