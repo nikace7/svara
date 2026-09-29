@@ -57,8 +57,6 @@ run the command to recreate it.
   subtitle track (A24 in [evaluation](EVALUATION.md#3-acceptance-matrix-blueprint-15)).
 - Citation labels use the entry's internal title, which is English only, even on the
   Nepali screen ("स्रोत: Admissions office").
-- The public page's suggested questions are the release's first three FAQs in storage
-  order, not an order the author chose. The capture types its question for that reason.
 
 ## Reproduce
 
