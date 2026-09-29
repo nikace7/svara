@@ -1,5 +1,7 @@
 .conversation {
   display: grid;
+  /* One column that may shrink below the text input's intrinsic width (200% zoom). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   min-width: 0;
   padding: 20px;
@@ -17,11 +19,15 @@
 }
 .segmented {
   display: inline-flex;
+  /* At 200% zoom on a phone the two languages stack rather than clip. */
+  flex-wrap: wrap;
+  max-width: 100%;
   border: 1px solid var(--border-control);
   border-radius: var(--radius-control);
   overflow: hidden;
 }
 .segmented button {
+  flex: 1 1 auto;
   min-height: 44px;
   padding: 8px 16px;
   border: 0;
@@ -80,6 +86,11 @@
   flex-wrap: wrap;
   gap: 10px;
 }
+/* Long Nepali labels wrap instead of pushing past a narrow or zoomed screen. */
+.conversation-actions .button {
+  max-width: 100%;
+  white-space: normal;
+}
 .conversation-suggestions .button {
   white-space: normal;
   text-align: left;
@@ -88,6 +99,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
+}
+.conversation-input .input {
+  min-width: 0;
 }
 .conversation-actions .button,
 .conversation-input .button {

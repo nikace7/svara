@@ -303,6 +303,24 @@ test('conversation pages fit phone, tablet and desktop widths and work from the 
   }
   expect((await new AxeBuilder({ page: visitorPage }).analyze()).violations).toEqual([]);
 
+  // A 360 px phone at 200% zoom lays out 180 CSS pixels: the Nepali page must still reflow.
+  await visitorPage.setViewportSize({ width: 180, height: 400 });
+  await visitorPage.goto(`/assistant/${visitor.slug}`);
+  await visitorPage.getByRole('button', { name: 'नेपाली' }).click();
+  await visitorPage.getByRole('button', { name: 'भर्ना कहाँ छ?' }).click();
+  await expect(visitorPage.locator('.conversation-answer').last()).toContainText('कोठा १२');
+  await visitorPage.screenshot({
+    path: 'artifacts/screenshots/m8-public-ne-200pct.png',
+    fullPage: true,
+  });
+  const wide = await visitorPage.evaluate(() =>
+    [...document.querySelectorAll('body *')]
+      .filter((el) => el.getBoundingClientRect().right > document.documentElement.clientWidth)
+      .map((el) => `${el.tagName}.${el.className} ${Math.round(el.getBoundingClientRect().right)}`),
+  );
+  expect(wide, 'public page overflows at 200% zoom').toEqual([]);
+  await visitorPage.setViewportSize({ width: 360, height: 800 });
+
   // Keyboard only, in Nepali: reach the question box, ask with Enter, then stop and end.
   await visitorPage.goto(`/assistant/${visitor.slug}`);
   await visitorPage.getByRole('button', { name: 'नेपाली' }).focus();
