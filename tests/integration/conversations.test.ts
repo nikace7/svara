@@ -21,6 +21,7 @@ import {
 } from '../../packages/domain/src/conversations/links.js';
 import { ConversationSessions } from '../../packages/domain/src/conversations/sessions.js';
 import { MediaStorage } from '../../packages/domain/src/media/storage.js';
+import { applyRetention } from '../../packages/domain/src/retention.js';
 import { staffFixture } from './staff-fixture.js';
 
 describe('conversation admission, turns, tools and public links', () => {
@@ -632,5 +633,79 @@ describe('conversation admission, turns, tools and public links', () => {
         resumeFrom: session.id,
       }),
     ).rejects.toMatchObject({ code: 'RESUME_UNAVAILABLE' });
+  });
+
+  it('expires old transcripts and unreferenced credentials, keeping counts and timings', async () => {
+    now = new Date(now.getTime() + 1000);
+    const { session } = await conversations.admit(staffActor(), {
+      locale: 'en-US',
+      releaseId: release.id,
+    });
+    const context = await conversations.beginTurn(staffActor(), session.id, turn());
+    await conversations.finishTurn(context, {
+      state: 'COMPLETED',
+      answer: 'Admissions is in room 12.',
+      citedEntryIds: [release.snapshot.knowledge[0]!.id],
+      failureCode: null,
+      timings: { firstTextMs: 90, totalMs: 300 },
+    });
+    await conversations.end(staffActor(), session.id);
+    const day = 86_400_000;
+    const old = new Date(Date.now() - 31 * day);
+    const recent = await conversations.admit(staffActor(), {
+      locale: 'en-US',
+      releaseId: release.id,
+    });
+    await conversations.end(staffActor(), recent.session.id);
+    await staff.db.conversationSession.update({
+      where: { id: session.id },
+      data: { endedAt: old },
+    });
+    // Pairing codes issued eight days ago: an abandoned one goes, a redeemed one stays.
+    const past = () => new Date(Date.now() - 8 * day);
+    const pastDevices = new DeviceService(identity, staff.pepper, past);
+    const pair = async () => {
+      const device = await pastDevices.create(staff.owner.token, { name: `Old ${randomUUID()}` });
+      return pastDevices.createPairing(staff.owner.token, device.id, {
+        expectedRevision: device.revision,
+      });
+    };
+    const unused = await pair();
+    const redeemed = await pair();
+    await new DeviceRuntime(staff.db, staff.pepper, past).pair({
+      challengeId: redeemed.id,
+      code: redeemed.code,
+    });
+
+    const outcome = await applyRetention(staff.db);
+    expect(outcome.transcripts).toBeGreaterThanOrEqual(1);
+    const expired = await sessions.get(staff.owner.token, session.id);
+    expect(expired).toMatchObject({ transcriptDeleted: true, turns: 1 });
+    expect(expired.turnList[0]).toMatchObject({
+      question: '',
+      answer: '',
+      citedEntryIds: [],
+      state: 'COMPLETED',
+      timings: { firstTextMs: 90, totalMs: 300 },
+    });
+    expect((await sessions.get(staff.owner.token, recent.session.id)).transcriptDeleted).toBe(
+      false,
+    );
+    expect(
+      await staff.db.auditEntry.count({
+        where: { targetId: session.id, action: 'conversation.transcript.expired' },
+      }),
+    ).toBe(1);
+    const codes = await staff.db.pairingChallenge.findMany({
+      where: { id: { in: [unused.id, redeemed.id] } },
+    });
+    expect(codes.map((code) => code.id)).toEqual([redeemed.id]);
+    // A second pass finds nothing more of this session to remove.
+    await applyRetention(staff.db);
+    expect(
+      await staff.db.auditEntry.count({
+        where: { targetId: session.id, action: 'conversation.transcript.expired' },
+      }),
+    ).toBe(1);
   });
 });

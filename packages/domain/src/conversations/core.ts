@@ -108,3 +108,27 @@ export async function expireStaleSessions(db: PrismaClient, now = new Date()): P
   );
   return ended.length;
 }
+
+/**
+ * Removes what was said, citations and every tool payload. Device commands keep only the slide
+ * and screen, so the display timeline survives without any conversation text; turn states,
+ * timings and counts remain for aggregate analytics.
+ */
+export async function blankTranscripts(
+  tx: Transaction,
+  sessionIds: string[],
+  now: Date,
+): Promise<void> {
+  if (!sessionIds.length) return;
+  await tx.conversationTurn.updateMany({
+    where: { sessionId: { in: sessionIds } },
+    data: { transcript: '', answer: '', citedEntryIds: [] },
+  });
+  await tx.$executeRaw`UPDATE "DeviceCommand" SET "payload" = jsonb_build_object('slideId', "payload"->'slideId', 'target', "payload"->'target')
+    WHERE "id" IN (SELECT "commandId" FROM "ToolExecution" WHERE "sessionId" = ANY(${sessionIds}::uuid[]) AND "commandId" IS NOT NULL)`;
+  await tx.$executeRaw`UPDATE "ToolExecution" SET "arguments" = NULL, "result" = NULL WHERE "sessionId" = ANY(${sessionIds}::uuid[])`;
+  await tx.conversationSession.updateMany({
+    where: { id: { in: sessionIds } },
+    data: { transcriptDeletedAt: now },
+  });
+}
