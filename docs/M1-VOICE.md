@@ -91,7 +91,8 @@ Pronunciation quality still needs a human listener on the captured WAV files.
   see `docs/FREE-DEMO-SETUP.md` for the current provider direction.
 
 Implemented the local increment on 2026-09-08 on `feat/m1-voice-feasibility`.
-The live provider gate remains pending; M1 is not marked complete.
+The live provider gate was pending at the time; it passed on 2026-09-25 (above). M1 stays
+partial until real-key browser evidence, repeated sampling and hardware barge-in are recorded.
 
 ## Deliverable and boundaries
 
@@ -158,9 +159,11 @@ need observation. Capture supports context rates from 16 to 192 kHz; playback
 supports output contexts from 24 to 192 kHz. Tested common rates are 44.1/48 kHz.
 
 The copied worklet assets refresh at web startup/build; restart native development
-after editing worklet source. No transcript or microphone data is persisted. M2
-has replaced the studio preview gate with staff sessions; the lab also retains its
-local-only restriction. Visitor sessions and hosted operation remain later work.
+after editing worklet source. The lab persists no transcript or microphone data; kiosk and
+visitor conversations are persisted separately under M6 and M7 retention. M2 replaced the
+studio preview gate with staff sessions, and the lab keeps its local-only restriction.
+Visitor sessions arrived in M6 through public links (see [M6](M6-CONVERSATIONS.md)).
+Hosting beyond one machine is still unsupported (see [operations](OPERATIONS.md)).
 
 ## Primary references
 

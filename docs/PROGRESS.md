@@ -61,6 +61,22 @@ normalized before search, as staff search already was, so exact-question matches
 them too. `pnpm check`, integration (173) and live Playwright (13) pass; one earlier
 Playwright run had a single failure that did not recur in three reruns.
 
+The development database took migrations 0011–0014 after a `pg_dump` backup, and the
+Compose demo was rebuilt on current `main`. The rebuild exposed an API crash on every boot:
+the device-command subscriber was a plain copy of the lazy, no-offline-queue Redis client,
+so SUBSCRIBE was rejected before it connected. The e2e harness never runs `main.ts`, so no
+test had reached it. The subscriber now queues SUBSCRIBE until Redis is reachable, and
+startup still does not wait on Redis. Redis shows the API subscribed.
+
+`pnpm test:e2e` against the Compose stack then failed with 429s from the real staff request
+quotas, not the sign-in quota. Two workers from one IP peaked at 306 of 300 requests a
+minute, and one owner per worker pushed its session past 180 a minute. The suite now runs
+one worker and rotates three fixture owners across spec files. It passes 38/38 twice, with
+peaks of 230/300, 130/180 and 26 of 30 sign-ins; a second full run inside 10 minutes still
+exceeds the sign-in quota (README). The API limits are unchanged. The superseded local
+`codex/feat/device-pairing` draft (`5fb45fc`) was deleted: its three finished commits were
+already in `main` and M4 rebuilt the rest.
+
 ## M7 analytics, resilience and operations — 2026-09-29
 
 Built on branch `claude/m7-operations` from `main` after M6 was fast-forwarded. See
