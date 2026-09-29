@@ -118,7 +118,12 @@ const app = await createApplication({
     : {}),
 });
 // Worker wake-ups name commands by ID; the gateway re-reads desired state from PostgreSQL.
-const subscriber = dependencies.redis.duplicate();
+// The shared client is lazy with no offline queue, so a plain copy rejects SUBSCRIBE before it
+// connects. This copy queues it until Redis is reachable and resubscribes after reconnects.
+const subscriber = dependencies.redis.duplicate({
+  enableOfflineQueue: true,
+  maxRetriesPerRequest: null,
+});
 subscriber.on('error', () => {
   console.error(JSON.stringify({ event: 'dependency.error', dependency: 'redis-subscriber' }));
 });
@@ -131,7 +136,10 @@ subscriber.on('message', (_channel, message) => {
   }
   if (parsed.success) void gateway.wake(parsed.data.map((item) => item.deviceId));
 });
-await subscriber.subscribe(`${config.WORKER_NAMESPACE}:device-commands`);
+// Not awaited: startup stays live when Redis is down, as with the shared client.
+void subscriber.subscribe(`${config.WORKER_NAMESPACE}:device-commands`).catch(() => {
+  console.error(JSON.stringify({ event: 'dependency.error', dependency: 'redis-subscriber' }));
+});
 let closing = false;
 async function shutdown() {
   if (closing) return;
