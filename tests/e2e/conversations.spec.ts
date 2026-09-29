@@ -1,4 +1,5 @@
 import { AxeBuilder } from '@axe-core/playwright';
+import { mkdir } from 'node:fs/promises';
 import type { APIRequestContext, Browser } from '@playwright/test';
 import { pairKiosk, publishedGuide } from './guide.js';
 import { test, expect } from './fixtures.js';
@@ -251,5 +252,71 @@ test('a provider failure is named, and a dropped connection reconnects with fini
   await expect(page.getByText('From this release: Room 12.')).toBeVisible();
   await ask('Where is admissions?');
   await expect(page.locator('.conversation-answer')).toHaveCount(2);
+  await visitor.context.close();
+});
+
+test('conversation pages fit phone, tablet and desktop widths and work from the keyboard', async ({
+  page,
+  context,
+  browser,
+  baseURL,
+}) => {
+  test.setTimeout(120_000);
+  const visitor = await visitorOn(browser, baseURL!, context.request);
+  const guide = await publishedGuide(context.request, baseURL!);
+  await page.goto('/studio/playground');
+  await page.getByLabel('Bot', { exact: true }).selectOption({ label: guide.name });
+  await page.getByLabel('Type your question').fill('Where is admissions?');
+  await page.getByRole('button', { name: 'Ask', exact: true }).click();
+  await expect(page.getByText(/Answered in \d+ ms/)).toBeVisible();
+  const visitorPage = await visitor.context.newPage();
+  await mkdir('artifacts/screenshots', { recursive: true });
+
+  for (const [width, height] of [
+    [360, 800],
+    [768, 1024],
+    [1440, 900],
+  ] as const) {
+    for (const [name, target, path] of [
+      ['playground', page, '/studio/playground'],
+      ['sessions', page, '/studio/sessions'],
+      ['analytics', page, '/studio/analytics'],
+      ['public-ne', visitorPage, `/assistant/${visitor.slug}`],
+    ] as const) {
+      await target.setViewportSize({ width, height });
+      await target.goto(path);
+      if (name === 'public-ne') {
+        await target.getByRole('button', { name: 'नेपाली' }).click();
+        await target.getByRole('button', { name: 'भर्ना कहाँ छ?' }).click();
+        await expect(target.locator('.conversation-answer').last()).toContainText('कोठा १२');
+      } else await expect(target.getByRole('heading', { level: 1 })).toBeVisible();
+      await target.evaluate(() => document.fonts.ready);
+      expect(
+        await target.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        `${name} overflows at ${width}px`,
+      ).toBe(true);
+      await target.screenshot({
+        path: `artifacts/screenshots/m7-${name}-${width}x${height}.png`,
+        fullPage: true,
+      });
+    }
+  }
+  expect((await new AxeBuilder({ page: visitorPage }).analyze()).violations).toEqual([]);
+
+  // Keyboard only, in Nepali: reach the question box, ask with Enter, then stop and end.
+  await visitorPage.goto(`/assistant/${visitor.slug}`);
+  await visitorPage.getByRole('button', { name: 'नेपाली' }).focus();
+  await visitorPage.keyboard.press('Enter');
+  const box = visitorPage.getByLabel('आफ्नो प्रश्न लेख्नुहोस्');
+  for (
+    let presses = 0;
+    presses < 12 && !(await box.evaluate((el) => el === document.activeElement));
+    presses++
+  )
+    await visitorPage.keyboard.press('Tab');
+  await expect(box).toBeFocused();
+  await visitorPage.keyboard.type('भर्ना कहाँ छ?');
+  await visitorPage.keyboard.press('Enter');
+  await expect(visitorPage.locator('.conversation-answer').last()).toContainText('कोठा १२');
   await visitor.context.close();
 });
