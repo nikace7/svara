@@ -460,3 +460,24 @@ model's first-round text. The turn runner now keeps only a slide request from a 
 without evidence and answers with the authored fallback. A proposed tool is still
 validated against the release and reported as applied only on the kiosk's
 acknowledgement.
+
+## ADR 030 — Fuzzy retrieval compares content words
+
+Blueprint §18 sets a 0.25 trigram threshold, to be tuned only against the fixed bilingual
+set. The threshold stays at 0.25; what it is applied to changes. Trigram similarity over
+whole questions rewarded shape: "What is the tuition fee?" matched "Where is the library?"
+on "is the". It also punished Nepali inflection: "कक्षको" never met "कक्ष".
+
+`svara_search_terms(text, locale)` reduces text to content words. It drops punctuation
+(listed explicitly, because `[[:punct:]]` follows the database locale and can split a word
+at the virama), drops English and Nepali function and question words, and strips one
+attached Nepali postposition (-को, -मा, -ले, -लाई, …). Stored generated columns apply it to
+frozen release text, and the search applies it to the query, so both sides are reduced the
+same way and a wrong strip on one word is harmless. Exact-question, exact-phrase and
+English full-text tiers are unchanged. Queries from visitor turns and tools are normalized
+first, as staff search already was.
+
+This is not Nepali morphology and does not bridge synonyms (कक्ष / कार्यालय, papers /
+documents). A stemmer, embeddings or an authored synonym list would; each needs a larger
+evaluation set than 20 questions per locale to tune honestly. Stop-word lists live in the
+migration; changing them needs a new migration and a rerun of the evaluation.

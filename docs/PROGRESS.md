@@ -38,7 +38,7 @@ Fixed along the way:
 - the public page hid the Nepali slide text;
 - the workspace mark was a fixed "S".
 
-Open findings: en-15 and ne-12 retrieval misses (see `EVALUATION.md`). Not run here: the
+Open findings at the time: en-15 and ne-12 retrieval misses, since resolved (below). Not run here: the
 `--live` evaluation (no key in this session), a fluent Nepali review, and CI on GitHub.
 
 Afterwards, 2026-09-29: `main` was pushed to `nikace7/svara` with all six open Dependabot
@@ -52,6 +52,14 @@ A fresh clone at a short path now passes `pnpm check` in full (219 tests, 95.87%
 the Windows path-limit gap. Releases now freeze knowledge in the order it was written
 (`createdAt`, then `id`), so the public page's suggested questions are the author's first
 three FAQs instead of the first three by random id.
+
+Retrieval now compares content words (ADR 030). The evaluation is en 14/14, 3/3, 3/3 and
+ne 14/14, 3/3, 3/3 with 0 unauthorized and 0 invented; en-15 and ne-12 pass, ne-12 exactly at
+the 0.25 threshold. 13 of 16 held-out paraphrases are asserted in
+`tests/integration/releases.test.ts`; the old query got 11. Visitor and tool queries are now
+normalized before search, as staff search already was, so exact-question matches count for
+them too. `pnpm check`, integration (173) and live Playwright (13) pass; one earlier
+Playwright run had a single failure that did not recur in three reruns.
 
 ## M7 analytics, resilience and operations — 2026-09-29
 

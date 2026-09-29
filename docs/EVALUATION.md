@@ -55,13 +55,13 @@ model (text only, at most 80 generation requests). That run has not been made ye
 Environment:
 
 - Windows 11, Node 24.20.0, PostgreSQL 17.11 (container) with `pg_trgm`.
-- Retrieval threshold 0.25.
+- Retrieval threshold 0.25, applied to content words (ADR 030).
 - Final run on 2026-09-29; result files are in `artifacts/evaluation/`.
 
 | Locale | Answerable (supported + number) | Unsupported handled safely | Presentation requests | Unexpected tool calls | Unauthorized slides | Invented claims |
 | ------ | ------------------------------- | -------------------------- | --------------------- | --------------------- | ------------------- | --------------- |
-| en-US  | 14/14                           | 2/3                        | 3/3                   | 0                     | 0                   | 0               |
-| ne-NP  | 13/14                           | 3/3                        | 3/3                   | 0                     | 0                   | 0               |
+| en-US  | 14/14                           | 3/3                        | 3/3                   | 0                     | 0                   | 0               |
+| ne-NP  | 14/14                           | 3/3                        | 3/3                   | 0                     | 0                   | 0               |
 
 All 40 turns completed.
 
@@ -69,21 +69,28 @@ Fixture timings (first text 6–9 ms; about 190–300 ms for slide turns, which 
 kiosk's acknowledgement) are in-process database and retrieval times. They are not
 response times a visitor would see with a real model.
 
-### Open findings
+### Retrieval findings (resolved 2026-09-29)
 
-These two failures are real retrieval weaknesses. They are left in the set; neither case
-was changed to make it pass.
+The first full runs left two real retrieval misses. Neither case was changed; retrieval
+was (ADR 030), and both now pass.
 
-- **en-15, "What is the tuition fee?"** Trigram similarity to the Library location
-  question is 0.257, just above the 0.25 threshold. The two questions have the same shape
-  ("What is the …"), so the library passage is quoted. No fee is invented, but the answer
-  is irrelevant. Possible fixes are a higher threshold with a per-locale calibration
-  set, or a lexical-overlap check on content words. Either needs more than 20 questions
-  per locale to tune without overfitting.
-- **ne-12, "भर्ना कक्षको कोठा नम्बर कति हो?"** No passage passes the threshold for this
-  paraphrase, so the approved fallback answers. It is safe but unhelpful. Nepali has no
-  word segmentation or stemming here: trigram similarity over Devanagari handles
-  inflected forms and synonyms (कक्ष / कार्यालय) poorly.
+- **en-15, "What is the tuition fee?"** matched the Library location question at 0.257
+  on shape alone ("… is the …"), so an irrelevant passage was quoted. Fuzzy matching now
+  compares content words only, and "tuition fee" matches nothing.
+- **ne-12, "भर्ना कक्षको कोठा नम्बर कति हो?"** found nothing: the long passage diluted
+  the score, and "कक्षको" did not meet "कक्ष". With question words dropped and one
+  postposition stripped, Admissions office is found. Its score is exactly 0.250, **on the
+  threshold**, so this case has no margin.
+
+To limit tuning to these two questions, 16 held-out paraphrases were written before the
+change and checked against the full demo guide. The old query got 11 right; it answered
+"Where is the canteen?" with the library and "क्यान्टिन कहाँ छ?" with admissions. The new
+one gets 13. The 13 are asserted in `tests/integration/releases.test.ts`. The three misses
+are synonyms that no character-level method bridges: "What papers do I need to apply?",
+"Is the campus wheelchair accessible?" and "आवेदन दिन के के कागजात चाहिन्छ?".
+
+ne-17 ("मेरो आवेदन तपाईं बुझाइदिन सक्नुहुन्छ?") now cites Application steps, which its
+`allow` list already accepts. Nothing is claimed as submitted.
 
 ### History of the set
 
@@ -109,8 +116,10 @@ was changed to make it pass.
   Nepali answers must be reviewed by a fluent reader before any quality claim.
 - Spoken input is not part of this set. Recognition quality is covered only by the M1 gate
   below.
-- Retrieval is release-local trigram similarity (blueprint §18, "Release-local FAQ search"). It is sensitive to question shape (en-15) and
-  weak on Nepali morphology (ne-12).
+- Retrieval is release-local trigram similarity over content words (blueprint §18, ADR 030).
+  It cannot match synonyms (कक्ष / कार्यालय, papers / documents), and its Nepali handling is a
+  stop-word list and one postposition strip, not real morphology. ne-12 passes exactly at
+  the threshold.
 
 ## 2. Live provider evidence
 
