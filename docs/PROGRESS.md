@@ -1,18 +1,39 @@
 # Implementation progress
 
-Updated 2026-09-28. Evidence is local unless explicitly marked otherwise.
+Updated 2026-09-29. Evidence is local unless explicitly marked otherwise.
 
-| Milestone                                | State       | Evidence / remaining work                                                                                                                                                                                       |
-| ---------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.                                                                                                    |
-| M1 — Bilingual voice feasibility         | Partial     | Live gate and lab live turns work, typed or spoken, grounded in a chosen release. Real-key browser evidence, hardware barge-in and repeated sampling remain.                                                    |
-| M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                                                                                                                       |
-| M3 — Authoring and immutable publication | Complete    | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.                                                                                                          |
-| M4 — Devices and dual displays           | Complete    | Pairing, tickets, /devices gateway, verified release application, kiosk/display/simulator and revocation verified by the gate test.                                                                             |
-| M5 — Schedules and commands              | Complete    | Conflict-safe schedules, overrides, monotonic desired state, outbox, worker and board; commands reach kiosks and are acknowledged.                                                                              |
-| M6 — Conversations and public assistant  | Complete    | Scoped admission and limits, grounded cited turns, validated tools, kiosk slides, public links and visitor grants, playground and sessions verified by the gate tests. Live tool calling awaits a real-key run. |
-| M7 — Analytics and operations            | Not started | Measured analytics, retention and recovery pending.                                                                                                                                                             |
-| M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                                                                                                                         |
+| Milestone                                | State       | Evidence / remaining work                                                                                                                                                                                                                      |
+| ---------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 — Workspace and component foundation  | Complete    | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.                                                                                                                                   |
+| M1 — Bilingual voice feasibility         | Partial     | Live gate and lab live turns work, typed or spoken, grounded in a chosen release. Real-key browser evidence, hardware barge-in and repeated sampling remain.                                                                                   |
+| M2 — Identity and tenant boundaries      | Complete    | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                                                                                                                                                      |
+| M3 — Authoring and immutable publication | Complete    | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.                                                                                                                                         |
+| M4 — Devices and dual displays           | Complete    | Pairing, tickets, /devices gateway, verified release application, kiosk/display/simulator and revocation verified by the gate test.                                                                                                            |
+| M5 — Schedules and commands              | Complete    | Conflict-safe schedules, overrides, monotonic desired state, outbox, worker and board; commands reach kiosks and are acknowledged.                                                                                                             |
+| M6 — Conversations and public assistant  | Complete    | Scoped admission and limits, grounded cited turns, validated tools, kiosk slides, public links and visitor grants, playground and sessions verified by the gate tests. Live tool calling awaits a real-key run.                                |
+| M7 — Analytics and operations            | Complete    | Mode-separated measured analytics with audit counts, 30-day transcript retention, verified backup/restore into a separate database, guarded demo reset, failure journeys and three-width Nepali layouts. Operations socket deferred (ADR 028). |
+| M8 — Evidence and handoff                | Not started | Final evaluations, screenshots and walkthrough pending.                                                                                                                                                                                        |
+
+## M7 analytics, resilience and operations — 2026-09-29
+
+Built on branch `claude/m7-operations` from `main` after M6 was fast-forwarded. See
+`M7-OPERATIONS.md`, the runbooks in `OPERATIONS.md` and ADR 028.
+
+| Check             | Result                                                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm check`      | Passes: format, lint, types, 218 unit tests at 95.87% statement coverage, contract drift, builds                          |
+| Integration tests | 170 passed (31 files), including retention and analytics against PostgreSQL                                               |
+| Live Playwright   | 13 passed, including analytics, microphone/autoplay/quota/offline failure journeys, kiosk offline and three-width layouts |
+| Backup / restore  | Running demo backed up (18 tables, 2,439 rows, 41 media files) and restored into `svara_restore_m7check`, verified        |
+| Demo reset        | Verified against a throwaway PostgreSQL container, including restoring its pre-reset backup                               |
+
+Fixed along the way: blocked autoplay stopped answer text; kiosks took up to 45 seconds to
+notice a lost network; Devanagari labels were letter-spaced apart; the sidebar always said
+"Fixture mode"; conversation failures were English-only.
+
+Not run here: the Docker demo stack and the base Playwright suite, whose stack on port
+4320 is still built from an older checkout. Live timings come from the stub-provider
+stack, not a real key.
 
 ## M6 conversations and public assistant — 2026-09-28
 

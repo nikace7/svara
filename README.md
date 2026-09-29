@@ -188,6 +188,19 @@ See [M4 devices](docs/M4-DEVICES.md) and [M5 schedules](docs/M5-SCHEDULES.md).
 
 See [M6 conversations](docs/M6-CONVERSATIONS.md) and ADR 027.
 
+## Measure, back up and recover
+
+- **Analytics** shows measured response timings and recorded outcomes, live and demo kept
+  apart. A stage with too few measurements says so instead of showing a number.
+- `pnpm backup` (or `pnpm backup --compose` for the Docker demo) writes a verified backup
+  to `.local/backups/`. `pnpm restore <dir>` restores it into a separate `svara_restore`
+  database and checks every table.
+- `pnpm demo:reset svara_dev` returns the native demo to a fresh seed after taking a
+  backup.
+
+Runbooks for restore, reset, retention and shutdown are in
+[operations](docs/OPERATIONS.md). See [M7 operations](docs/M7-OPERATIONS.md) and ADR 028.
+
 ## Verification
 
 ```sh

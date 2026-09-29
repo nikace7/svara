@@ -200,6 +200,18 @@ error envelope. `CONCURRENCY_LIMIT` and `DAILY_LIMIT` are 429 with `Retry-After`
 `SESSION_ENDED`, `STALE_GENERATION` and `DUPLICATE_MESSAGE` are 409. See
 `M6-CONVERSATIONS.md` and the generated OpenAPI for shapes.
 
+## Analytics
+
+| Route                            | Behavior                                                                                   |
+| -------------------------------- | ------------------------------------------------------------------------------------------ |
+| `GET /api/v1/analytics/overview` | Recorded session, question, failure, tool and audit-action counts                          |
+| `GET /api/v1/analytics/latency`  | Recognition, first text, first audio, whole answer and slide acknowledgement distributions |
+
+Both take `mode` (`live` by default, or `fixture`; never both), an optional `locale` and
+`days` from 1 to 90 (default 7), and need the `inspect` permission. Percentiles are measured
+values and are `null` below five samples. `missing` counts turns that should have recorded
+a stage but did not. See `M7-OPERATIONS.md`.
+
 ## Temporary M1 experiment
 
 `POST /api/v1/feasibility/turn` is registered only when the API is explicitly local
