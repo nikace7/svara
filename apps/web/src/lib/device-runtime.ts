@@ -190,9 +190,22 @@ export function connectDevice(
       again();
     });
   }
+  // The browser knows a network is gone long before a socket ping times out, and knows when
+  // it is back before the next backoff retry.
+  const lost = () => socket?.disconnect();
+  const back = () => {
+    if (stopped || socket?.connected) return;
+    clearTimeout(retry);
+    failures = 0;
+    void open();
+  };
+  window.addEventListener('offline', lost);
+  window.addEventListener('online', back);
   void open();
   return () => {
     stopped = true;
+    window.removeEventListener('offline', lost);
+    window.removeEventListener('online', back);
     clearTimeout(retry);
     clearInterval(heartbeat);
     socket?.disconnect();
