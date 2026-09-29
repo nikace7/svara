@@ -48,6 +48,11 @@ Playwright (13) passed on the result. The duplicate `ci.yml` added in M8 was rem
 its evaluation step moved into `ci.yaml`. GitHub has not started any CI job: the
 account's Actions billing is blocked.
 
+A fresh clone at a short path now passes `pnpm check` in full (219 tests, 95.87%), closing
+the Windows path-limit gap. Releases now freeze knowledge in the order it was written
+(`createdAt`, then `id`), so the public page's suggested questions are the author's first
+three FAQs instead of the first three by random id.
+
 ## M7 analytics, resilience and operations — 2026-09-29
 
 Built on branch `claude/m7-operations` from `main` after M6 was fast-forwarded. See
