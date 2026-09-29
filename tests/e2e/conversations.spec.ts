@@ -105,6 +105,17 @@ test('a kiosk shows a requested slide on its display, stops a long answer and ke
   await expect(page.getByText('Tool show_slide: APPLIED · kiosk applied it')).toBeVisible();
   await expect(page.getByText(/ANSWER · interrupted/)).toBeVisible();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+  // A lost network shows at once: the last complete release stays and answers pause.
+  await kioskContext.setOffline(true);
+  await expect(
+    kiosk.getByRole('alert').filter({ hasText: 'Offline. Showing the last complete release' }),
+  ).toBeVisible();
+  await expect(kiosk.locator('.device-slide')).toContainText('Admissions steps');
+  await expect(panel).toContainText('Answers are unavailable until this kiosk is back online.');
+  await expect(panel.getByRole('button', { name: 'Ask', exact: true })).toBeHidden();
+  await kioskContext.setOffline(false);
+  await expect(panel.getByRole('button', { name: 'Ask', exact: true })).toBeVisible();
   await kioskContext.close();
 });
 
