@@ -209,7 +209,7 @@ test('captures the seven handoff screens in demo mode', async ({ browser, baseUR
   const visitor = await visitorContext.newPage();
   await visitor.goto(`/assistant/${link.slug as string}`);
   await visitor.getByRole('button', { name: 'नेपाली' }).click();
-  // Typed, not a suggestion: suggestions are the release's first three FAQs, in id order.
+  // Typed, as a visitor would, rather than picking one of the suggested FAQs.
   await visitor.locator('#conversation-question').fill('भर्ना कार्यालय कहाँ छ?');
   await visitor.locator('#conversation-question').press('Enter');
   await expect(visitor.locator('.conversation-answer').last()).toContainText('कोठा १२');

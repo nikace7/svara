@@ -19,7 +19,11 @@ export const releaseDraftInclude = {
   },
   knowledge: {
     where: { selected: true },
-    orderBy: { id: 'asc' },
+    // Written order: public suggestions are the first FAQs, so the author's order must hold.
+    orderBy: [
+      { createdAt: 'asc' },
+      { id: 'asc' },
+    ] as Prisma.KnowledgeEntryOrderByWithRelationInput[],
     take: RELEASE_LIMITS.knowledgeEntries + 1,
   },
 } as const;
