@@ -66,12 +66,115 @@ with `pnpm demo:down`, before starting the other mode. Do not stop unrelated ser
 to free a port. Changing `.env` does not change a password already stored in a
 PostgreSQL volume; preserve its original generated credentials.
 
-## Later operations
+## Backup and restore
 
-Backup/restore, conversation retention, provider evaluation and public
-hosting remain later work. Owner-issued recovery links are available in settings.
-The image retains build/test tools for reproducibility; smaller service-specific
-images can follow. The supported deployment remains the local demo.
+A backup is a PostgreSQL custom-format dump, a copy of the media files and a manifest with the
+dump's SHA-256, the media file count and exact row counts for every table.
+
+```sh
+pnpm backup              # native mode: media from MEDIA_ROOT
+pnpm backup --compose    # Compose demo: media from the stack's media volume
+```
+
+Each run writes a new `.local/backups/<timestamp>/` directory. The dump runs inside the running
+`svara` PostgreSQL container, so no local client tools are needed and no password appears on a
+command line. Row counts are taken before and after the dump; if anything changed meanwhile the
+backup is refused and nothing is kept, so run it while the stack is idle. Copy the directory
+somewhere safe together with `.local/setup/demo-staff.json`. A backup contains transcripts and
+credential hashes, so treat it like the database itself.
+
+Restoring never overwrites anything. It creates a new database and a new media directory, then
+verifies both against the manifest:
+
+```sh
+pnpm restore .local/backups/<timestamp>                   # into svara_restore
+pnpm restore .local/backups/<timestamp> svara_restore_2   # another name
+```
+
+The target must be `svara_restore` or `svara_restore_<suffix>`. `svara_dev`, `svara_test` or an
+existing database or media directory is refused. The command reports the verified table, row
+and media counts, or fails naming what differs.
+
+To put a verified restore into use (native mode):
+
+1. Stop the apps (Ctrl+C on `pnpm dev`) and leave only PostgreSQL and Redis running.
+2. Rename the databases inside the container:
+   ```sh
+   docker compose --env-file .env.compose -f infra/compose.yaml exec -T postgres psql -U svara -d postgres -c 'ALTER DATABASE svara_dev RENAME TO svara_dev_previous' -c 'ALTER DATABASE svara_restore RENAME TO svara_dev'
+   ```
+3. Move `.local/media` aside and rename `.local/svara_restore-media` to `.local/media`.
+4. Run `pnpm db:migrate`, which brings an older backup up to the current schema, then start the
+   apps. The worker reconciles desired device state and ends stale conversations at startup.
+   Kiosks reconnect and receive the current desired state.
+
+Drop `svara_dev_previous` only once the restored copy has been checked in the studio. To drop a
+restore you no longer need:
+
+```sh
+docker compose --env-file .env.compose -f infra/compose.yaml exec -T postgres dropdb -U svara svara_restore
+```
+
+## Resetting the local demo
+
+```sh
+pnpm demo:reset svara_dev
+```
+
+This deletes the native demo database and media, then migrates and seeds again. It refuses
+unless:
+
+- the target is the local `svara_dev` database with the Svara marker, in the local environment;
+- `MEDIA_ROOT` is a `.local/media` directory;
+- the database name is typed as the confirmation.
+
+It takes a `pnpm backup` first, so `pnpm restore` can bring back the previous state. Staff
+passwords come from `.local/setup/demo-staff.json` as they do for a normal seed.
+
+The Compose demo keeps its data in volumes. Reset it with `pnpm demo:down`, then
+`docker volume rm svara_postgres_data svara_media_data`, then `pnpm demo:up`. Take
+`pnpm backup --compose` first.
+
+## Retention
+
+The worker applies retention at startup and hourly:
+
+- **Transcripts:** questions, answers, citations and tool arguments and results are removed 30
+  days after their conversation ended. Turn states, timings and counts remain, so analytics stay
+  correct. Each expiry is audited as `conversation.transcript.expired`.
+- **Expired or revoked credentials:** staff sessions, invitations and recovery links, device
+  tickets and grants, and pairing codes are deleted seven days after they expire. A record that
+  something still references stays.
+- **Short-lived records:** expired publish idempotency records and unused visitor grants are
+  deleted.
+
+Staff can delete a transcript immediately from its session record.
+
+## Stopping safely
+
+- **Native:** Ctrl+C on `pnpm dev`, then `pnpm infra:down`.
+- **Compose:** `pnpm demo:down`.
+
+Both keep volumes. Answers in progress stop with the API process. The worker finishes its
+current media job, reconciliation tick and retention pass within 25 seconds before exiting.
+Nothing needs to be cleaned up by hand afterwards. At the next start, the worker ends
+conversations whose idle or absolute deadline has passed, keeping their reserved allowance.
+Devices reconcile their desired and applied release revisions.
+
+## Configuration reference
+
+| Setting                             | Where                  | Notes                                                                            |
+| ----------------------------------- | ---------------------- | -------------------------------------------------------------------------------- |
+| `DATABASE_URL`, `TEST_DATABASE_URL` | `.env`                 | Local `svara_dev` and `svara_test` only; scripts refuse any other target         |
+| `REDIS_URL`, `WORKER_NAMESPACE`     | `.env`                 | Keep the namespace identical on API and worker                                   |
+| `MEDIA_ROOT`                        | `.env`                 | Absolute `.local/media` path; Compose uses its own volume                        |
+| `APP_ORIGIN`, `TRUST_PROXY_HOPS`    | `.env`, `.env.compose` | The exact browser origin; 0 native, 1 behind Caddy                               |
+| `AUTH_TOKEN_PEPPER`                 | `.env`                 | Changing it invalidates every stored credential                                  |
+| `PROVIDER_MODE`, `GEMINI_API_KEY`   | `.env` or inline       | `live` requires a key; never commit the key; the sidebar shows the mode in use   |
+| Conversation limits                 | `CONVERSATION_LIMITS`  | 10 concurrent per organisation; 100 live sessions and 3,600 live seconds per day |
+
+Hosting beyond this machine remains outside the supported setup. That means HTTPS, provider
+quotas, permitted origins and durable off-machine backups. The image retains build and test
+tools for reproducibility; smaller service-specific images can follow.
 
 ## Staff setup
 

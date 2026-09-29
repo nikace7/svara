@@ -15,6 +15,8 @@
     "db:generate": "pnpm --filter @svara/database generate",
     "db:migrate": "tsx scripts/database.ts migrate",
     "db:seed": "pnpm build:packages && pnpm --filter @svara/worker build && tsx scripts/database.ts seed",
+    "backup": "tsx scripts/backup.ts create",
+    "restore": "tsx scripts/backup.ts restore",
     "staff:recover": "pnpm --filter @svara/contracts build && tsx scripts/recover-staff.ts",
     "eval:gemini": "tsx scripts/gemini-smoke.ts",
     "db:test:prepare": "tsx scripts/database.ts test",
@@ -37,6 +39,7 @@
     "contracts:generate": "pnpm --filter @svara/api build && tsx scripts/contracts.ts generate",
     "contracts:check": "pnpm --filter @svara/api build && tsx scripts/contracts.ts check",
     "demo:up": "docker compose --env-file .env.compose -f infra/compose.yaml -f infra/compose.demo.yaml up -d --build --wait",
+    "demo:reset": "pnpm build:packages && pnpm --filter @svara/worker build && tsx scripts/reset-demo.ts",
     "demo:down": "docker compose --env-file .env.compose -f infra/compose.yaml -f infra/compose.demo.yaml down",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm contracts:check && pnpm build"
   },
