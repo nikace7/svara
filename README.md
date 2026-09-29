@@ -211,7 +211,8 @@ overview at five viewport sizes in ignored `artifacts/screenshots/`.
 fails on drift without rewriting them. Tests do not call speech/LLM providers.
 Integration commands accept only the explicitly local `svara_test` database.
 
-The GitHub Actions workflow is ready for a future remote; it has not been run on
-GitHub or published. See [contributing](CONTRIBUTING.md),
+The repository is on GitHub at `nikace7/svara`. Its workflow
+(`.github/workflows/ci.yaml`) runs these checks on every push to `main`, but no run has
+started yet because the account's Actions billing is blocked. See [contributing](CONTRIBUTING.md),
 [operations](docs/OPERATIONS.md), [API contracts](docs/API.md), and
 [dependency decisions](docs/DEPENDENCIES.md).
