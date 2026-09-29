@@ -1,7 +1,9 @@
-/** A self-contained live-mode stack for `pnpm test:e2e:live`: the built web in live mode,
- * the real API wiring with stub Gemini providers, and one same-origin gateway like Caddy's.
- * Stubs keep the browser suite deterministic and quota-free; `pnpm eval:gemini` covers the
- * real provider. Uses the test database only. Requires `pnpm build` first. */
+/** A self-contained stack for `pnpm test:e2e:live`: the built web in live mode, the real API
+ * wiring with stub Gemini providers, and one same-origin gateway like Caddy's. Stubs keep the
+ * browser suite deterministic and quota-free; `pnpm eval:gemini` covers the real provider.
+ * With SVARA_STACK_MODE=fixture it runs honest demo mode instead (FixtureAnswerGenerator, no
+ * speech), which the screenshot set uses so every capture is labelled truthfully.
+ * Uses the test database only. Requires `pnpm build` first. */
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { cpSync, existsSync, mkdtempSync } from 'node:fs';
@@ -36,10 +38,11 @@ import {
   ReleaseService,
   ScheduleService,
 } from '../../packages/domain/dist/index.js';
-import { GeminiError } from '../../packages/providers/dist/index.js';
+import { FixtureAnswerGenerator, GeminiError } from '../../packages/providers/dist/index.js';
 import type { AnswerInput, RecognitionEvent } from '../../packages/providers/dist/index.js';
 
 const LIVE_ORIGIN = 'http://localhost:4330';
+const mode = process.env.SVARA_STACK_MODE === 'fixture' ? 'fixture' : 'live';
 const [GATEWAY, API, WEB] = [4330, 4110, 3011];
 
 /** Answers from the top retrieved passage, so the page can only show release text if
@@ -133,12 +136,12 @@ const schedules = new ScheduleLoop(
   { sweep: () => expireStaleSessions(db) },
 );
 const conversations = new ConversationService(db, identity, runtime, {
-  providerMode: 'live',
+  providerMode: mode,
   pepper,
 });
 const media = await MediaStorage.open(mkdtempSync(join(tmpdir(), 'svara-e2e-media-')));
 const app = await createApplication({
-  providerMode: 'live',
+  providerMode: mode,
   localDocs: true,
   probe: async () => ({ status: 'ready', dependencies: {} }),
   feasibilityOrigin: LIVE_ORIGIN,
@@ -146,7 +149,7 @@ const app = await createApplication({
   authoring: new BotService(identity),
   knowledge: new KnowledgeService(identity),
   presentations: new PresentationService(identity),
-  releases: new ReleaseService(identity, { providerMode: 'live' }),
+  releases: new ReleaseService(identity, { providerMode: mode }),
   schedules: new ScheduleService(identity),
   devices: new DeviceService(identity, pepper),
   deviceGateway: gateway,
@@ -157,17 +160,17 @@ const app = await createApplication({
     pepper,
     consumeLimit: async () => 0,
   },
-  liveVoice,
+  ...(mode === 'live' ? { liveVoice } : {}),
   conversations: {
     service: conversations,
     sessions: new ConversationSessions(identity),
     links: new AssistantLinkService(identity),
-    publics: new PublicAssistants(db, media, { pepper, providerMode: 'live' }),
+    publics: new PublicAssistants(db, media, { pepper, providerMode: mode }),
     streaming: {
       service: conversations,
       runner: {
         service: conversations,
-        providers: liveVoice,
+        providers: mode === 'live' ? liveVoice : { generator: new FixtureAnswerGenerator() },
         slides: { show: (deviceId, command) => gateway.showSlide(deviceId, command) },
       },
       active: new ActiveTurns(),
@@ -193,7 +196,7 @@ const web = spawn(process.execPath, [`${standalone}server.js`], {
     PORT: String(WEB),
     HOSTNAME: '127.0.0.1',
     APP_ENV: 'local',
-    PROVIDER_MODE: 'live',
+    PROVIDER_MODE: mode,
     APP_ORIGIN: LIVE_ORIGIN,
     API_INTERNAL_ORIGIN: `http://127.0.0.1:${API}`,
   },
