@@ -411,3 +411,30 @@ short passage and slide labels, never identifiers it could choose; the server ma
 labels back and re-checks them against the pinned release. Slide commands share the
 device-command table for their audit trail but are neither retried nor snapshotted, and
 never touch the applied release revision.
+
+## ADR 028 — Operations stay on canonical HTTP; recovery uses the database's own tools
+
+The blueprint adds an `/operations` Socket.IO namespace with staff tickets that push
+`device.updated`, `deployment.updated` and `session.updated` invalidation hints. The
+studio already refetches canonical HTTP data: the device board polls every ten seconds,
+and every other page reads fresh data on navigation. A hint socket would add a ticket
+type, a namespace and a reconnect path. Its only effect would be to shorten that ten
+seconds, and the blueprint itself says clients must refetch over HTTP after any
+reconnect anyway. It is deferred until a screen needs sub-second freshness.
+
+Retention runs in the worker at startup and hourly rather than on a daily schedule. Each
+pass is idempotent and bounded (200 transcripts per transaction), so a missed or repeated
+hour costs nothing, and expiry happens within an hour of the 30-day mark instead of within
+a day. One worker process is assumed; several workers would need a lease.
+
+Backups use `pg_dump` and `pg_restore` inside the running PostgreSQL container instead of
+application-level export. The custom format restores the exact schema, constraints and
+triggers. No database password is placed on a command line, and no client tools are
+installed on the host. Verification compares exact row counts for every table, which
+tolerates a database on an older migration. A restore can only create a new
+`svara_restore*` database. Swapping it into use is a documented manual rename, so no
+command can overwrite `svara_dev`.
+
+Audit visibility is a count of actions per window on the analytics page. It returns no
+actor, target or payload, so it cannot leak who did what to users who may inspect
+conversations.
