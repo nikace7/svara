@@ -31,6 +31,19 @@ const copy = {
     demo: 'Demo mode: answers quote approved information and speech is off.',
     reconnect: 'Reconnect',
     resumed: 'Restored from the previous conversation. The last unfinished answer was interrupted.',
+    audioFailed: 'Answer audio could not play; read it here.',
+    micDenied: 'Microphone permission was denied. Type the question instead.',
+    micUnavailable: 'The microphone is unavailable. Type the question instead.',
+    micStopped: 'The microphone stopped. Type the question instead.',
+    dropped: 'The connection dropped mid-answer. Reconnect to continue this conversation.',
+    errors: {
+      PROVIDER_QUOTA: 'The provider quota is exhausted. Read any partial text and retry later.',
+      TTS_UNAVAILABLE: 'Speech is unavailable for this answer. The text is complete.',
+      STT_UNAVAILABLE: 'Recognition is unavailable. Type the question instead.',
+      PROVIDER_UNAVAILABLE: 'The assistant did not answer. Read any partial text or retry.',
+      NO_SPEECH: 'No speech was heard. Try again, or type the question.',
+      SESSION_ENDED: 'This conversation has ended. Start a new one.',
+    },
   },
   ne: {
     placeholder: 'आफ्नो प्रश्न लेख्नुहोस्',
@@ -49,8 +62,31 @@ const copy = {
     demo: 'डेमो मोड: उत्तरहरू स्वीकृत जानकारीबाट लिइन्छन् र आवाज बन्द छ।',
     reconnect: 'फेरि जोड्नुहोस्',
     resumed: 'अघिल्लो कुराकानी फर्काइयो। अन्तिम अधूरो उत्तर रोकिएको थियो।',
+    audioFailed: 'उत्तरको आवाज बज्न सकेन; यहाँ पढ्नुहोस्।',
+    micDenied: 'माइक्रोफोन अनुमति दिइएन। बरु प्रश्न लेख्नुहोस्।',
+    micUnavailable: 'माइक्रोफोन उपलब्ध छैन। बरु प्रश्न लेख्नुहोस्।',
+    micStopped: 'माइक्रोफोन बन्द भयो। बरु प्रश्न लेख्नुहोस्।',
+    dropped: 'उत्तरको बीचमा जडान टुट्यो। यो कुराकानी जारी राख्न फेरि जोड्नुहोस्।',
+    errors: {
+      PROVIDER_QUOTA: 'सेवाको कोटा सकियो। आएको उत्तर पढ्नुहोस् र पछि फेरि प्रयास गर्नुहोस्।',
+      TTS_UNAVAILABLE: 'यो उत्तरको आवाज उपलब्ध छैन। लेखिएको उत्तर पूरा छ।',
+      STT_UNAVAILABLE: 'बोली पहिचान उपलब्ध छैन। बरु प्रश्न लेख्नुहोस्।',
+      PROVIDER_UNAVAILABLE: 'सहायकले उत्तर दिएन। आएको उत्तर पढ्नुहोस् वा फेरि प्रयास गर्नुहोस्।',
+      NO_SPEECH: 'कुनै बोली सुनिएन। फेरि प्रयास गर्नुहोस् वा प्रश्न लेख्नुहोस्।',
+      SESSION_ENDED: 'यो कुराकानी सकियो। नयाँ सुरु गर्नुहोस्।',
+    },
   },
 } as const;
+
+/** A browser that refuses autoplay never starts audio output; the answer carries on as text. */
+const AUDIO_START_MS = 2000;
+function within<T>(started: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, fail) => {
+    timer = setTimeout(() => fail(new Error('Audio output did not start.')), ms);
+  });
+  return Promise.race([started, late]).finally(() => clearTimeout(timer));
+}
 
 interface Turn {
   key: string;
@@ -240,31 +276,43 @@ export function ConversationPanel(props: ConversationPanelProps) {
           event.pcm !== undefined &&
           event.segment !== undefined
         ) {
+          const silent = () => {
+            speech = false;
+            update(key, (turn) => ({ ...turn, note: text.audioFailed }));
+          };
           if (!playback) {
             const player = new LabAudio();
             audio.current = player;
             audioControl.current = playbackControl;
-            playback = await player.startAnswer(playbackControl.signal, generation.id, (state) => {
-              if (state === 'failed' && owner.current.accepts(generation.id)) {
-                speech = false;
-                update(key, (turn) => ({
-                  ...turn,
-                  note: 'Answer audio could not play; read it here.',
-                }));
-              }
-            });
+            try {
+              playback = await within(
+                player.startAnswer(playbackControl.signal, generation.id, (state) => {
+                  if (state === 'failed' && owner.current.accepts(generation.id)) silent();
+                }),
+                AUDIO_START_MS,
+              );
+            } catch {
+              if (!owner.current.accepts(generation.id)) return;
+              // A late start is disposed by the aborted signal; nothing plays out of turn.
+              playbackControl.abort();
+              silent();
+            }
           }
-          lastSegment = event.segment;
-          playback.push(decodeAudioPacket(event.pcm), event.segment, event.end === true);
+          if (playback) {
+            lastSegment = event.segment;
+            playback.push(decodeAudioPacket(event.pcm), event.segment, event.end === true);
+          }
         }
+        // Failures are shown in the conversation's language; the server's text is English.
+        const failure = event.code ? text.errors[event.code] : event.text;
         if (event.type === 'error' && event.code === 'TTS_UNAVAILABLE') {
           speech = false;
-          update(key, (turn) => ({ ...turn, note: event.text }));
+          update(key, (turn) => ({ ...turn, note: failure }));
         } else if (event.type === 'error') {
           playback?.finish(lastSegment);
-          update(key, (turn) => ({ ...turn, state: 'failed', note: event.text }));
-          if (event.code === 'SESSION_ENDED') forget(event.text);
-          else setError(event.text);
+          update(key, (turn) => ({ ...turn, state: 'failed', note: failure }));
+          if (event.code === 'SESSION_ENDED') forget(failure);
+          else setError(failure);
         }
         if (event.type === 'complete') {
           playback?.finish(lastSegment);
@@ -286,7 +334,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
       setResumeFrom(current.id);
       session.current = null;
       setHasSession(false);
-      setError('The connection dropped mid-answer. Reconnect to continue this conversation.');
+      setError(text.dropped);
     } finally {
       if (owner.current.accepts(generation.id)) setPhase('idle');
     }
@@ -331,7 +379,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
           if (!control.signal.aborted) {
             stopAudio();
             setPhase('idle');
-            setError('The microphone stopped. Type the question instead.');
+            setError(text.micStopped);
           }
         },
         (pcm) => {
@@ -347,8 +395,8 @@ export function ConversationPanel(props: ConversationPanelProps) {
       setPhase('idle');
       setError(
         reason instanceof DOMException && reason.name === 'NotAllowedError'
-          ? 'Microphone permission was denied. Type the question instead.'
-          : 'The microphone is unavailable. Type the question instead.',
+          ? text.micDenied
+          : text.micUnavailable,
       );
     }
   }

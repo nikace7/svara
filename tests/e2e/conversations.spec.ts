@@ -1,4 +1,5 @@
 import { AxeBuilder } from '@axe-core/playwright';
+import type { APIRequestContext, Browser } from '@playwright/test';
 import { pairKiosk, publishedGuide } from './guide.js';
 import { test, expect } from './fixtures.js';
 
@@ -155,4 +156,89 @@ test('analytics show measured live timings and keep demo results separate', asyn
     'Unavailable: nothing measured',
   );
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
+
+/** A visitor on a public link with its own signed-out browser profile. */
+async function visitorOn(browser: Browser, baseURL: string, request: APIRequestContext) {
+  const guide = await publishedGuide(request, baseURL);
+  const created = await request.post('/api/v1/assistant-links', {
+    headers: guide.headers,
+    data: { releaseId: guide.releaseId, label: 'Failures' },
+  });
+  const { slug } = (await created.json()).data as { slug: string };
+  const context = await browser.newContext({ baseURL });
+  return { context, slug };
+}
+
+test('a refused microphone and blocked audio still leave typed questions and readable answers', async ({
+  context,
+  browser,
+  baseURL,
+}) => {
+  const visitor = await visitorOn(browser, baseURL!, context.request);
+  await visitor.context.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = () =>
+      Promise.reject(new DOMException('Permission denied', 'NotAllowedError'));
+    // Autoplay refused: the audio output never starts.
+    AudioContext.prototype.resume = () => new Promise<void>(() => undefined);
+  });
+  const page = await visitor.context.newPage();
+  await page.goto(`/assistant/${visitor.slug}`);
+  await page.getByRole('button', { name: 'Ask by voice' }).click();
+  await expect(
+    page
+      .getByRole('alert')
+      .filter({ hasText: 'Microphone permission was denied. Type the question instead.' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Where is admissions?' }).click();
+  const answer = page.locator('.conversation-answer').last();
+  await expect(answer).toContainText('From this release: Room 12.');
+  await expect(answer).toContainText('Answer audio could not play; read it here.');
+  // The same failures read in Nepali once the visitor switches language.
+  await page.getByRole('button', { name: 'नेपाली' }).click();
+  await page.getByRole('button', { name: 'बोलेर सोध्नुहोस्' }).click();
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'माइक्रोफोन अनुमति दिइएन।' }),
+  ).toBeVisible();
+  await page.getByLabel('आफ्नो प्रश्न लेख्नुहोस्').fill('भर्ना कहाँ छ, कोटा बाँकी छ? quota');
+  await page.getByRole('button', { name: 'सोध्नुहोस्', exact: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'सेवाको कोटा सकियो।' })).toBeVisible();
+  await visitor.context.close();
+});
+
+test('a provider failure is named, and a dropped connection reconnects with finished answers', async ({
+  context,
+  browser,
+  baseURL,
+}) => {
+  const visitor = await visitorOn(browser, baseURL!, context.request);
+  const page = await visitor.context.newPage();
+  await page.goto(`/assistant/${visitor.slug}`);
+  const ask = async (question: string) => {
+    await page.getByLabel('Type your question').fill(question);
+    await page.getByRole('button', { name: 'Ask', exact: true }).click();
+  };
+  // A question the release can answer, so it reaches the provider, which is out of quota.
+  await ask('Where is admissions, if there is quota left?');
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'The provider quota is exhausted.' }),
+  ).toBeVisible();
+  // The same conversation still answers once the provider does.
+  await ask('Where is admissions?');
+  await expect(page.locator('.conversation-answer').last()).toContainText(
+    'From this release: Room 12.',
+  );
+
+  await visitor.context.setOffline(true);
+  await ask('Are you still there?');
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'The connection dropped mid-answer.' }),
+  ).toBeVisible();
+  await visitor.context.setOffline(false);
+  await page.getByRole('button', { name: 'Reconnect' }).click();
+  await expect(page.getByText('Restored from the previous conversation.')).toBeVisible();
+  await expect(page.getByText('From this release: Room 12.')).toBeVisible();
+  await ask('Where is admissions?');
+  await expect(page.locator('.conversation-answer')).toHaveCount(2);
+  await visitor.context.close();
 });
