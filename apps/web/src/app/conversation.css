@@ -206,3 +206,56 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Analytics: plain counts in tables and lists, no oversized statistic cards. */
+.analytics-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 16px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.analytics-filters select {
+  width: 100%;
+}
+.analytics-panel {
+  padding: 20px 24px;
+}
+.analytics-panel h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+.analytics-panel > .table-scroll {
+  width: calc(100% + 48px);
+  margin: 16px -24px -20px;
+}
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.analytics-grid h3 {
+  margin: 16px 0 8px;
+  font-size: 14px;
+}
+.analytics-counts {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+.analytics-counts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.analytics-counts dt {
+  color: var(--text-secondary);
+}
+.analytics-counts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}

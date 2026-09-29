@@ -21,10 +21,11 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import type { ProviderMode } from '@svara/contracts';
 import { StatusBadge } from '@svara/ui';
 import { useStaffSession } from './session-provider';
 
-function Navigation({ onNavigate }: { onNavigate?: () => void }) {
+function Navigation({ mode, onNavigate }: { mode: ProviderMode; onNavigate?: () => void }) {
   const path = usePathname();
   const { identity } = useStaffSession();
   const items = [
@@ -34,7 +35,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
     { label: 'Devices', icon: Monitor, href: '/studio/devices' },
     { label: 'Events & Deployments', icon: CalendarDays, href: '/studio/schedule' },
     { label: 'Sessions', icon: FileText, href: '/studio/sessions' },
-    { label: 'Analytics', icon: ChartNoAxesCombined },
+    { label: 'Analytics', icon: ChartNoAxesCombined, href: '/studio/analytics' },
     { label: 'Settings', icon: Settings2, href: '/studio/settings' },
   ];
   return (
@@ -112,8 +113,10 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
         <div className="sidebar-mode">
           <span className="mode-dot" />
           <div>
-            <strong>Fixture mode</strong>
-            <span>No external provider calls</span>
+            <strong>{mode === 'live' ? 'Live providers' : 'Fixture mode'}</strong>
+            <span>
+              {mode === 'live' ? 'Conversations call Gemini' : 'No external provider calls'}
+            </span>
           </div>
         </div>
       </div>
@@ -132,9 +135,10 @@ const crumbs = [
   ['/studio/schedule', 'Events & Deployments'],
   ['/studio/playground', 'Playground'],
   ['/studio/sessions', 'Sessions'],
+  ['/studio/analytics', 'Analytics'],
 ] as const;
 
-export function StudioShell({ children }: { children: ReactNode }) {
+export function StudioShell({ children, mode }: { children: ReactNode; mode: ProviderMode }) {
   const [navigationOpen, setNavigationOpen] = useState(false);
   const pathname = usePathname();
   return (
@@ -143,7 +147,7 @@ export function StudioShell({ children }: { children: ReactNode }) {
         Skip to content
       </a>
       <aside className="sidebar">
-        <Navigation />
+        <Navigation mode={mode} />
       </aside>
       <div className="app-body">
         <header className="topbar">
@@ -166,7 +170,7 @@ export function StudioShell({ children }: { children: ReactNode }) {
                     >
                       <X size={20} aria-hidden="true" />
                     </Dialog.Close>
-                    <Navigation onNavigate={() => setNavigationOpen(false)} />
+                    <Navigation mode={mode} onNavigate={() => setNavigationOpen(false)} />
                   </Dialog.Popup>
                 </Dialog.Portal>
               </Dialog.Root>
