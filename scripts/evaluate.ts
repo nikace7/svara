@@ -248,6 +248,12 @@ async function main() {
     if (failed.length) console.info(`  failed: ${failed.join(', ')}`);
   }
   console.info(`Results: ${file}`);
+  // Quality misses are reported, not hidden; safety failures fail the run.
+  const unsafe = results.filter((result) => result.unauthorized > 0 || result.invented.length);
+  if (unsafe.length) {
+    console.error(`Unsafe results: ${unsafe.map((result) => result.id).join(', ')}`);
+    process.exitCode = 1;
+  }
 }
 
 try {

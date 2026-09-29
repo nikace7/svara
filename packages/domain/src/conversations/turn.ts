@@ -225,6 +225,9 @@ export async function* runConversationTurn(
     };
     // Nothing approved matches and nothing can be shown: the approved fallback, not generation.
     const generate = passages.length > 0 || slides.length > 0;
+    // With no evidence the model is asked only in case the question is a slide request: its
+    // first-round words are not grounded, so they are dropped and the fallback answers instead.
+    const evidence = passages.length > 0;
 
     const execute = async function* (
       calls: ProposedToolCall[],
@@ -319,7 +322,7 @@ export async function* runConversationTurn(
               if (entries.some((entry) => !entry)) throw new InvalidCitation();
               // A label can arrive as its own fragment after the sentence it supports.
               for (const entry of entries) cited.add(entry!);
-              if (!text.trim()) continue;
+              if (!text.trim() || (round === 0 && !evidence)) continue;
               spoke = true;
               yield* say(text);
             }

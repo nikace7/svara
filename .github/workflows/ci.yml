@@ -1,0 +1,91 @@
+# Deterministic checks only: fixture providers, no API keys, synthetic data. Live provider
+# evaluation is a separate opt-in command (pnpm eval:conversations --live) and never runs here.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PROVIDER_MODE: fixture
+
+jobs:
+  check:
+    name: Format, lint, types, unit coverage, contracts, build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+
+  integration:
+    name: Integration against PostgreSQL and Redis
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_USER: svara
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: svara_dev
+        ports: ['5434:5432']
+        options: >-
+          --health-cmd "pg_isready -U svara -d svara_dev" --health-interval 5s --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7-bookworm
+        ports: ['6381:6379']
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Media tools for real image and video inspection
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - name: Test database and CI-only settings
+        run: |
+          PGPASSWORD=ci-only-password psql -h 127.0.0.1 -p 5434 -U svara -d svara_dev -c 'CREATE DATABASE svara_test OWNER svara'
+          mkdir -p .local/media
+          cat > .env <<EOF
+          APP_ENV=local
+          APP_ORIGIN=http://localhost:4320
+          API_INTERNAL_ORIGIN=http://127.0.0.1:4100
+          DATABASE_URL=postgresql://svara:ci-only-password@127.0.0.1:5434/svara_dev
+          TEST_DATABASE_URL=postgresql://svara:ci-only-password@127.0.0.1:5434/svara_test
+          REDIS_URL=redis://127.0.0.1:6381
+          MEDIA_ROOT=$PWD/.local/media
+          MEDIA_INSPECTION_MODE=native
+          FFPROBE_PATH=ffprobe
+          AUTH_TOKEN_PEPPER=$(openssl rand -hex 48)
+          PROVIDER_MODE=fixture
+          EOF
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm test:integration
+      - name: Fixed bilingual evaluation (demo mode)
+        run: pnpm eval:conversations
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evaluation
+          path: artifacts/evaluation/
+          if-no-files-found: ignore
