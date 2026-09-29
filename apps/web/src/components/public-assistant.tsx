@@ -114,6 +114,7 @@ export function PublicAssistant({ slug }: { slug: string }) {
                     <strong lang="en">{slide.title.en}</strong>
                     {slide.title.ne && <strong lang="ne">{slide.title.ne}</strong>}
                     <span lang="en">{slide.body.en}</span>
+                    {slide.body.ne && <span lang="ne">{slide.body.ne}</span>}
                   </figcaption>
                 </figure>
               );
