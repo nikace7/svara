@@ -185,12 +185,9 @@ async function main() {
       locale: item.locale,
       text: item.question,
     });
-    for await (const _event of runConversationTurn(
-      actor,
-      context,
-      runner,
-      AbortSignal.timeout(60_000),
-    ));
+    // The turn row is the record; the streamed events are not needed here.
+    const events = runConversationTurn(actor, context, runner, AbortSignal.timeout(60_000));
+    while (!(await events.next()).done);
     await conversations.end(actor, session.id);
     const turn = await db.conversationTurn.findUniqueOrThrow({
       where: { id: context.turnId },
