@@ -229,6 +229,24 @@ describe('GeminiAnswerGenerator', () => {
     ).rejects.toMatchObject({ code: 'PROVIDER_UNAVAILABLE' });
   });
 
+  it('accepts an empty tool round after an answer was already given', async () => {
+    // Told what it already said, the model often has nothing to add: that is not a failure.
+    const { fetch } = fakeFetch(() =>
+      sse({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: '' }] } }] }),
+    );
+    const toolRound = { calls: [], results: [] };
+    const generate = (text: string) =>
+      collect(
+        new GeminiAnswerGenerator(options(fetch)).generate(
+          { question: 'q', passages: [], history: [], toolRound: { ...toolRound, text } },
+          context(),
+        ),
+      );
+    await expect(generate('Admissions is in room 12.')).resolves.toEqual([]);
+    // Nothing heard yet: an empty round is still no answer.
+    await expect(generate('')).rejects.toMatchObject({ code: 'PROVIDER_UNAVAILABLE' });
+  });
+
   it('never emits reasoning parts as answer text', async () => {
     const { fetch } = fakeFetch(() =>
       sse({
