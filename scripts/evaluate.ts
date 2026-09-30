@@ -156,7 +156,7 @@ async function main() {
             ttsModel: config.GEMINI_TTS_MODEL,
             sttModel: config.GEMINI_STT_MODEL,
             voice: config.GEMINI_VOICE,
-            retries: 1,
+            retries: 2, // As the API does, so overload retries match production.
           })
         : new FixtureAnswerGenerator(),
     },
