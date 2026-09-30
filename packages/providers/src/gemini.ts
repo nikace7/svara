@@ -95,10 +95,12 @@ async function callGemini(
       if (!response.body) throw new GeminiError('PROVIDER_UNAVAILABLE', response.status, 'empty');
       return response;
     }
-    const retryable = response.status === 429 || response.status === 503;
-    const hint = retryable ? retryDelayMs(await response.text().catch(() => '')) : undefined;
-    if (retryable && attempt < attempts) {
-      await sleep(hint ?? Math.min(2000 * attempt, 10000));
+    const transient = response.status === 429 || response.status === 503;
+    const detail = transient ? await response.text().catch(() => '') : '';
+    // A spent daily cap still carries "retry in Ns"; retrying only delays the same answer.
+    const daily = response.status === 429 && /PerDay/.test(detail);
+    if (transient && !daily && attempt < attempts) {
+      await sleep(retryDelayMs(detail) ?? Math.min(2000 * attempt, 10000));
       continue;
     }
     if (response.status === 429) throw new GeminiError('PROVIDER_QUOTA', 429, 'quota exhausted');
