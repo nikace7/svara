@@ -2,17 +2,17 @@
 
 Updated 2026-09-29. Evidence is local unless explicitly marked otherwise.
 
-| Milestone                                | State    | Evidence / remaining work                                                                                                                                                                                                                      |
-| ---------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M0 — Workspace and component foundation  | Complete | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.                                                                                                                                   |
-| M1 — Bilingual voice feasibility         | Partial  | Live gate and lab live turns work, typed or spoken, grounded in a chosen release. Real-key browser evidence, hardware barge-in and repeated sampling remain.                                                                                   |
-| M2 — Identity and tenant boundaries      | Complete | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                                                                                                                                                      |
-| M3 — Authoring and immutable publication | Complete | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.                                                                                                                                         |
-| M4 — Devices and dual displays           | Complete | Pairing, tickets, /devices gateway, verified release application, kiosk/display/simulator and revocation verified by the gate test.                                                                                                            |
-| M5 — Schedules and commands              | Complete | Conflict-safe schedules, overrides, monotonic desired state, outbox, worker and board; commands reach kiosks and are acknowledged.                                                                                                             |
-| M6 — Conversations and public assistant  | Complete | Scoped admission and limits, grounded cited turns, validated tools, kiosk slides, public links and visitor grants, playground and sessions verified by the gate tests. Live tool calling awaits a real-key run.                                |
-| M7 — Analytics and operations            | Complete | Mode-separated measured analytics with audit counts, 30-day transcript retention, verified backup/restore into a separate database, guarded demo reset, failure journeys and three-width Nepali layouts. Operations socket deferred (ADR 028). |
-| M8 — Evidence and handoff                | Complete | Fixed 40-case bilingual evaluation through the real pipeline, acceptance matrix, seven demo-mode screenshots, walkthrough, case study and the evaluation step in CI. The `--live` evaluation, fluent Nepali review and a GitHub CI run remain. |
+| Milestone                                | State    | Evidence / remaining work                                                                                                                                                                                                                                                                       |
+| ---------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 — Workspace and component foundation  | Complete | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.                                                                                                                                                                                    |
+| M1 — Bilingual voice feasibility         | Partial  | Live gate and lab live turns work, typed or spoken, grounded in a chosen release. Real-key browser evidence, hardware barge-in and repeated sampling remain.                                                                                                                                    |
+| M2 — Identity and tenant boundaries      | Complete | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                                                                                                                                                                                                       |
+| M3 — Authoring and immutable publication | Complete | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.                                                                                                                                                                                          |
+| M4 — Devices and dual displays           | Complete | Pairing, tickets, /devices gateway, verified release application, kiosk/display/simulator and revocation verified by the gate test.                                                                                                                                                             |
+| M5 — Schedules and commands              | Complete | Conflict-safe schedules, overrides, monotonic desired state, outbox, worker and board; commands reach kiosks and are acknowledged.                                                                                                                                                              |
+| M6 — Conversations and public assistant  | Complete | Scoped admission and limits, grounded cited turns, validated tools, kiosk slides, public links and visitor grants, playground and sessions verified by the gate tests. Live tool calling awaits a real-key run.                                                                                 |
+| M7 — Analytics and operations            | Complete | Mode-separated measured analytics with audit counts, 30-day transcript retention, verified backup/restore into a separate database, guarded demo reset, failure journeys and three-width Nepali layouts. Operations socket deferred (ADR 028).                                                  |
+| M8 — Evidence and handoff                | Complete | Fixed 40-case bilingual evaluation through the real pipeline, acceptance matrix, seven demo-mode screenshots, walkthrough, case study and the evaluation step in CI. Live runs of the set are partial (free-tier caps); the full `--live` run, fluent Nepali review and a GitHub CI run remain. |
 
 ## M8 evidence and handoff — 2026-09-29
 
@@ -76,6 +76,31 @@ peaks of 230/300, 130/180 and 26 of 30 sign-ins; a second full run inside 10 min
 exceeds the sign-in quota (README). The API limits are unchanged. The superseded local
 `codex/feat/device-pairing` draft (`5fb45fc`) was deleted: its three finished commits were
 already in `main` and M4 rebuilt the rest.
+
+## Live evaluation and Nepali review — 2026-09-30
+
+The fixed set ran live for the first time, on the user's free-tier keys passed only through
+the environment. No run finished: the free tier allows 20 generation requests per model
+per project per day, the set needs about 80, and `gemini-3.8-flash` was overloaded (503)
+most of the day. Across `gemini-3.6-flash` and `gemini-3.5-flash`, 20 answers completed
+(8 English, 12 Nepali) and all 20 were grounded, cited and correct. See
+[evaluation](EVALUATION.md#2-live-provider-evidence).
+
+The live runs found five defects, all fixed with tests: answers repeated after a tool call;
+a spent daily quota waited out the 60-second deadline and read as an outage; the
+evaluation classed quota errors as unavailable, scored failed turns as safe refusals,
+counted citations as unexpected tools, and crashed on a timeout or an expired kiosk lease.
+It also gained `--locale` and now retries overload twice, as the API does.
+
+A careful non-native review corrected four Nepali wordings on visitor-facing text (the
+Hindi spelling अधूरो, "सिँढी चढ्न नपर्ने", the quoted Send button, and a transliterated
+"deployment"). A fluent listener's review is still needed.
+
+Docker Desktop stopped once during a run, with no crash logged. It was restarted, and
+Postgres recovered cleanly. `pnpm demo:up` alone leaves Postgres and Redis unpublished
+to the host. Native tests need `compose.native.yaml` as well.
+
+`pnpm check` (223 tests), integration (173) and the fixture evaluation (40/40) pass.
 
 ## M7 analytics, resilience and operations — 2026-09-29
 

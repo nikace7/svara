@@ -123,19 +123,55 @@ ne-17 ("मेरो आवेदन तपाईं बुझाइदिन �
 
 ## 2. Live provider evidence
 
-These results come from the M1 gate, not from the fixed set.
+The first results below come from the M1 gate; the fixed set's live runs follow.
 
 - `pnpm eval:gemini` passed once with a real free-tier key on 2026-09-25. Both locales
   completed question → grounded answer → 24 kHz speech → 16 kHz round-trip transcript.
   Nepali answered and transcribed in Devanagari.
 - The timings, the single-sample caveat and six provider-contract corrections are recorded
   in [M1 voice](M1-VOICE.md).
+
+### The fixed set with `--live`, 2026-09-30 (partial)
+
+The set ran live four times on free-tier keys. No run finished: the free tier allows
+**20 generation requests per model per project per day**, and the full set needs about 80.
+`gemini-3.8-flash`, the configured model, was also overloaded (HTTP 503, "high demand") for
+most of the day, so the runs used `gemini-3.6-flash` and `gemini-3.5-flash` through
+`GEMINI_MODEL`. Result files are in ignored `artifacts/evaluation/live-*.json`.
+
+| Model            | Locale  | Completed | Answerable passed | Notes                                                             |
+| ---------------- | ------- | --------- | ----------------- | ----------------------------------------------------------------- |
+| gemini-3.6-flash | English | 8 of 20   | 8 of 8 completed  | First text 2.8–4.0 s; the rest hit the daily cap                  |
+| gemini-3.6-flash | Nepali  | 7 of 20   | 7 of 7 completed  | ne-3 and ne-6 repeated their answer (fixed below)                 |
+| gemini-3.5-flash | Nepali  | 5 of 20   | 5 of 5 completed  | After the fixes: no repeats; 16–22 s per answer, several timeouts |
+
+Every completed answer cited the right entry and contained its facts, with none unauthorized
+and none invented. The Nepali answers reuse the authored Devanagari wording.
+
+Fixed because of these runs:
+
+- **Answers repeated after a tool call.** When the model streamed its answer together with
+  a tool call, the second round did not include what it had already said, so it answered
+  again. The tool round now carries the first-round text the visitor heard, and an empty
+  second round is accepted.
+- **A spent daily quota looked like an outage.** Google's daily-cap response still says
+  "retry in 13s"; the retries ran a turn into its 60-second deadline, and it was recorded as
+  `PROVIDER_UNAVAILABLE`. It now fails at once as `PROVIDER_QUOTA`, in about 0.4 s.
+- **The evaluation misreported.** Quota errors were classed as unavailable (the script
+  loaded a second copy of the provider package). Failed turns counted as "unsupported safe"
+  and "no slide". Citations (`select_reference`) counted as unexpected tool calls. A slow
+  run crashed on a timeout or an expired kiosk lease. `--locale` now runs one language.
+
+Observed but not changed: the live model often calls `show_slide` on plain questions; the
+app rejects the call when no slide fits, and once showed the matching reception-hours slide.
+
 - **Not yet recorded:**
+  - the full fixed set live, which needs a paid key or several days of free quota;
   - a browser run with a real key;
-  - the fixed set with `--live`;
   - repeated sampling;
   - hands-free barge-in on hardware;
-  - a fluent listener's pronunciation review.
+  - a fluent listener's pronunciation review. Four Nepali wordings were corrected on
+    2026-09-30 by a careful non-native review, which does not replace it.
 
 The analytics page shows live and demo measurements separately and refuses to show a
 percentile with fewer than five samples (A26).

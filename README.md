@@ -17,8 +17,9 @@ has the milestone table and test evidence.
   [authoring](docs/M3-AUTHORING.md), [devices](docs/M4-DEVICES.md),
   [schedules](docs/M5-SCHEDULES.md), [conversations](docs/M6-CONVERSATIONS.md) and
   [operations](docs/M7-OPERATIONS.md).
-- **Not yet proven:** live conversation quality and latency with a real key, fluent Nepali
-  review, and a CI run on GitHub.
+- **Not yet proven:** the full fixed set live (20 live answers across 18 of the 40
+  cases are recorded, all correct; free-tier caps stopped each run), fluent Nepali review,
+  and a CI run on GitHub.
 
 ## Architecture
 
