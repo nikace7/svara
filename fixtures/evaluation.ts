@@ -111,7 +111,7 @@ export const evaluationCases: EvaluationCase[] = [
     facts: ['डेस्क A'],
   }),
   ne(5, 'supported', 'पुस्तकालय कहाँ छ?', { entry: 'Library location', facts: ['२१'] }),
-  ne(6, 'supported', 'सिँढी चढ्नुनपर्ने प्रवेशद्वार कहाँ छ?', {
+  ne(6, 'supported', 'सिँढी चढ्न नपर्ने प्रवेशद्वार कहाँ छ?', {
     entry: 'Accessible entrance',
     facts: ['प्रवेशद्वार'],
   }),
