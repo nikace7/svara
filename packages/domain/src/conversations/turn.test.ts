@@ -215,6 +215,23 @@ describe('conversation turns', () => {
     ]);
   });
 
+  it('tells the second round what was already said, so the answer is not repeated', async () => {
+    const call = { type: 'tool' as const, callId: 'c1', name: 'show_slide', args: { slide: 'S1' } };
+    const { runner, requests } = harness([['Admissions is in room 12 [1].', call], ['Shown.']]);
+    await run(context({ tools: ['show_slide'] }), runner);
+    // Echoed as the model produced it, citation label included, before its calls.
+    expect(requests[1]!.toolRound!.text).toBe('Admissions is in room 12 [1].');
+  });
+
+  it('echoes nothing a visitor did not hear when round one had no evidence', async () => {
+    const call = { type: 'tool' as const, callId: 'c1', name: 'show_slide', args: { slide: 'S1' } };
+    const { runner, requests } = harness([['Room 99.', call], ['It is on screen.']], {
+      passages: [],
+    });
+    await run(context({ tools: ['show_slide'] }), runner);
+    expect(requests[1]!.toolRound!.text).toBe('');
+  });
+
   it('reports a slide as PENDING, never APPLIED, when no acknowledgement arrives', async () => {
     const call = { type: 'tool' as const, callId: 'c1', name: 'show_slide', args: { slide: 'S1' } };
     const { runner } = harness([[call], ['Sent.']], { passages: [], ack: 'PENDING' });

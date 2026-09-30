@@ -319,13 +319,15 @@ describe('GeminiAnswerGenerator', () => {
     expect(system).toContain('Persona: Greet visitors warmly.');
     expect(system).toContain('S1: Admissions steps');
     expect(system).toContain('[1] Admissions is in room 12.');
-    // The second round echoes the call verbatim, reports the outcome and offers no tools.
+    // The second round echoes what the model said and its call verbatim, so it continues rather
+    // than answering again, reports the outcome and offers no tools.
     const second = fakeFetch(() => sse(chunk('It is on screen [1].')));
     const answer = await collect(
       new GeminiAnswerGenerator(options(second.fetch)).generate(
         {
           ...input,
           toolRound: {
+            text: 'Admissions is in room 12 [1].',
             calls: [chunks[0] as never],
             results: [{ callId: 'fc-1', name: 'show_slide', result: { status: 'APPLIED' } }],
           },
@@ -337,7 +339,7 @@ describe('GeminiAnswerGenerator', () => {
     const followUp = body(second.calls[0]!);
     expect(followUp['tools']).toBeUndefined();
     expect((followUp['contents'] as unknown[]).slice(-2)).toEqual([
-      { role: 'model', parts: [call] },
+      { role: 'model', parts: [{ text: 'Admissions is in room 12 [1].' }, call] },
       {
         role: 'user',
         parts: [

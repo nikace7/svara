@@ -311,6 +311,8 @@ export async function* runConversationTurn(
     for (let attempt = 0; generate && attempt < 2; attempt++) {
       try {
         const calls: ProposedToolCall[] = [];
+        // First-round text the visitor heard; ungrounded words that were dropped are not echoed.
+        let said = '';
         for (let round = 0; round < CONVERSATION_LIMITS.rounds; round++) {
           const splitter = new SentenceSegments();
           const emit = async function* (sentences: string[]): AsyncGenerator<TurnEvent> {
@@ -335,7 +337,11 @@ export async function* runConversationTurn(
           const request: AnswerInput =
             round === 0
               ? input
-              : { ...input, passages, toolRound: { calls, results: yield* execute(calls) } };
+              : {
+                  ...input,
+                  passages,
+                  toolRound: { text: said, calls, results: yield* execute(calls) },
+                };
           executed ||= round > 0;
           for await (const chunk of providers.generator.generate(request, context)) {
             signal.throwIfAborted();
@@ -348,6 +354,7 @@ export async function* runConversationTurn(
                 calls.push(chunk);
               continue;
             }
+            if (round === 0 && evidence) said += chunk;
             yield* emit(splitter.push(chunk));
           }
           yield* emit(splitter.finish());
