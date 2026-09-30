@@ -137,6 +137,29 @@ describe('free-tier retry', () => {
     expect(exhausted.calls).toHaveLength(1);
   });
 
+  it('fails a spent daily quota at once, despite its retry hint', async () => {
+    const slept: number[] = [];
+    // Google's real daily-cap body still says "Please retry in 13s".
+    const daily = fakeFetch(
+      () =>
+        new Response(
+          '{"error":{"message":"Quota exceeded, limit: 20. Please retry in 13.0s","details":[{"violations":[{"quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier"}]}]}}',
+          { status: 429 },
+        ),
+    );
+    await expect(
+      collect(
+        new GeminiAnswerGenerator({
+          ...options(daily.fetch),
+          retries: 2,
+          sleep: async (ms) => void slept.push(ms),
+        }).generate({ question: 'q', passages: [], history: [] }, context()),
+      ),
+    ).rejects.toMatchObject({ code: 'PROVIDER_QUOTA', status: 429 });
+    expect(daily.calls).toHaveLength(1);
+    expect(slept).toEqual([]);
+  });
+
   it('does not retry a non-transient rejection', async () => {
     const { calls, fetch } = fakeFetch(() => new Response('{}', { status: 400 }));
     await expect(
