@@ -1,5 +1,5 @@
 /**
- * pnpm eval:conversations [--live] [--locale=en-US|ne-NP]
+ * pnpm eval:conversations [--live] [--locale=en-US|ne-NP] [--cases=en-2,ne-10,...]
  *
  * Runs the fixed bilingual set (fixtures/evaluation.ts) through the real admission, retrieval,
  * turn runner, tool validation and citation checks, as a paired kiosk, against a fresh
@@ -12,9 +12,11 @@
  * needs PROVIDER_MODE=live and GEMINI_API_KEY). Results are written to
  * artifacts/evaluation/<mode>-<time>.json. Nepali answers still need a human reviewer.
  * --locale: one language only, so a free-tier key (20 requests per model a day) can cover it.
+ * --cases: only these case ids, to spread a set across keys or finish an interrupted run.
  */
 import { randomBytes, randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { DEVICE_LIMITS } from '../packages/contracts/src/devices.js';
 import { loadWorkspaceEnvironment, parseServerConfig } from '../packages/config/src/server.js';
 import { createDatabase } from '../packages/database/src/index.js';
 import { assertTestDatabase } from '../packages/database/src/safety.js';
@@ -44,6 +46,12 @@ const live = process.argv.includes('--live');
 const only = process.argv.find((arg) => arg.startsWith('--locale='))?.slice('--locale='.length);
 if (only !== undefined && only !== 'en-US' && only !== 'ne-NP')
   throw new Error('--locale must be en-US or ne-NP.');
+const ids = process.argv
+  .find((arg) => arg.startsWith('--cases='))
+  ?.slice('--cases='.length)
+  .split(',');
+const unknown = ids?.filter((id) => !evaluationCases.some((c) => c.id === id)) ?? [];
+if (unknown.length) throw new Error(`Unknown cases: ${unknown.join(', ')}`);
 const url = process.env.TEST_DATABASE_URL ?? '';
 assertTestDatabase(url, 'test');
 const config = live ? parseServerConfig(process.env) : undefined;
@@ -164,19 +172,15 @@ async function main() {
           })
         : new FixtureAnswerGenerator(),
     },
-    // The evaluation kiosk applies every slide it is sent, as a healthy kiosk would. It keeps
-    // its 35-second lease alive like one too, since slow live turns outlast it.
+    // The evaluation kiosk applies every slide it is sent, as a healthy kiosk would.
     slides: {
       show: (_deviceId, command) =>
-        void runtime
-          .heartbeat(primary.id)
-          .then(() =>
-            commands.acknowledge(primary, {
-              commandId: command.id,
-              appliedRevision: command.stateRevision,
-              result: 'APPLIED',
-            }),
-          )
+        void commands
+          .acknowledge(primary, {
+            commandId: command.id,
+            appliedRevision: command.stateRevision,
+            result: 'APPLIED',
+          })
           .catch((error: unknown) => console.error('Slide acknowledgement failed:', error)),
     },
   };
@@ -185,11 +189,24 @@ async function main() {
     (release.snapshot.presentation?.slides ?? []).map((slide) => [slide.id, slide.title.en]),
   );
 
+  // It heartbeats on the real kiosk's interval, since slow live turns outlast the lease.
+  const beat = setInterval(
+    () =>
+      void runtime
+        .heartbeat(primary.id)
+        .catch((error: unknown) => console.error('Heartbeat failed:', error)),
+    DEVICE_LIMITS.heartbeatMilliseconds,
+  );
   const results = [];
-  for (const item of evaluationCases.filter((c) => !only || c.locale === only))
-    results.push(await run(item));
+  try {
+    for (const item of evaluationCases.filter(
+      (c) => (!only || c.locale === only) && (!ids || ids.includes(c.id)),
+    ))
+      results.push(await run(item));
+  } finally {
+    clearInterval(beat);
+  }
   async function run(item: EvaluationCase) {
-    await runtime.heartbeat(primary.id);
     const { session } = await conversations.admit(actor as ConversationActor, {
       locale: item.locale,
     });
