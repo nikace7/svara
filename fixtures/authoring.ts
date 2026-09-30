@@ -143,8 +143,8 @@ const admissionsNotes: Entry[] = [
   ),
   note(
     'Programme acronyms and numbers',
-    'Use BCA and BIT as programme labels. Read room numbers 12, 21 and 30 clearly. This content describes a fictional campus, not real admissions policy.',
-    'BCA र BIT कार्यक्रमका नाम हुन्। कोठा नम्बर १२, २१ र ३० स्पष्ट पढ्नुहोस्। यो सामग्री काल्पनिक क्याम्पसको हो, वास्तविक भर्ना नीति होइन।',
+    'BCA and BIT are programme labels. This content describes a fictional campus, not real admissions policy.',
+    'BCA र BIT कार्यक्रमका नाम हुन्। यो सामग्री काल्पनिक क्याम्पसको हो, वास्तविक भर्ना नीति होइन।',
   ),
   note(
     'Staff handoff',
