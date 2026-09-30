@@ -164,14 +164,20 @@ async function main() {
           })
         : new FixtureAnswerGenerator(),
     },
-    // The evaluation kiosk applies every slide it is sent, as a healthy kiosk would.
+    // The evaluation kiosk applies every slide it is sent, as a healthy kiosk would. It keeps
+    // its 35-second lease alive like one too, since slow live turns outlast it.
     slides: {
       show: (_deviceId, command) =>
-        void commands.acknowledge(primary, {
-          commandId: command.id,
-          appliedRevision: command.stateRevision,
-          result: 'APPLIED',
-        }),
+        void runtime
+          .heartbeat(primary.id)
+          .then(() =>
+            commands.acknowledge(primary, {
+              commandId: command.id,
+              appliedRevision: command.stateRevision,
+              result: 'APPLIED',
+            }),
+          )
+          .catch((error: unknown) => console.error('Slide acknowledgement failed:', error)),
     },
   };
   const titles = new Map(release.snapshot.knowledge.map((entry) => [entry.id, entry.title]));
@@ -183,6 +189,7 @@ async function main() {
   for (const item of evaluationCases.filter((c) => !only || c.locale === only))
     results.push(await run(item));
   async function run(item: EvaluationCase) {
+    await runtime.heartbeat(primary.id);
     const { session } = await conversations.admit(actor as ConversationActor, {
       locale: item.locale,
     });
