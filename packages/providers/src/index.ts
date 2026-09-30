@@ -55,6 +55,8 @@ export interface AnswerInput {
   slides?: readonly { label: string; title: string }[];
   /** The second and last round: what the proposed calls actually did. No tools are offered. */
   toolRound?: {
+    /** What the visitor already heard from the first round, echoed so the model continues. */
+    text?: string;
     calls: readonly ProposedToolCall[];
     results: readonly { callId: string; name: string; result: unknown }[];
   };

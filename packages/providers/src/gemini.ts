@@ -168,12 +168,16 @@ export class GeminiAnswerGenerator implements AnswerGenerator {
       { role: 'user', parts: [{ text: input.question }] },
     ];
     if (input.toolRound) {
-      // Echo the model's own call parts (they may carry signatures), then the real outcomes.
+      // Echo the model's own words and call parts (they may carry signatures), then the real
+      // outcomes. Without its words the model does not know it answered, and answers again.
       contents.push({
         role: 'model',
-        parts: input.toolRound.calls.map(
-          (call) => call.raw ?? { functionCall: { name: call.name, args: call.args } },
-        ),
+        parts: [
+          ...(input.toolRound.text ? [{ text: input.toolRound.text }] : []),
+          ...input.toolRound.calls.map(
+            (call) => call.raw ?? { functionCall: { name: call.name, args: call.args } },
+          ),
+        ],
       });
       contents.push({
         role: 'user',
