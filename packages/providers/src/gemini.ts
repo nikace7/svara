@@ -260,7 +260,8 @@ export class GeminiAnswerGenerator implements AnswerGenerator {
       produced = true;
       yield text;
     }
-    if (!produced)
+    // After an answer the visitor already heard, a tool round may rightly add nothing.
+    if (!produced && !input.toolRound?.text)
       throw new GeminiError(
         'PROVIDER_UNAVAILABLE',
         undefined,
