@@ -1,5 +1,5 @@
 /**
- * pnpm eval:conversations [--live]
+ * pnpm eval:conversations [--live] [--locale=en-US|ne-NP]
  *
  * Runs the fixed bilingual set (fixtures/evaluation.ts) through the real admission, retrieval,
  * turn runner, tool validation and citation checks, as a paired kiosk, against a fresh
@@ -11,6 +11,7 @@
  * --live: the configured Gemini model answers (text only, at most 80 generation requests;
  * needs PROVIDER_MODE=live and GEMINI_API_KEY). Results are written to
  * artifacts/evaluation/<mode>-<time>.json. Nepali answers still need a human reviewer.
+ * --locale: one language only, so a free-tier key (20 requests per model a day) can cover it.
  */
 import { randomBytes, randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -40,6 +41,9 @@ import type { EvaluationCase } from '../fixtures/evaluation.js';
 
 loadWorkspaceEnvironment();
 const live = process.argv.includes('--live');
+const only = process.argv.find((arg) => arg.startsWith('--locale='))?.slice('--locale='.length);
+if (only !== undefined && only !== 'en-US' && only !== 'ne-NP')
+  throw new Error('--locale must be en-US or ne-NP.');
 const url = process.env.TEST_DATABASE_URL ?? '';
 assertTestDatabase(url, 'test');
 const config = live ? parseServerConfig(process.env) : undefined;
@@ -176,7 +180,8 @@ async function main() {
   );
 
   const results = [];
-  for (const item of evaluationCases) results.push(await run(item));
+  for (const item of evaluationCases.filter((c) => !only || c.locale === only))
+    results.push(await run(item));
   async function run(item: EvaluationCase) {
     const { session } = await conversations.admit(actor as ConversationActor, {
       locale: item.locale,
@@ -189,7 +194,12 @@ async function main() {
     });
     // The turn row is the record; the streamed events are not needed here.
     const events = runConversationTurn(actor, context, runner, AbortSignal.timeout(60_000));
-    while (!(await events.next()).done);
+    try {
+      while (!(await events.next()).done);
+    } catch (error) {
+      // A timed-out turn is recorded as INTERRUPTED and rethrown; it is a result, not a crash.
+      if (!(error instanceof DOMException && error.name === 'TimeoutError')) throw error;
+    }
     await conversations.end(actor, session.id);
     const turn = await db.conversationTurn.findUniqueOrThrow({
       where: { id: context.turnId },
@@ -201,15 +211,18 @@ async function main() {
       .filter((tool) => tool.name === 'show_slide')
       .map((tool) => slides.get((tool.result as { slideId?: string } | null)?.slideId ?? ''));
     const invented = (item.forbid ?? []).filter((text) => includes(turn.answer, text));
+    // A turn that did not complete passes nothing: an empty failed answer is not a safe refusal.
     const pass =
-      item.kind === 'unsupported'
-        ? cited.every((title) => item.allow?.includes(title)) && invented.length === 0
-        : item.kind === 'action'
-          ? item.slide === null
-            ? shown.length === 0
-            : shown.includes(item.slide)
-          : cited.includes(item.entry!) &&
-            (item.facts ?? []).every((f) => includes(turn.answer, f));
+      turn.state !== 'COMPLETED'
+        ? false
+        : item.kind === 'unsupported'
+          ? cited.every((title) => item.allow?.includes(title)) && invented.length === 0
+          : item.kind === 'action'
+            ? item.slide === null
+              ? shown.length === 0
+              : shown.includes(item.slide)
+            : cited.includes(item.entry!) &&
+              (item.facts ?? []).every((f) => includes(turn.answer, f));
     return {
       id: item.id,
       kind: item.kind,
@@ -221,7 +234,11 @@ async function main() {
       answer: turn.answer,
       cited,
       tools: turn.tools.map((tool) => `${tool.name}:${tool.status}`),
-      unexpectedTools: item.kind === 'action' ? [] : executed.map((tool) => tool.name),
+      // select_reference is how every answer shows its source, so only other tools count.
+      unexpectedTools:
+        item.kind === 'action'
+          ? []
+          : executed.filter((tool) => tool.name !== 'select_reference').map((tool) => tool.name),
       unauthorized: shown.filter((title) => title === undefined).length,
       invented,
       firstTextMs: turn.firstTextMs,
@@ -237,7 +254,7 @@ async function main() {
     file,
     `${JSON.stringify({ mode, model: config?.GEMINI_MODEL ?? null, results }, null, 2)}\n`,
   );
-  for (const locale of ['en-US', 'ne-NP'] as const) {
+  for (const locale of only ? [only] : (['en-US', 'ne-NP'] as const)) {
     const mine = results.filter((result) => result.locale === locale);
     const score = (kinds: string[]) => {
       const set = mine.filter((result) => kinds.includes(result.kind));
