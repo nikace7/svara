@@ -86,9 +86,9 @@ const admissionsFaqs: Entry[] = [
   faq(
     'Accessible entrance',
     'Where is the step-free entrance?',
-    'सिँढी चढ्नुनपर्ने प्रवेशद्वार कहाँ छ?',
+    'सिँढी चढ्न नपर्ने प्रवेशद्वार कहाँ छ?',
     'The sample map shows a step-free entrance beside reception. Ask a staff member for assistance with the route.',
-    'नमुना नक्सामा स्वागत कक्षको छेउमा सिँढी चढ्नुनपर्ने प्रवेशद्वार देखाइएको छ। बाटोबारे सहयोगका लागि कर्मचारीलाई सोध्नुहोस्।',
+    'नमुना नक्सामा स्वागत कक्षको छेउमा सिँढी चढ्न नपर्ने प्रवेशद्वार देखाइएको छ। बाटोबारे सहयोगका लागि कर्मचारीलाई सोध्नुहोस्।',
   ),
   faq(
     'Visitor support',
@@ -156,7 +156,7 @@ const eventNotes: Entry[] = [
   note(
     'Open-house outline',
     'The sample programme has three stages: welcome at 13:00, a tour at 13:30, and questions at 14:00. These times are examples; no scheduled deployment or event is created by this seed.',
-    'नमुना कार्यक्रममा तीन चरण छन्: दिउँसो १ बजे स्वागत, १:३० बजे भ्रमण र २ बजे प्रश्नोत्तर। यी समय उदाहरण हुन्। यो नमुना सामग्रीले कुनै कार्यक्रम वा निर्धारित डिप्लोयमेन्ट सिर्जना गर्दैन।',
+    'नमुना कार्यक्रममा तीन चरण छन्: दिउँसो १ बजे स्वागत, १:३० बजे भ्रमण र २ बजे प्रश्नोत्तर। यी समय उदाहरण हुन्। यो नमुना सामग्रीले कुनै तालिका वा कार्यक्रम सिर्जना गर्दैन।',
   ),
 ];
 
