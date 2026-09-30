@@ -72,7 +72,10 @@ const declarations: Record<string, ToolDeclaration> = {
     description: 'Show one of the listed slides on this kiosk.',
     parameters: {
       slide: { description: 'The slide label, for example S1.' },
-      target: { description: 'Which screen.', enum: ['PRIMARY', 'SECONDARY', 'BOTH'] },
+      target: {
+        description: "Which screen. Omit it to use the slide's own screen.",
+        enum: ['PRIMARY', 'SECONDARY', 'BOTH'],
+      },
     },
     required: ['slide'],
   },
@@ -209,6 +212,7 @@ export async function* runConversationTurn(
           label: `S${index + 1}`,
           id: slide.id,
           title: slide.title[language] || slide.title.en,
+          screen: slide.target,
         }))
       : [];
     const fallback = turn.snapshot.bot.config.fallback[language];
@@ -221,7 +225,7 @@ export async function* runConversationTurn(
         turn.snapshot.bot.config.persona +
         (done ? `\nAlready done for this question, do not repeat: ${done}.` : ''),
       tools: turn.tools.map((name) => declarations[name]!),
-      slides: slides.map(({ label, title }) => ({ label, title })),
+      slides: slides.map(({ label, title, screen }) => ({ label, title, screen })),
     };
     // Nothing approved matches and nothing can be shown: the approved fallback, not generation.
     const generate = passages.length > 0 || slides.length > 0;

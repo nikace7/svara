@@ -52,7 +52,7 @@ export interface AnswerInput {
   instructions?: string;
   tools?: readonly ToolDeclaration[];
   /** Labelled slides the show_slide tool may name. */
-  slides?: readonly { label: string; title: string }[];
+  slides?: readonly { label: string; title: string; screen: 'PRIMARY' | 'SECONDARY' | 'BOTH' }[];
   /** The second and last round: what the proposed calls actually did. No tools are offered. */
   toolRound?: {
     /** What the visitor already heard from the first round, echoed so the model continues. */

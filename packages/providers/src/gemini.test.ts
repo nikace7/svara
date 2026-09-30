@@ -137,6 +137,25 @@ describe('free-tier retry', () => {
     expect(exhausted.calls).toHaveLength(1);
   });
 
+  it('stops waiting to retry as soon as the turn is cancelled or times out', async () => {
+    const busy = fakeFetch(
+      () => new Response('{"error":{"message":"Please retry in 30s"}}', { status: 503 }),
+    );
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 20);
+    const started = Date.now();
+    await expect(
+      collect(
+        new GeminiAnswerGenerator({ ...options(busy.fetch), retries: 1 }).generate(
+          { question: 'q', passages: [], history: [] },
+          context(controller.signal),
+        ),
+      ),
+    ).rejects.toThrow();
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(busy.calls).toHaveLength(1);
+  });
+
   it('fails a spent daily quota at once, despite its retry hint', async () => {
     const slept: number[] = [];
     // Google's real daily-cap body still says "Please retry in 13s".
@@ -301,7 +320,7 @@ describe('GeminiAnswerGenerator', () => {
       passages: [{ id: '1', text: 'Admissions is in room 12.' }],
       history: [],
       instructions: 'Greet visitors warmly.',
-      slides: [{ label: 'S1', title: 'Admissions steps' }],
+      slides: [{ label: 'S1', title: 'Admissions steps', screen: 'SECONDARY' as const }],
       tools: [
         {
           name: 'show_slide',
@@ -335,7 +354,9 @@ describe('GeminiAnswerGenerator', () => {
     ]);
     const system = JSON.stringify(request['systemInstruction']);
     expect(system).toContain('Persona: Greet visitors warmly.');
-    expect(system).toContain('S1: Admissions steps');
+    // The authored screen, so the model does not ask for a screen the slide is not made for.
+    expect(system).toContain('S1: Admissions steps (screen: SECONDARY)');
+    expect(system).toContain('Never write a slide label');
     expect(system).toContain('[1] Admissions is in room 12.');
     // The second round echoes what the model said and its call verbatim, so it continues rather
     // than answering again, reports the outcome and offers no tools.

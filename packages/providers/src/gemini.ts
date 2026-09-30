@@ -75,8 +75,21 @@ async function callGemini(
   const fetchFn = options.fetch ?? globalThis.fetch;
   const url = `${options.baseUrl ?? 'https://generativelanguage.googleapis.com/v1beta'}/${path}`;
   const attempts = Math.max(0, options.retries ?? 0) + 1;
+  // A backoff hint can be longer than the turn: cancellation and the deadline end the wait.
   const sleep =
-    options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+    options.sleep ??
+    ((ms: number) =>
+      new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(resolve, ms);
+        signal.addEventListener(
+          'abort',
+          () => {
+            clearTimeout(timer);
+            reject(signal.reason);
+          },
+          { once: true },
+        );
+      }));
   for (let attempt = 1; ; attempt++) {
     signal.throwIfAborted();
     let response: Response;
@@ -141,8 +154,12 @@ async function* sseData(body: ReadableStream<Uint8Array>): AsyncGenerator<string
 function systemPrompt(input: AnswerInput, locale: Locale): string {
   const passages = input.passages.map((passage) => `[${passage.id}] ${passage.text}`).join('\n');
   const slides = input.slides?.length
-    ? '\n\nSlides you may show with show_slide:\n' +
-      input.slides.map((slide) => `${slide.label}: ${slide.title}`).join('\n')
+    ? '\n\nSlides you may show, only when the visitor asks to see one. Only a show_slide call ' +
+      'shows a slide; saying it is shown does not. Never write a slide label in the answer. ' +
+      'Once a requested slide is applied, just say it is on screen.\n' +
+      input.slides
+        .map((slide) => `${slide.label}: ${slide.title} (screen: ${slide.screen})`)
+        .join('\n')
     : '';
   return (
     `You are a campus assistant. Answer in ${languageName[locale]} only, in at most three ` +

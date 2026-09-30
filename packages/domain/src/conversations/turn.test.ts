@@ -202,7 +202,9 @@ describe('conversation turns', () => {
       slideId,
       target: 'PRIMARY',
     });
-    expect(requests[0]!.slides).toEqual([{ label: 'S1', title: 'Admissions steps' }]);
+    expect(requests[0]!.slides).toEqual([
+      { label: 'S1', title: 'Admissions steps', screen: 'BOTH' },
+    ]);
     expect(requests[1]!.toolRound!.results).toEqual([
       {
         callId: 'c1',

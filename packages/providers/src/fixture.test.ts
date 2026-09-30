@@ -50,7 +50,7 @@ describe('demo-mode answers', () => {
   });
 
   it('proposes show_slide only when offered and a slide title matches', async () => {
-    const slides = [{ label: 'S1', title: 'Admissions steps' }];
+    const slides = [{ label: 'S1', title: 'Admissions steps', screen: 'BOTH' as const }];
     expect(await run({ question: 'Show admissions', slides, tools: [showSlide] })).toEqual([
       { type: 'tool', callId: 'fixture-show-slide', name: 'show_slide', args: { slide: 'S1' } },
     ]);
@@ -65,7 +65,7 @@ describe('demo-mode answers', () => {
       await run(
         {
           question: 'भर्ना स्लाइड देखाउनुहोस्',
-          slides: [{ label: 'S2', title: 'भर्ना चरण' }],
+          slides: [{ label: 'S2', title: 'भर्ना चरण', screen: 'BOTH' }],
           tools: [showSlide],
         },
         'ne-NP',
