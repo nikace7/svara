@@ -67,6 +67,8 @@ export function extractCitations(sentence: string): { text: string; labels: stri
       labels.push(...list.split(',').map((label) => label.trim()));
       return '';
     })
+    // A slide label is not a citation; one written instead of a show_slide call is dropped.
+    .replace(/\s*\[S\d{1,2}\]/g, '')
     .replace(/ {2,}/g, ' ');
   return { text, labels };
 }

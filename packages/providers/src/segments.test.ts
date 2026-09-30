@@ -71,5 +71,10 @@ describe('citation labels', () => {
       text: 'Room [A-101] is open.',
       labels: [],
     });
+    // A slide label written instead of a show_slide call is not a citation and is never spoken.
+    expect(extractCitations('म स्वागत स्लाइड देखाउँदैछु। [S1]')).toEqual({
+      text: 'म स्वागत स्लाइड देखाउँदैछु।',
+      labels: [],
+    });
   });
 });
