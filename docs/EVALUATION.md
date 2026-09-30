@@ -131,7 +131,7 @@ The first results below come from the M1 gate; the fixed set's live runs follow.
 - The timings, the single-sample caveat and six provider-contract corrections are recorded
   in [M1 voice](M1-VOICE.md).
 
-### The fixed set with `--live`, 2026-09-30 (partial)
+### The fixed set with `--live`, 2026-09-30 and 2026-10-01
 
 The set ran live four times on free-tier keys. No run finished: the free tier allows
 **20 generation requests per model per project per day**, and the full set needs about 80.
@@ -162,11 +162,36 @@ Fixed because of these runs:
   and "no slide". Citations (`select_reference`) counted as unexpected tool calls. A slow
   run crashed on a timeout or an expired kiosk lease. `--locale` now runs one language.
 
-Observed but not changed: the live model often calls `show_slide` on plain questions; the
-app rejects the call when no slide fits, and once showed the matching reception-hours slide.
+On 2026-10-01 the other models' caps were spent, so the 22 cases still without a live answer
+ran on `gemini-3-flash-preview`, spread across three keys with `--cases`. **Every one of the
+40 cases now has at least one completed, correct live answer** (50 completed answers in all,
+none unauthorized, none invented; first text 1.2–9.1 s, median 2.7 s). That is coverage across
+four models and several code versions, not one clean run of the set on one model.
+
+Fixed because of the second day's runs:
+
+- **Slides went to the wrong screen.** The model saw each slide's label and title but not
+  the screen it is authored for, so it asked for the display-only map on the main screen and
+  the app rejected it (`WRONG_SCREEN`). This was the "`show_slide` on plain questions" seen
+  on the first day. The slide list now names each slide's screen.
+- **Slides announced but not shown.** In Nepali the model wrote `[S1]` and said the slide
+  was on screen without calling `show_slide`; once it showed the welcome slide when asked
+  for a tuition slide that does not exist. The prompt now says a slide is shown only by a
+  call, only on request, and then acknowledged; a stray label is removed before speech.
+- **Retry waits ignored cancellation.** A 503's "retry in 30s" was slept through past the
+  round's 20-second deadline and past a visitor's Stop; one turn took 50 s to fail. The wait
+  now ends as soon as the turn is cancelled or times out.
+- **An authored note was read aloud.** "Read room numbers 12, 21 and 30 clearly" was
+  retrieved as a passage and spoken to a visitor. The note now states only facts.
+- **The evaluation kiosk lost its lease** on slow turns. It now heartbeats every 10 s, as a
+  real kiosk does.
+
+Still observed: after showing the map the model sometimes adds that it has no further
+details and suggests reception. It is safe, but a fluent reviewer should judge the wording.
 
 - **Not yet recorded:**
-  - the full fixed set live, which needs a paid key or several days of free quota;
+  - the whole set in one live run on one model, which needs a paid key or several days of
+    free quota;
   - a browser run with a real key;
   - repeated sampling;
   - hands-free barge-in on hardware;

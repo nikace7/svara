@@ -2,17 +2,17 @@
 
 Updated 2026-09-29. Evidence is local unless explicitly marked otherwise.
 
-| Milestone                                | State    | Evidence / remaining work                                                                                                                                                                                                                                                                       |
-| ---------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M0 — Workspace and component foundation  | Complete | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.                                                                                                                                                                                    |
-| M1 — Bilingual voice feasibility         | Partial  | Live gate and lab live turns work, typed or spoken, grounded in a chosen release. Real-key browser evidence, hardware barge-in and repeated sampling remain.                                                                                                                                    |
-| M2 — Identity and tenant boundaries      | Complete | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                                                                                                                                                                                                       |
-| M3 — Authoring and immutable publication | Complete | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.                                                                                                                                                                                          |
-| M4 — Devices and dual displays           | Complete | Pairing, tickets, /devices gateway, verified release application, kiosk/display/simulator and revocation verified by the gate test.                                                                                                                                                             |
-| M5 — Schedules and commands              | Complete | Conflict-safe schedules, overrides, monotonic desired state, outbox, worker and board; commands reach kiosks and are acknowledged.                                                                                                                                                              |
-| M6 — Conversations and public assistant  | Complete | Scoped admission and limits, grounded cited turns, validated tools, kiosk slides, public links and visitor grants, playground and sessions verified by the gate tests. Live tool calling awaits a real-key run.                                                                                 |
-| M7 — Analytics and operations            | Complete | Mode-separated measured analytics with audit counts, 30-day transcript retention, verified backup/restore into a separate database, guarded demo reset, failure journeys and three-width Nepali layouts. Operations socket deferred (ADR 028).                                                  |
-| M8 — Evidence and handoff                | Complete | Fixed 40-case bilingual evaluation through the real pipeline, acceptance matrix, seven demo-mode screenshots, walkthrough, case study and the evaluation step in CI. Live runs of the set are partial (free-tier caps); the full `--live` run, fluent Nepali review and a GitHub CI run remain. |
+| Milestone                                | State    | Evidence / remaining work                                                                                                                                                                                                                                                                                                       |
+| ---------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 — Workspace and component foundation  | Complete | Local native and production-container setup verified; health, builds, contracts and accessible gallery pass.                                                                                                                                                                                                                    |
+| M1 — Bilingual voice feasibility         | Partial  | Live gate and lab live turns work, typed or spoken, grounded in a chosen release. Real-key browser evidence, hardware barge-in and repeated sampling remain.                                                                                                                                                                    |
+| M2 — Identity and tenant boundaries      | Complete | Staff domain, HTTP, Redis limits, browser flows and guarded local seed/recovery verified.                                                                                                                                                                                                                                       |
+| M3 — Authoring and immutable publication | Complete | Bilingual editing, immutable publication, retained media and reusable inspected demo content verified.                                                                                                                                                                                                                          |
+| M4 — Devices and dual displays           | Complete | Pairing, tickets, /devices gateway, verified release application, kiosk/display/simulator and revocation verified by the gate test.                                                                                                                                                                                             |
+| M5 — Schedules and commands              | Complete | Conflict-safe schedules, overrides, monotonic desired state, outbox, worker and board; commands reach kiosks and are acknowledged.                                                                                                                                                                                              |
+| M6 — Conversations and public assistant  | Complete | Scoped admission and limits, grounded cited turns, validated tools, kiosk slides, public links and visitor grants, playground and sessions verified by the gate tests. Live tool calling awaits a real-key run.                                                                                                                 |
+| M7 — Analytics and operations            | Complete | Mode-separated measured analytics with audit counts, 30-day transcript retention, verified backup/restore into a separate database, guarded demo reset, failure journeys and three-width Nepali layouts. Operations socket deferred (ADR 028).                                                                                  |
+| M8 — Evidence and handoff                | Complete | Fixed 40-case bilingual evaluation through the real pipeline, acceptance matrix, seven demo-mode screenshots, walkthrough, case study and the evaluation step in CI. Every case has a completed, correct live answer, across four models; one clean `--live` run on one model, fluent Nepali review and a GitHub CI run remain. |
 
 ## M8 evidence and handoff — 2026-09-29
 
@@ -76,6 +76,23 @@ peaks of 230/300, 130/180 and 26 of 30 sign-ins; a second full run inside 10 min
 exceeds the sign-in quota (README). The API limits are unchanged. The superseded local
 `codex/feat/device-pairing` draft (`5fb45fc`) was deleted: its three finished commits were
 already in `main` and M4 rebuilt the rest.
+
+## Live evaluation completed across models — 2026-10-01
+
+The 22 cases still without a live answer ran on `gemini-3-flash-preview`, spread across the
+three keys with the new `--cases` option. All 40 cases now have at least one completed,
+correct live answer (50 in all, none unauthorized or invented), across four models and
+several code versions rather than in one run.
+
+These runs found four more defects, all fixed with tests. The model was not told which screen
+each slide is for, so it asked for the map on the wrong screen. In Nepali it wrote `[S1]`
+instead of calling `show_slide`, and once showed a slide nobody asked for. Retry waits
+ignored cancellation and deadlines, so one turn took 50 s to fail. An authored note ("Read
+room numbers … clearly") was spoken to visitors. The evaluation kiosk now heartbeats every
+10 s like a real one.
+
+`pnpm check` (224 tests, 96.06% statements), integration (173) and the fixture evaluation
+(40/40) pass.
 
 ## Live evaluation and Nepali review — 2026-09-30
 
