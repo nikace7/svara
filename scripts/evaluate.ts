@@ -31,7 +31,9 @@ import {
   runConversationTurn,
 } from '../packages/domain/src/index.js';
 import type { ConversationActor, TurnRunner } from '../packages/domain/src/index.js';
-import { FixtureAnswerGenerator, GeminiAnswerGenerator } from '../packages/providers/src/index.js';
+// The same build the domain resolves `@svara/providers` to: from src, GeminiError is another
+// class and quota failures fail `instanceof`, so they are recorded as PROVIDER_UNAVAILABLE.
+import { FixtureAnswerGenerator, GeminiAnswerGenerator } from '../packages/providers/dist/index.js';
 import { demoAuthoringBundles } from '../fixtures/authoring.js';
 import { evaluationCases } from '../fixtures/evaluation.js';
 import type { EvaluationCase } from '../fixtures/evaluation.js';
