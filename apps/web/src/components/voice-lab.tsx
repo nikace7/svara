@@ -367,7 +367,7 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
           <p>
             {live
               ? 'Questions reach real providers and play synthesized speech. Type or record one; answers draw only on the release you choose.'
-              : 'Scripted answers use synthetic campus information. Live recognition and speech are pending provider setup.'}
+              : 'Scripted answers use synthetic campus information. A Gemini key switches on live recognition and speech.'}
           </p>
         </div>
       </div>
@@ -666,7 +666,7 @@ export function VoiceLab({ mode }: { mode: ProviderMode }) {
       <p className="voice-footnote">
         {live
           ? 'Local live lab · typed or spoken questions · recordings sent once for transcription, never saved · provider keys stay on the server'
-          : 'Local fixture lab · no microphone uploads · no saved transcripts · live English/Nepali validation pending'}
+          : 'Local fixture lab · no microphone uploads · no saved transcripts'}
       </p>
     </>
   );
