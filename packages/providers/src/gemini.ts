@@ -59,6 +59,9 @@ interface GeminiResponse {
   candidates?: { finishReason?: string; content?: { parts?: GeminiPart[] } }[];
 }
 
+/** The longest server backoff worth waiting for inside a 20-second generation round. */
+const MAX_RETRY_WAIT_MS = 5000;
+
 /** Reads the server's own backoff hint. The body is otherwise never surfaced. */
 function retryDelayMs(body: string): number | undefined {
   const seconds = /retry in ([0-9]+(?:\.[0-9]+)?)s/i.exec(body)?.[1];
@@ -110,10 +113,14 @@ async function callGemini(
     }
     const transient = response.status === 429 || response.status === 503;
     const detail = transient ? await response.text().catch(() => '') : '';
-    // A spent daily cap still carries "retry in Ns"; retrying only delays the same answer.
-    const daily = response.status === 429 && /PerDay/.test(detail);
-    if (transient && !daily && attempt < attempts) {
-      await sleep(retryDelayMs(detail) ?? Math.min(2000 * attempt, 10000));
+    const hint = retryDelayMs(detail);
+    // A spent daily cap still carries "retry in Ns", and a per-minute limit can ask for half
+    // a minute: waiting longer than a turn can spend only delays the same failure.
+    const futile =
+      (response.status === 429 && /PerDay/.test(detail)) ||
+      (hint !== undefined && hint > MAX_RETRY_WAIT_MS);
+    if (transient && !futile && attempt < attempts) {
+      await sleep(hint ?? Math.min(2000 * attempt, 10000));
       continue;
     }
     if (response.status === 429) throw new GeminiError('PROVIDER_QUOTA', 429, 'quota exhausted');

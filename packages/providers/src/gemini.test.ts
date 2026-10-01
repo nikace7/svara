@@ -139,7 +139,7 @@ describe('free-tier retry', () => {
 
   it('stops waiting to retry as soon as the turn is cancelled or times out', async () => {
     const busy = fakeFetch(
-      () => new Response('{"error":{"message":"Please retry in 30s"}}', { status: 503 }),
+      () => new Response('{"error":{"message":"Please retry in 3s"}}', { status: 503 }),
     );
     const controller = new AbortController();
     setTimeout(() => controller.abort(), 20);
@@ -154,6 +154,28 @@ describe('free-tier retry', () => {
     ).rejects.toThrow();
     expect(Date.now() - started).toBeLessThan(1000);
     expect(busy.calls).toHaveLength(1);
+  });
+
+  it('fails at once when the rate limit asks for a longer wait than a turn can afford', async () => {
+    const slept: number[] = [];
+    const limited = fakeFetch(
+      () =>
+        new Response(
+          '{"error":{"message":"Quota exceeded for requests per minute. Please retry in 31.5s"}}',
+          { status: 429 },
+        ),
+    );
+    await expect(
+      collect(
+        new GeminiAnswerGenerator({
+          ...options(limited.fetch),
+          retries: 2,
+          sleep: async (ms) => void slept.push(ms),
+        }).generate({ question: 'q', passages: [], history: [] }, context()),
+      ),
+    ).rejects.toMatchObject({ code: 'PROVIDER_QUOTA' });
+    expect(limited.calls).toHaveLength(1);
+    expect(slept).toEqual([]);
   });
 
   it('fails a spent daily quota at once, despite its retry hint', async () => {
