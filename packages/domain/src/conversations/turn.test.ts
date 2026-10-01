@@ -5,7 +5,7 @@ import type { ReleaseSnapshot, TurnEvent } from '@svara/contracts';
 import { GeminiError } from '@svara/providers';
 import type { AnswerChunk, AnswerInput } from '@svara/providers';
 import type { TurnContext, TurnFinish } from './service.js';
-import { runConversationTurn } from './turn.js';
+import { runConversationTurn, withinWaitBudget } from './turn.js';
 import type { TurnRunner } from './turn.js';
 
 const entry = randomUUID();
@@ -303,5 +303,131 @@ describe('conversation turns', () => {
     const events = await run(context({ audio: new Uint8Array(3200) }), runner);
     expect(events.map((event) => event.code)).toEqual(['STT_UNAVAILABLE']);
     expect(finished[0]).toMatchObject({ state: 'FAILED', failureCode: 'STT_UNAVAILABLE' });
+  });
+});
+
+describe('slow speech', () => {
+  it('completes a long answer whose speech outlasts the generation deadline', async () => {
+    vi.useFakeTimers();
+    try {
+      const { runner, finished } = harness([]);
+      runner.providers.generator = {
+        async *generate(_input, context) {
+          for (const sentence of ['Room 12 [1]. ', 'Bring ID [1]. ', 'Ask at reception [1].']) {
+            context.signal.throwIfAborted();
+            yield sentence;
+          }
+        },
+      };
+      runner.providers.synthesizer = {
+        async *synthesize() {
+          // 9 s per sentence: 27 s in all, past the 20-second generation deadline.
+          await new Promise((resolve) => setTimeout(resolve, 9000));
+          yield new Int16Array(3000).buffer;
+        },
+      };
+      const events = run(context(), runner);
+      await vi.runAllTimersAsync();
+      expect((await events).filter((event) => event.type === 'answer')).toHaveLength(3);
+      expect(finished[0]).toMatchObject({ state: 'COMPLETED', failureCode: null });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('still fails a model that stops sending for the whole generation deadline', async () => {
+    vi.useFakeTimers();
+    try {
+      const { runner, finished } = harness([]);
+      runner.providers.generator = {
+        async *generate(_input, context) {
+          yield 'Room 12 [1]. ';
+          await new Promise((_resolve, reject) =>
+            context.signal.addEventListener('abort', () => reject(context.signal.reason as Error), {
+              once: true,
+            }),
+          );
+        },
+      };
+      const events = run(context(), runner);
+      await vi.advanceTimersByTimeAsync(20_001);
+      expect((await events).at(-1)).toMatchObject({ type: 'error', code: 'PROVIDER_UNAVAILABLE' });
+      expect(finished[0]).toMatchObject({ state: 'FAILED', answer: 'Room 12.' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('provider wait budget', () => {
+  const words = async function* (signal: AbortSignal) {
+    for (const word of ['a', 'b', 'c']) {
+      signal.throwIfAborted();
+      yield word;
+    }
+  };
+
+  it('does not count the time the turn spends speaking what already arrived', async () => {
+    vi.useFakeTimers();
+    try {
+      const seen: string[] = [];
+      const consume = (async () => {
+        for await (const word of withinWaitBudget(words, new AbortController().signal, 1000)) {
+          seen.push(word);
+          // Speaking each sentence takes most of the budget; three take more than all of it.
+          await new Promise((resolve) => setTimeout(resolve, 900));
+        }
+      })();
+      await vi.runAllTimersAsync();
+      await consume;
+      expect(seen).toEqual(['a', 'b', 'c']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops a provider that keeps the turn waiting past the budget', async () => {
+    vi.useFakeTimers();
+    try {
+      const stalls = async function* (signal: AbortSignal) {
+        yield 'a';
+        await new Promise((_resolve, reject) =>
+          signal.addEventListener('abort', () => reject(signal.reason as Error), { once: true }),
+        );
+      };
+      const consume = (async () => {
+        for await (const word of withinWaitBudget(stalls, new AbortController().signal, 1000))
+          void word;
+      })();
+      const failed = expect(consume).rejects.toMatchObject({ name: 'TimeoutError' });
+      await vi.advanceTimersByTimeAsync(1001);
+      await failed;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('spends one budget across the whole stream, not a fresh one per chunk', async () => {
+    vi.useFakeTimers();
+    try {
+      const slow = async function* (signal: AbortSignal) {
+        for (const word of ['a', 'b', 'c']) {
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          signal.throwIfAborted();
+          yield word;
+        }
+      };
+      const seen: string[] = [];
+      const consume = (async () => {
+        for await (const word of withinWaitBudget(slow, new AbortController().signal, 1000))
+          seen.push(word);
+      })();
+      const failed = expect(consume).rejects.toMatchObject({ name: 'TimeoutError' });
+      await vi.advanceTimersByTimeAsync(1300);
+      await failed;
+      expect(seen).toEqual(['a', 'b']);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
