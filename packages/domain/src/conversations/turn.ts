@@ -38,6 +38,40 @@ export interface TurnRunner {
 }
 
 const GENERATION_MS = 20_000;
+
+/**
+ * A provider stream with a deadline on the time spent waiting for it. Time the consumer spends
+ * between chunks, such as speaking a sentence that already arrived, does not count.
+ */
+export async function* withinWaitBudget<T>(
+  start: (signal: AbortSignal) => AsyncIterable<T>,
+  outer: AbortSignal,
+  budgetMs: number,
+): AsyncGenerator<T> {
+  const deadline = new AbortController();
+  const iterator = start(AbortSignal.any([outer, deadline.signal]))[Symbol.asyncIterator]();
+  let left = budgetMs;
+  try {
+    for (;;) {
+      const waited = Date.now();
+      const timer = setTimeout(
+        () => deadline.abort(new DOMException('The provider took too long.', 'TimeoutError')),
+        Math.max(0, left),
+      );
+      let step: IteratorResult<T>;
+      try {
+        step = await iterator.next();
+      } finally {
+        clearTimeout(timer);
+        left -= Date.now() - waited;
+      }
+      if (step.done) return;
+      yield step.value;
+    }
+  } finally {
+    await iterator.return?.();
+  }
+}
 const SPEECH_MS = 10_000;
 const RECOGNITION_MS = 15_000;
 const failureText: Record<TurnErrorCode, string> = {
@@ -333,11 +367,11 @@ export async function* runConversationTurn(
               yield* say(text);
             }
           };
-          const context: ProviderContext = {
+          const context = (budget: AbortSignal): ProviderContext => ({
             locale: turn.locale,
             mode: turn.providerMode,
-            signal: AbortSignal.any([signal, AbortSignal.timeout(GENERATION_MS)]),
-          };
+            signal: budget,
+          });
           const request: AnswerInput =
             round === 0
               ? input
@@ -347,7 +381,12 @@ export async function* runConversationTurn(
                   toolRound: { text: said, calls, results: yield* execute(calls) },
                 };
           executed ||= round > 0;
-          for await (const chunk of providers.generator.generate(request, context)) {
+          // Speaking each sentence happens inside this loop; only waiting on the model counts.
+          for await (const chunk of withinWaitBudget(
+            (budget) => providers.generator.generate(request, context(budget)),
+            signal,
+            GENERATION_MS,
+          )) {
             signal.throwIfAborted();
             if (typeof chunk !== 'string') {
               if (
