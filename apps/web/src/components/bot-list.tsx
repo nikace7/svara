@@ -254,8 +254,8 @@ export function BotList() {
         )}
       </section>
       <p className="bot-footnote">
-        Drafts are private to your organisation. Publication and deployment will be available after
-        the remaining authoring tools are built.
+        Drafts are private to your organisation. Publish a version under Releases, then schedule it
+        on a kiosk or share it through a public assistant link.
       </p>
     </>
   );
