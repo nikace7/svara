@@ -98,9 +98,13 @@ Fixed because of it:
 - **Out-of-date copy** on the overview (pairing "not available yet", "No devices paired" with
   kiosks online), the voice lab, the bots list and the voice settings.
 
-Known, not changed: speech for each sentence is synthesized inside the 20-second generation
-round, so slow speech can push a long answer past the deadline; the per-bot voice choice is
-saved but live speech uses the server's single Gemini voice. Portfolio screenshots of every
+- **Slow speech could fail a finished answer.** Each sentence is spoken inside the generation
+  loop, and the 20-second round deadline counted that time. It now counts only time spent
+  waiting on the model (live: 3.6–4.5 s of speech per sentence no longer eats the budget).
+  The `TTS_UNAVAILABLE` answers came from the speech model's own small free-tier daily cap.
+
+Known, not changed: the per-bot voice choice is saved but live speech uses the server's single
+Gemini voice. Portfolio screenshots of every
 screen are in ignored `artifacts/portfolio/`.
 
 ## Live evaluation completed across models — 2026-10-01
