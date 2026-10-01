@@ -16,8 +16,10 @@ import {
   Workflow,
 } from 'lucide-react';
 import { Button, StatusBadge } from '@svara/ui';
-import type { components } from '@svara/contracts';
+import type { components, DeviceSummary } from '@svara/contracts';
+import { staffResponse } from '../lib/staff-api';
 import { StudioLink } from './draft-navigation';
+import { useStaffSession } from './session-provider';
 
 type HealthResponse = components['schemas']['HealthResponse'];
 
@@ -38,6 +40,20 @@ export function WorkspaceOverview() {
     refetchInterval: 15000,
   });
   const ready = health.data?.data.status === 'ready' && !health.isError;
+  const { identity } = useStaffSession();
+  // The same query as the Devices page, so both read one cache.
+  const devices = useQuery({
+    queryKey: ['devices', identity.membership.id],
+    queryFn: async ({ signal }) =>
+      (
+        (await (await staffResponse('/devices?limit=100', { signal })).json()) as {
+          data: DeviceSummary[];
+        }
+      ).data,
+    refetchInterval: 10000,
+  });
+  const paired = devices.data?.filter((device) => device.paired) ?? [];
+  const online = paired.filter((device) => device.connection === 'ONLINE').length;
   const services = [
     {
       key: 'database',
@@ -69,10 +85,10 @@ export function WorkspaceOverview() {
       <div className="preview-notice">
         <AudioLines size={19} aria-hidden="true" />
         <div>
-          <strong>Your studio is taking shape.</strong> <span>Staff access is ready</span>
+          <strong>Your studio is ready.</strong> <span>Staff access is ready</span>
           <p>
-            Author bilingual guides, review their knowledge and publish a fixed version. Live voice
-            and device pairing are the next parts of the studio.
+            Author bilingual guides, publish a fixed version, pair browser kiosks and let visitors
+            ask by voice or text, in English or Nepali.
           </p>
         </div>
         <StudioLink href="/studio/bots" className="button button--secondary">
@@ -169,26 +185,36 @@ export function WorkspaceOverview() {
               },
               {
                 title: 'Bilingual voice feasibility',
-                text: 'Bilingual fixture lab, PCM audio checks and interruption. Live validation pending.',
-                state: 'Fixture ready',
+                text: 'Bilingual voice lab, PCM audio checks and interruption. Hardware barge-in untested.',
+                state: 'Live evidence partial',
               },
               {
                 title: 'Identity & access',
                 text: 'Staff accounts, roles and separate organisation workspaces.',
-                state: 'Staff flows ready',
+                state: 'Complete',
               },
               {
                 title: 'Authoring & publication',
                 text: 'Bilingual knowledge, inspected media, presentations and immutable releases.',
-                state: 'Authoring ready',
+                state: 'Complete',
               },
               {
                 title: 'Pair & deploy',
                 text: 'Paired browser kiosks, dual displays and acknowledged release updates.',
-                state: 'Planned',
+                state: 'Complete',
+              },
+              {
+                title: 'Schedules & conversations',
+                text: 'Timed deployments, grounded answers, kiosk slides and public assistant links.',
+                state: 'Complete',
+              },
+              {
+                title: 'Operations & evidence',
+                text: 'Measured timings, backup and restore, and a fixed bilingual evaluation.',
+                state: 'Complete',
               },
             ].map((step, index) => (
-              <li key={step.title} className={index === 4 ? 'step-current' : ''}>
+              <li key={step.title}>
                 <span className="step-number mono">0{index + 1}</span>
                 <div>
                   <h3>{step.title}</h3>
@@ -206,7 +232,9 @@ export function WorkspaceOverview() {
             <p className="eyebrow">BROWSER KIOSKS</p>
             <h2 id="fleet-title">Device fleet</h2>
           </div>
-          <StatusBadge>Pairing not available yet</StatusBadge>
+          <StatusBadge tone={online ? 'success' : 'neutral'}>
+            {devices.isPending ? 'Checking devices' : `${paired.length} paired · ${online} online`}
+          </StatusBadge>
         </div>
         <div className="fleet-empty">
           <div className="empty-device" aria-hidden="true">
@@ -216,18 +244,28 @@ export function WorkspaceOverview() {
             </span>
           </div>
           <div>
-            <h3>No devices paired</h3>
-            <p>
-              Once your assistant is published, pair a browser kiosk and bring its voice to your
-              space.
-            </p>
-            <p className="small muted">
-              Device pairing follows staff access and release publishing.
-            </p>
+            {paired.length ? (
+              <>
+                <h3>
+                  {online} of {paired.length} paired {paired.length === 1 ? 'kiosk' : 'kiosks'}{' '}
+                  online
+                </h3>
+                <p>{paired.map((device) => device.name).join(' · ')}</p>
+              </>
+            ) : (
+              <>
+                <h3>No devices paired</h3>
+                <p>
+                  Once your assistant is published, pair a browser kiosk and bring its voice to your
+                  space.
+                </p>
+              </>
+            )}
+            <p className="small muted">Presence comes from each kiosk&rsquo;s heartbeat.</p>
           </div>
-          <span className="fleet-direction" aria-hidden="true">
-            <ArrowRight size={22} />
-          </span>
+          <StudioLink href="/studio/devices" className="fleet-direction" aria-label="Open devices">
+            <ArrowRight size={22} aria-hidden="true" />
+          </StudioLink>
         </div>
       </section>
       <div className="architecture-note">
