@@ -129,6 +129,11 @@ export function ConversationPanel(props: ConversationPanelProps) {
   const language = locale === 'ne-NP' ? 'ne' : 'en';
   const text = copy[language];
   const [turns, setTurns] = useState<Turn[]>([]);
+  const log = useRef<HTMLDivElement>(null);
+  // The newest turn is the one the visitor is waiting for: keep it in view as it streams.
+  useEffect(() => {
+    if (log.current) log.current.scrollTop = log.current.scrollHeight;
+  }, [turns]);
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -455,7 +460,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
         {!live && <StatusBadge tone="warning">Demo mode</StatusBadge>}
       </div>
       {!live && <p className="muted conversation-demo">{text.demo}</p>}
-      <div className="conversation-log" aria-live="off">
+      <div className="conversation-log" aria-live="off" ref={log}>
         {turns.length === 0 && <p className="conversation-greeting">{greeting[language]}</p>}
         {turns.map((turn) => (
           <article
@@ -480,11 +485,15 @@ export function ConversationPanel(props: ConversationPanelProps) {
                   {text.references}: {turn.citations.map((item) => item.title).join(' · ')}
                 </p>
               )}
-              {turn.tools.map((tool, index) => (
-                <p key={index} className="muted">
-                  {tool.name === 'show_slide' ? 'Slide' : tool.name}: {tool.status.toLowerCase()}
-                </p>
-              ))}
+              {/* Only a slide is visible to a visitor; references are listed above, and the
+                  rest are recorded for staff in Sessions. */}
+              {turn.tools
+                .filter((tool) => tool.name === 'show_slide')
+                .map((tool, index) => (
+                  <p key={index} className="muted">
+                    Slide: {tool.status.toLowerCase()}
+                  </p>
+                ))}
             </div>
           </article>
         ))}
