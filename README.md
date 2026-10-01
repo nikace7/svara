@@ -42,10 +42,10 @@ uploads and cleans eligible files. It also reconciles schedules into each device
 desired release and wakes the API, whose Socket.IO `/devices` gateway delivers it to
 paired kiosks.
 
-The demo pipeline is Azure Speech F0 STT → approved release knowledge → Gemini
-free-tier generation → Azure Speech F0 TTS. Provider adapters and live validation
-are pending. OpenAI is an optional explicit alternative. Live audio will stay
-transient in its owning API process.
+The live pipeline is Gemini transcription → approved release knowledge → Gemini
+generation with validated tools → Gemini speech, all on one free-tier Google AI Studio
+key. OpenAI is an optional explicit alternative for generation. Live audio stays
+transient in its owning API process; without a key, demo mode quotes approved text.
 
 See [the architecture decisions](docs/DECISIONS.md),
 [implementation progress](docs/PROGRESS.md) and
