@@ -77,6 +77,32 @@ exceeds the sign-in quota (README). The API limits are unchanged. The superseded
 `codex/feat/device-pairing` draft (`5fb45fc`) was deleted: its three finished commits were
 already in `main` and M4 rebuilt the rest.
 
+## Live browser test on the local stack — 2026-10-01
+
+The Compose stack ran with a live `gemini-3.6-flash` key (passed only through the environment)
+and was driven through the real UI: a paired kiosk with a second display answering in English
+and Nepali and showing slides on request, the Playground, a public assistant link on a phone,
+Sessions and Analytics. Every flow answered with citations; slide commands were acknowledged
+by the kiosk and recorded with timings. Speech failed on some answers (`TTS_UNAVAILABLE`,
+recorded as such) while the text completed.
+
+Fixed because of it:
+
+- **The newest kiosk answer was out of view.** The conversation log stayed scrolled to the
+  first question; it now follows the newest turn.
+- **Visitors saw internal tool names** ("select_reference: done"). Only the slide outcome is
+  shown; staff still see every tool in Sessions.
+- **A per-minute rate limit read as "did not answer".** Bursts hit the free tier's
+  per-minute cap; the 429's "retry in ~30s" was waited into the 20-second round deadline. A
+  backoff hint over 5 s now fails at once as `PROVIDER_QUOTA`.
+- **Out-of-date copy** on the overview (pairing "not available yet", "No devices paired" with
+  kiosks online), the voice lab, the bots list and the voice settings.
+
+Known, not changed: speech for each sentence is synthesized inside the 20-second generation
+round, so slow speech can push a long answer past the deadline; the per-bot voice choice is
+saved but live speech uses the server's single Gemini voice. Portfolio screenshots of every
+screen are in ignored `artifacts/portfolio/`.
+
 ## Live evaluation completed across models — 2026-10-01
 
 The 22 cases still without a live answer ran on `gemini-3-flash-preview`, spread across the
