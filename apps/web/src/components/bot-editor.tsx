@@ -297,7 +297,8 @@ function DraftForm({ initial }: { initial: BotDetail }) {
               </div>
             </fieldset>
             <p className="bot-footnote">
-              Live speech setup is pending. No audio is generated when saving a draft.
+              Saved with the draft, but live speech uses the server&rsquo;s single Gemini voice for
+              now. No audio is generated when saving a draft.
             </p>
           </section>
           <section className="panel bot-section">
