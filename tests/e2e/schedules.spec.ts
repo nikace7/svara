@@ -55,8 +55,10 @@ test('schedules a release, explains a conflict, overrides it and ends the overri
   await expect(device.getByText('Waiting for device · revision 2')).toBeVisible();
 
   await device.getByText('Delivery history').click();
+  // The worker claims due commands every second, kiosk connected or not, so an
+  // unacknowledged revision is either still queued or already sent.
   await expect(device.getByRole('listitem').filter({ hasText: 'Revision 2' })).toContainText(
-    'queued',
+    /queued|sent/,
   );
   await expect(device.getByRole('listitem').filter({ hasText: 'Revision 1' })).toContainText(
     'superseded',
