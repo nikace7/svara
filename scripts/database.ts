@@ -12,6 +12,11 @@ loadWorkspaceEnvironment();
 const operation = process.argv[2];
 if (!['migrate', 'seed', 'test'].includes(operation ?? ''))
   throw new Error('Expected migrate, seed or test.');
+// Compose seeds in two parts: identity writes credentials to the host as the host user,
+// authoring writes 0600 media that the API and worker must read as the image user.
+const part = process.argv[3];
+if (operation === 'seed' && part !== undefined && !['identity', 'authoring'].includes(part))
+  throw new Error('Expected seed identity or seed authoring.');
 const url = (operation === 'test' ? process.env.TEST_DATABASE_URL : process.env.DATABASE_URL) ?? '';
 if (operation === 'test') assertTestDatabase(url, 'test');
 else assertDemoDatabase(url, process.env.APP_ENV ?? '');
@@ -35,35 +40,43 @@ if (operation !== 'seed') {
     const marker = await db.applicationMetadata.findUnique({ where: { id: 'svara' } });
     if (marker?.schemaVersion !== 1)
       throw new Error('Refusing seed: expected Svara application marker.');
-    await seedOrganisations(db);
-    const { seedLocalStaff } = await import('../packages/domain/src/identity/local.js');
-    const credentials = await loadDemoCredentials(
-      fileURLToPath(new URL('../.local/setup/', import.meta.url)),
-      { allowCreate: (await db.user.count({ where: { id: { in: demoStaffIds } } })) === 0 },
-    );
-    const created = await seedLocalStaff(db, credentials.accounts);
-    console.info(
-      `Seeded two fictional organisations and ${created} new staff accounts. Existing identities and access were preserved.`,
-    );
-    console.info(
-      `Initial demo credentials: ${credentials.path}. Changed passwords are never reset by seeding.`,
-    );
-    const { seedLocalAuthoring } = await import('../packages/domain/src/local/authoring.js');
-    const { MediaStorage } = await import('../packages/domain/src/media/storage.js');
-    const { MediaInspector } = await import('../apps/worker/src/media/inspector.js');
-    const { demoAuthoringBundles } = await import('../fixtures/authoring.js');
-    const config = parseServerConfig(process.env);
-    const storage = await MediaStorage.open(config.MEDIA_ROOT);
-    const inspector = new MediaInspector(storage, config);
-    const map = await readFile(new URL('../fixtures/media/himal-campus-map.png', import.meta.url));
-    let added = 0;
-    for (const bundle of demoAuthoringBundles(map))
-      if (await seedLocalAuthoring(db, bundle, storage, inspector.inspect.bind(inspector)))
-        added += bundle.bots.length;
-    console.info(
-      `Added ${added} fictional demo guides. Completed seed bundles, edits and deleted content were preserved.`,
-    );
+    if (part !== 'authoring') await seedIdentity(db);
+    if (part !== 'identity') await seedAuthoring(db);
   } finally {
     await db.$disconnect();
   }
+}
+
+async function seedIdentity(db: ReturnType<typeof createDatabase>) {
+  await seedOrganisations(db);
+  const { seedLocalStaff } = await import('../packages/domain/src/identity/local.js');
+  const credentials = await loadDemoCredentials(
+    fileURLToPath(new URL('../.local/setup/', import.meta.url)),
+    { allowCreate: (await db.user.count({ where: { id: { in: demoStaffIds } } })) === 0 },
+  );
+  const created = await seedLocalStaff(db, credentials.accounts);
+  console.info(
+    `Seeded two fictional organisations and ${created} new staff accounts. Existing identities and access were preserved.`,
+  );
+  console.info(
+    `Initial demo credentials: ${credentials.path}. Changed passwords are never reset by seeding.`,
+  );
+}
+
+async function seedAuthoring(db: ReturnType<typeof createDatabase>) {
+  const { seedLocalAuthoring } = await import('../packages/domain/src/local/authoring.js');
+  const { MediaStorage } = await import('../packages/domain/src/media/storage.js');
+  const { MediaInspector } = await import('../apps/worker/src/media/inspector.js');
+  const { demoAuthoringBundles } = await import('../fixtures/authoring.js');
+  const config = parseServerConfig(process.env);
+  const storage = await MediaStorage.open(config.MEDIA_ROOT);
+  const inspector = new MediaInspector(storage, config);
+  const map = await readFile(new URL('../fixtures/media/himal-campus-map.png', import.meta.url));
+  let added = 0;
+  for (const bundle of demoAuthoringBundles(map))
+    if (await seedLocalAuthoring(db, bundle, storage, inspector.inspect.bind(inspector)))
+      added += bundle.bots.length;
+  console.info(
+    `Added ${added} fictional demo guides. Completed seed bundles, edits and deleted content were preserved.`,
+  );
 }
