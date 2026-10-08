@@ -27,21 +27,28 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+  # Credentials land on the host, so this part runs as the host user.
   seed:
     <<: *runtime
     user: '${SVARA_LOCAL_UID:-1000}:${SVARA_LOCAL_GID:-1000}'
     volumes:
-      - media_data:/app/.local/media
       - ../.local/setup:/app/.local/setup
-    command: [node, --import, tsx, scripts/database.ts, seed]
+    command: [node, --import, tsx, scripts/database.ts, seed, identity]
     depends_on:
       migrate:
+        condition: service_completed_successfully
+  # Media files are 0600, so they are written as the image user the API and worker run as.
+  seed-media:
+    <<: *runtime
+    command: [node, --import, tsx, scripts/database.ts, seed, authoring]
+    depends_on:
+      seed:
         condition: service_completed_successfully
   api:
     <<: *runtime
     command: [node, apps/api/dist/main.js]
     depends_on:
-      seed:
+      seed-media:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
@@ -67,7 +74,7 @@ services:
     cpus: 1.0
     pids_limit: 128
     depends_on:
-      seed:
+      seed-media:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
