@@ -19,6 +19,6 @@
     "@svara/contracts": "workspace:*",
     "@svara/database": "workspace:*",
     "@svara/providers": "workspace:*",
-    "ioredis": "5.11.1"
+    "ioredis": "6.0.0"
   }
 }
