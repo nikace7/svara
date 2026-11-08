@@ -275,7 +275,5 @@ requests: dependency audit, `pnpm check`, the integration suite, this evaluation
 results are uploaded as the `evaluation` artifact), the live-mode Playwright journeys, then
 the Compose containers and their browser journeys. Fixture providers only, no keys.
 
-**It has not completed on GitHub yet.** The repository is at `nikace7/svara`, but every run
-so far stopped before its first step because the account's Actions billing is blocked
-("recent account payments have failed or your spending limit needs to be increased"). The
-same commands pass locally.
+The workflow passed on `main` on 2026-10-09 (commit `856a688`). Earlier runs had stopped
+before their first step while the account's Actions billing was blocked.
