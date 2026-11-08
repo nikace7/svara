@@ -15,7 +15,7 @@ The user explicitly chose fresh construction, a complete voice/device/media/sche
 
 - This specification lives in the portfolio repository at `docs/project-blueprints/01-robot-voice.md`.
 - Create the application in a separate repository at `<projects-root>/portfolio-recreations/robot-voice/`.
-- On the original machine, `<projects-root>` is `C:/Users/khatr/OneDrive - Prime College/Desktop/Project`. On another machine, use the directory the user supplies, never recreate the original absolute path blindly.
+- Use the directory the user supplies for `<projects-root>`.
 - If the destination already exists, inspect its instructions, status and progress before continuing. Do not overwrite or reset existing work.
 - Copy this specification into the new application's `docs/BLUEPRINT.md`; record implementation progress in `docs/PROGRESS.md` there.
 - Existing CRV source is reference material only. The new application must work without that checkout. Do not copy its environment files, databases, employer assets or historical Git metadata.
