@@ -11,15 +11,17 @@ overrides:
   deepmerge-ts: 8.0.0
   mysql2: 3.23.1
   '@redocly/openapi-core>js-yaml': 4.3.2
-  '@nestjs/platform-express>multer': 2.4.0
+  '@nestjs/platform-express>multer': 2.5.0
   '@nestjs/swagger>js-yaml': 5.4.3
   'concurrently>shell-quote': 1.12.0
   'express>proxy-addr': 2.0.8
-  'ajv>fast-uri': 3.1.8
+  'ajv>fast-uri': 3.1.9
   source-map-js: 1.2.2
   'brace-expansion@1': 1.1.21
   'brace-expansion@2': 2.1.7
   'brace-expansion@5': 5.0.12
+  'minimatch@>=7.0.0 <11.0.1': 11.0.1
+  'vite@>=8.2.0 <8.2.4': 8.3.6
 # braces has no patched release. It is reached only through @next/eslint-plugin-next
 # globbing our own lint config, never untrusted input, and is not in the runtime image.
 auditConfig:

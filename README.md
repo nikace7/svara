@@ -1,221 +1,112 @@
 # Svara — Voice & Device Studio
 
-A bilingual English/Nepali visitor assistant and browser kiosk management studio.
-Svara is an independent implementation using synthetic organisations and content.
+A studio for building bilingual (English and Nepali) voice assistants for visitor
+kiosks. Staff write and review knowledge in both languages and publish it as an
+immutable release. They pair browser kiosks, schedule which release each kiosk runs,
+and then read every conversation with what was heard, cited and done. Visitors can ask
+at a kiosk or through a public link, and answers quote only approved content.
 
-## Build status
+Next.js studio, NestJS API and a worker over PostgreSQL 17 and Redis, behind one Caddy
+gateway. Without a provider key it runs in a clearly labelled demo mode. A free Google
+AI Studio key turns on live transcription, answers and speech. The organisations and
+content are synthetic.
 
-Milestones M0–M8 are built and verified locally; M1's live voice evidence is partial.
-Everything runs without a provider account in clearly labelled demo mode, and a free
-Google AI Studio key switches on live answers and speech. [Progress](docs/PROGRESS.md)
-has the milestone table and test evidence.
+![The playground: a question about the admissions office, the answer quoting the approved entry, and a "What happened" panel showing what was heard and cited](docs/assets/readme/playground.png)
 
-- **Evidence:** [evaluation](docs/EVALUATION.md) (fixed bilingual set, acceptance
-  matrix, limitations), [demo walkthrough and screenshots](docs/DEMO.md) and the
-  [case study](docs/CASE_STUDY.md).
-- **Scope by area:** [voice](docs/M1-VOICE.md), [identity](docs/M2-IDENTITY.md),
-  [authoring](docs/M3-AUTHORING.md), [devices](docs/M4-DEVICES.md),
-  [schedules](docs/M5-SCHEDULES.md), [conversations](docs/M6-CONVERSATIONS.md) and
-  [operations](docs/M7-OPERATIONS.md).
-- **Not yet proven:** the fixed set in one live run on one model (each of the 40 cases
-  has a correct live answer, but across four free-tier models), fluent Nepali review, and
-  a CI run on GitHub.
+_The seeded Himal Campus guide answering in demo mode, captured on 8 November 2026.
+Demo mode quotes approved text and has no speech._
 
-## Architecture
+## Try it
 
-```mermaid
-flowchart LR
-  Browser[Local browser] --> Gateway[Caddy :4320]
-  Gateway --> Web[Next.js studio]
-  Gateway --> API[NestJS API]
-  API --> Domain[Shared server domain]
-  Worker[Worker] --> Domain
-  Domain --> PG[(PostgreSQL 17)]
-  Domain --> Redis[(Redis 7)]
-  Domain --> Media[(Media volume)]
-```
-
-Apps compose shared packages. Browser code imports only contracts, UI and audio;
-server domain code owns database/provider work. PostgreSQL is durable truth. Redis
-coordinates media jobs and readiness; the worker reconciles database state, inspects
-uploads and cleans eligible files. It also reconciles schedules into each device's
-desired release and wakes the API, whose Socket.IO `/devices` gateway delivers it to
-paired kiosks.
-
-The live pipeline is Gemini transcription → approved release knowledge → Gemini
-generation with validated tools → Gemini speech, all on one free-tier Google AI Studio
-key. OpenAI is an optional explicit alternative for generation. Live audio stays
-transient in its owning API process; without a key, demo mode quotes approved text.
-
-See [the architecture decisions](docs/DECISIONS.md),
-[implementation progress](docs/PROGRESS.md) and
-[the supplied specification](docs/01-robot-voice.md).
-
-## Prerequisites
-
-- Docker Desktop with Linux containers and Compose v2.24 or newer.
-- pnpm 10.34.5. If needed: `corepack enable`, then
-  `corepack prepare pnpm@10.34.5 --activate`.
-- Node 22.23.2. The workspace pins `useNodeVersion`, so pnpm obtains the correct
-  runtime for project commands without replacing a different host Node version.
-- Internet for the first dependency/image install; no provider account is required.
-
-## Run the complete local demo
-
-From the repository root:
+Needs Docker Desktop with Compose v2.24+ and pnpm 10. pnpm fetches the pinned Node 22
+for project commands.
 
 ```sh
-pnpm install --frozen-lockfile
-pnpm setup:local
-pnpm demo:up
+pnpm install --frozen-lockfile && pnpm setup:local && pnpm demo:up
 ```
 
-Open [Svara](http://localhost:4320), the
-[media library](http://localhost:4320/studio/media),
-[voice lab](http://localhost:4320/studio/voice-lab),
-[component gallery](http://localhost:4320/studio/design-system), or
-[API reference](http://localhost:4320/api/docs).
+Open http://localhost:4320 and sign in as `owner@himal.svara.test`. `setup:local`
+writes gitignored `.env` files with fresh secrets. The seed writes each staff
+account's generated password to `.local/setup/demo-staff.json`. `pnpm demo:down`
+stops the stack and keeps its data.
 
-Setup creates ignored `.env` and `.env.compose` files with fresh secrets and never
-overwrites existing files. Compose builds the apps, runs migration and seed init
-jobs, and waits for health checks. Only `127.0.0.1:4320` is exposed.
-Stop with `pnpm demo:down`; named data volumes are retained.
+Last run from a fresh clone on 8 November 2026 (Windows 11, Docker Desktop): the
+images built, migration and seeding finished, all services reported healthy and the
+playground answered from the published release.
 
-The studio requires sign-in. Choose **Create a workspace** at `/login` to create
-your own organisation and owner account. The seed creates the fictional Himal and
-Riverside organisations, five staff accounts and reusable authoring examples.
-Read the generated passwords in `.local/setup/demo-staff.json`; native and
-Compose modes share this ignored file. No default password is committed. The voice
-lab and component gallery additionally require local fixture
-mode, including after sign-in. Free provider account instructions are linked above.
+Things to try:
 
-Sign in as the seeded Himal owner to inspect **Campus Admissions Guide → Releases
-→ Version 1**. Its current draft deliberately has a missing Nepali greeting to
-demonstrate readiness checks; the published version remains complete. An unapproved,
-unselected fee draft demonstrates safe fallback. Repeating setup in the same launch
-mode preserves edits, archive state and deleted content in completed bundles.
+- **Playground**: ask the Campus Admissions Guide a question in English or Nepali and
+  see what it cited.
+- **Bots → Campus Admissions Guide → Releases**: the current draft is missing a Nepali
+  greeting on purpose, so the readiness check blocks it. The published version stays
+  complete.
+- **Devices**: pair the device simulator as a kiosk, then schedule a release for it in
+  **Events & Deployments**.
+- **Settings → Public assistant links**: open a public link in another browser profile.
 
-## Native development
+[Development](docs/DEVELOPMENT.md) covers native development, the media library, the
+voice lab, backups and every check command. [Free demo setup](docs/FREE-DEMO-SETUP.md)
+explains how to add a live key.
 
-Stop the full demo first if running: `pnpm demo:down`.
+## Tests and CI
 
-```sh
-pnpm setup:local
-pnpm infra:up
-pnpm db:generate
-pnpm db:migrate
-pnpm db:seed
-pnpm dev
-```
+| Suite                      | Size                                                                         | Runs against                                                                                                                    |
+| -------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Unit (Vitest)              | 190 cases in 37 files, statement coverage above 95% on the measured packages | Node                                                                                                                            |
+| Integration (Vitest)       | 173 cases in 31 files                                                        | Real PostgreSQL 17 and Redis: tenant isolation, revision conflicts, schedule races, pairing and admission limits                |
+| Browser (Playwright + axe) | 46 tests in 16 specs                                                         | The full stack: pairing, schedules, kiosk slide commands, public links in both languages, layouts at three widths and 200% zoom |
+| Conversation evaluation    | 40 fixed bilingual cases                                                     | Demo mode; also runs live with a key                                                                                            |
 
-Use `http://localhost:4320`. Native web uses port 3001, API 4100, worker 4101,
-PostgreSQL 5434 and Redis 6381. Port 3001 avoids an unrelated service on this machine;
-containers use web port 3000 internally. Ctrl+C stops the coordinated app watchers;
-`pnpm infra:down` stops infrastructure while retaining data.
+`pnpm check` runs formatting, lint, types, unit tests with coverage, contract drift
+checks and production builds. GitHub Actions runs it with the dependency audit,
+integration tests, the evaluation and the browser journeys on every push to `main`.
+**The last run on `main` passed, on 9 October 2026 (`856a688`).**
 
-Before starting the native worker, install FFmpeg/ffprobe and configure the explicit
-development inspection setting described in [media inspection setup](docs/MEDIA-INSPECTION.md).
-The seed command compiles its image inspector before importing the PNG example.
-Compose includes the Linux ffprobe sandbox. The worker watcher compiles inspection
-children as well as its main process, so new jobs use the current emitted code.
+## Engineering decisions
 
-Compose and native modes share the development database but use different media
-stores. Switching modes does not transfer files, and reseeding preserves existing
-references. Keep the existing demo in its original mode unless its media files have
-also been transferred. See [local storage](docs/OPERATIONS.md#configuration).
+**A kiosk's desired release is committed with the change that caused it.** A staff
+change derives each device's desired release (override, then schedule, then idle) in
+the same transaction. That transaction bumps a revision and writes the next command
+row, so the command table is the outbox. Redis messages carry only IDs and just wake
+the worker, and a lost one is repaired on the next scan.
+([ADR 026](docs/DECISIONS.md#adr-026--desired-state-and-its-command-commit-together-redis-only-wakes))
 
-## Explore the media library
+**Releases are immutable, and answers come only from them.** Publishing captures a
+draft into a hashed snapshot together with per-language knowledge projections and
+media references, all in one transaction. A conversation searches only its pinned
+release. The model sees short passage and slide labels, never database IDs. The
+server maps those labels back and checks them against the release before any tool
+call runs. ([ADR 022](docs/DECISIONS.md#adr-022--immutable-release-captures-with-matching-projections),
+[ADR 027](docs/DECISIONS.md#adr-027--conversation-turns-stream-over-http-admission-serializes-in-postgresql))
 
-1. Sign in as an owner or administrator and open **Media**. Choose a JPEG/PNG image
-   or an H.264/AAC MP4 within the displayed limits, then select **Upload file**.
-2. Wait for inspection. Ready images and videos can be previewed or downloaded;
-   rejected files show an explanation. Operators and viewers can inspect the library.
-3. Use search/type/status filters or confirm **Remove** to request cleanup.
+**Usage limits are enforced in PostgreSQL, not Redis.** Each conversation is
+admitted by locking the organisation's daily usage row, counting active sessions
+and checking allowances in one transaction. The limits therefore survive a Redis
+restart. Conversation turns stream over HTTP instead of a voice socket, because the
+recognizer transcribes a whole utterance anyway.
+([ADR 027](docs/DECISIONS.md#adr-027--conversation-turns-stream-over-http-admission-serializes-in-postgresql))
 
-Files remain private to the organisation. See [media processing](docs/MEDIA-INSPECTION.md)
-for the upload, sandbox, range serving and cleanup boundaries.
+## Known limits
 
-## Explore the voice lab
+- **Live quality is not proven.** Every case in the 40-case set has a correct live
+  answer, but those answers came from four different free-tier models. There has been
+  no single live run on one model, and no browser run with a real key.
+- **Nepali has not been reviewed by a fluent speaker.**
+- **No hands-free barge-in or streaming recognition.** Speech is transcribed after the
+  visitor finishes, and stopping an answer takes a button press.
+- **Citation labels are English only**, even on Nepali screens.
+- **Local only.** It runs in Docker Compose on one machine, with no production
+  deployment.
 
-1. Choose English or Nepali and run a scripted scenario. The admissions facts are
-   synthetic; the missing-fee scenario demonstrates an unsupported question.
-2. Select the long answer and press Interrupt. Partial subtitles remain labelled;
-   changing language or choosing End & clear cancels and clears the current turn.
-3. Test microphone capture separately. Frames remain in the browser; this is not
-   recognition. Stop is available during permission prompts and capture ends after
-   30 seconds. Navigation and language changes release the microphone.
-4. Test the speaker with a generated 440 Hz tone. This uses the actual PCM worklet
-   queue. English/Nepali speech clips are not bundled, so fixture answers stay
-   explicitly text-only. Typed questions receive a fixture notice, not generated facts.
+More in the [evaluation](docs/EVALUATION.md) and the [case study](docs/CASE_STUDY.md).
 
-See [M1 design, evidence and limits](docs/M1-VOICE.md). Restart `pnpm dev` after editing
-worklet source so the compiled public worklet modules are refreshed.
+## Documentation
 
-## Pair a kiosk and schedule it
+- [Development](docs/DEVELOPMENT.md), [operations](docs/OPERATIONS.md), [API](docs/API.md)
+- [Decisions](docs/DECISIONS.md) (30 ADRs), [build log](docs/PROGRESS.md), [specification](docs/BLUEPRINT.md)
+- [Demo walkthrough](docs/DEMO.md), [evaluation](docs/EVALUATION.md), [case study](docs/CASE_STUDY.md)
 
-1. In **Devices**, register a kiosk and choose **Pair**. Open the kiosk link in another
-   browser profile (or the **Device simulator**) and enter the code.
-2. Choose **Open display** on the kiosk for its second screen.
-3. In **Events & Deployments**, schedule a published release or start an override. The
-   kiosk downloads and verifies it, shows it, and its delivery history reports the
-   acknowledgement. **Revoke** returns the kiosk to pairing at once.
+## License
 
-See [M4 devices](docs/M4-DEVICES.md) and [M5 schedules](docs/M5-SCHEDULES.md).
-
-## Talk to a kiosk or a public link
-
-1. Open **Playground** (bottom of the navigation), choose a bot and release, and ask a
-   question. **What happened** lists what was heard, the tools used and the passages
-   cited. Without a live key this is labelled demo mode and quotes approved text only.
-2. A paired kiosk with an applied release shows **Ask this kiosk** beside its slides.
-   Asking for a slide by name shows it on the kiosk and, when authored for it, on the
-   display. **Stop speaking** ends an answer at once.
-3. In **Settings → Public assistant links**, create a link for a published release and
-   open it in another browser profile. Turning it off ends its open conversations.
-4. **Sessions** lists every conversation with its answers, tool and kiosk outcomes and
-   measured timings.
-
-See [M6 conversations](docs/M6-CONVERSATIONS.md) and ADR 027.
-
-## Measure, back up and recover
-
-- **Analytics** shows measured response timings and recorded outcomes, live and demo kept
-  apart. A stage with too few measurements says so instead of showing a number.
-- `pnpm backup` (or `pnpm backup --compose` for the Docker demo) writes a verified backup
-  to `.local/backups/`. `pnpm restore <dir>` restores it into a separate `svara_restore`
-  database and checks every table.
-- `pnpm demo:reset svara_dev` returns the native demo to a fresh seed after taking a
-  backup.
-
-Runbooks for restore, reset, retention and shutdown are in
-[operations](docs/OPERATIONS.md). See [M7 operations](docs/M7-OPERATIONS.md) and ADR 028.
-
-## Verification
-
-```sh
-pnpm check                 # format, lint, types, unit coverage, contract drift, builds
-pnpm audit                 # all dependency groups
-pnpm test:integration      # requires native infrastructure
-pnpm exec playwright install chromium
-pnpm test:e2e              # requires the complete running app
-pnpm test:e2e:live         # voice lab, schedules and kiosks on a stub-provider stack; run pnpm build first
-pnpm eval:conversations    # fixed bilingual evaluation in demo mode (add --live with a key)
-pnpm screenshots:handoff   # the seven handoff screenshots in demo mode; run pnpm build first
-```
-
-For the full Compose demo use `pnpm test:integration:container` instead of the native
-integration command. `pnpm test:container` verifies production preview denial in a
-separate container with networking disabled. `pnpm test:e2e` runs against the real staff
-quotas from one IP, on one worker: a run spends about 26 of the 30 sign-ins allowed per
-10 minutes, so wait that long before running the whole suite again. `pnpm screenshots` captures the actual
-overview at five viewport sizes in ignored `artifacts/screenshots/`.
-
-`pnpm contracts:generate` updates OpenAPI and HTTP types; `pnpm contracts:check`
-fails on drift without rewriting them. Tests do not call speech/LLM providers.
-Integration commands accept only the explicitly local `svara_test` database.
-
-The repository is on GitHub at `nikace7/svara`. Its workflow
-(`.github/workflows/ci.yaml`) runs these checks on every push to `main`, but no run has
-started yet because the account's Actions billing is blocked. See [contributing](CONTRIBUTING.md),
-[operations](docs/OPERATIONS.md), [API contracts](docs/API.md), and
-[dependency decisions](docs/DEPENDENCIES.md).
+No license has been chosen yet, so all rights are reserved.
