@@ -16,7 +16,7 @@ Updated 2026-09-29. Evidence is local unless explicitly marked otherwise.
 
 ## M8 evidence and handoff — 2026-09-29
 
-Built on branch `claude/m8-evidence` from `main` after M7 was fast-forwarded. See
+Built on branch `m8-evidence` from `main` after M7 was fast-forwarded. See
 `EVALUATION.md`, `DEMO.md`, `CASE_STUDY.md` and ADR 029.
 
 | Check                 | Result                                                                                                 |
@@ -151,7 +151,7 @@ to the host. Native tests need `compose.native.yaml` as well.
 
 ## M7 analytics, resilience and operations — 2026-09-29
 
-Built on branch `claude/m7-operations` from `main` after M6 was fast-forwarded. See
+Built on branch `m7-operations` from `main` after M6 was fast-forwarded. See
 `M7-OPERATIONS.md`, the runbooks in `OPERATIONS.md` and ADR 028.
 
 | Check             | Result                                                                                                                    |
@@ -172,7 +172,7 @@ stack, not a real key.
 
 ## M6 conversations and public assistant — 2026-09-28
 
-Built on branch `claude/m6-conversations` from `main` after M4 and M5 were
+Built on branch `m6-conversations` from `main` after M4 and M5 were
 fast-forwarded. See `M6-CONVERSATIONS.md` and ADR 027, which records the deliberate
 departures: HTTP turn streams instead of a `/voice` socket, and PostgreSQL-serialized
 admission instead of a Redis lease.
@@ -202,11 +202,11 @@ display and simulator pages, and the Devices studio page. See `M4-DEVICES.md`.
 | Live Playwright   | 6 passed, including the M4 gate: two isolated kiosks, display mirror, failed update, revocation |
 
 The main checkout still holds that session's uncommitted copies of these files; they
-are superseded by the commits on `claude/m5-schedules` and were left untouched.
+are superseded by the commits on `m5-schedules` and were left untouched.
 
 ## M5 schedules and commands — 2026-09-27
 
-Built on branch `claude/m5-schedules`, stacked on M4's three committed device commits
+Built on branch `m5-schedules`, stacked on M4's three committed device commits
 because every M5 table references `Device`. See `M5-SCHEDULES.md` and ADR 026.
 Events, deployments, overrides, monotonic desired state and the command outbox commit
 together. The worker reconciles current truth and retries commands with backoff. The
