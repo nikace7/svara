@@ -1,7 +1,7 @@
 name: Verify Svara
 on:
   push:
-    branches: [main, 'codex/**', 'feat/**', 'fix/**', 'chore/**', 'docs/**']
+    branches: [main, 'feat/**', 'fix/**', 'chore/**', 'docs/**']
   pull_request:
 
 permissions:

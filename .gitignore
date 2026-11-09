@@ -19,7 +19,3 @@ packages/database/src/generated/
 Thumbs.db
 .idea/
 .vscode/
-
-# Written by next dev; not part of the project
-apps/web/AGENTS.md
-apps/web/CLAUDE.md

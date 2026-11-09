@@ -3,7 +3,7 @@
 > Project 1 of 9: independent recreation of Custom Robot Voice.
 > Status: implementation-ready specification; application implementation has not started.
 > Specification version: 1.0 — 8 September 2026.
-> Audience: an engineer or Codex task starting with no prior conversation context.
+> Audience: an engineer new to the project.
 
 ## 0. Start here
 

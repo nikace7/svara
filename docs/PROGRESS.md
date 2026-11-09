@@ -74,7 +74,7 @@ minute, and one owner per worker pushed its session past 180 a minute. The suite
 one worker and rotates three fixture owners across spec files. It passes 38/38 twice, with
 peaks of 230/300, 130/180 and 26 of 30 sign-ins; a second full run inside 10 minutes still
 exceeds the sign-in quota (README). The API limits are unchanged. The superseded local
-`codex/feat/device-pairing` draft (`5fb45fc`) was deleted: its three finished commits were
+`feat/device-pairing` draft (`5fb45fc`) was deleted: its three finished commits were
 already in `main` and M4 rebuilt the rest.
 
 ## Live browser test on the local stack — 2026-10-01
@@ -710,7 +710,7 @@ deadline. Queue and heartbeat namespaces are validated and shared by API/worker.
 The first queue integration exposed a producer startup command issued before Redis
 was ready. Waiting for connection initialization, while keeping reconciliation
 nonblocking when disconnected, restored recovery. Separate RED/GREEN commits retain
-this work and the parser-pause regression on `codex/feat/media-authoring`.
+this work and the parser-pause regression on `feat/media-authoring`.
 
 Verified at this checkpoint:
 
