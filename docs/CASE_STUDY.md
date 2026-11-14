@@ -66,10 +66,3 @@ and [evaluation](EVALUATION.md).
   real hardware.
 - Review of the Nepali answers and speech by a fluent speaker.
 - Production deployment: the product runs locally and in Docker Compose on one machine.
-
-## For the author: the original CRV work
-
-> **This section is intentionally empty.** Only the author can describe the original
-> Custom Robot Voice work: their role, the team, what shipped, and what they may share
-> under their employment terms. Keep it separate from the evidence above. Nothing above
-> demonstrates anything about the original system.
