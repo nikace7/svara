@@ -13,7 +13,7 @@
     "@svara/config": "workspace:*",
     "@svara/contracts": "workspace:*",
     "@svara/domain": "workspace:*",
-    "bullmq": "6.3.4",
+    "bullmq": "6.7.6",
     "sharp": "0.35.5"
   }
 }
