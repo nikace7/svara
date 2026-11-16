@@ -26,6 +26,6 @@
     "socket.io": "4.8.4"
   },
   "devDependencies": {
-    "@types/busboy": "1.5.4"
+    "@types/busboy": "1.5.5"
   }
 }
