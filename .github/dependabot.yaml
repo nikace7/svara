@@ -3,8 +3,8 @@ updates:
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 3
     groups:
       nest:
         patterns: ['@nestjs/*']
@@ -12,7 +12,12 @@ updates:
         patterns: ['prisma', '@prisma/*']
       next-react:
         patterns: ['next', 'eslint-config-next', 'react', 'react-dom', '@types/react*']
+      minor-and-patch:
+        update-types: [minor, patch]
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    groups:
+      actions:
+        patterns: ['*']
